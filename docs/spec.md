@@ -29,3 +29,54 @@ Almost all M&S cost comes from Purchase Orders, and these POs are divided usuall
 Another way to group POs into is by the type of material:
 1- POs raised for stocked materials, these are parts that have Part Numbers created in the materials master in SAP, that allows us to place orders for directly on SAP. Most of these orders require demand signal to come in and ideally the PO would not be raised only when there is a shortage in supply, we rely mainly on SAP MRP to do the heavy lifting. Our demand comes mainly from reservations, the team raise a reservation for the part they require with the qty required and that gets raised in two ways, if it's a maintenance related part required for an asset to repair or service it, the team declare the part required in Maximo (Maintenance Management Business System Powered by IBM) and then the team triggers a reservation from Maximo as well, this reservation flows to SAP and gets reflected as demand, if there is supply (No stock on hand and no open POs and no Planned Orders) MRP will create planned order to balance supply with demand, next we have our M&S coordinator going into SAP and reviewing regularly the planned orders and convert them into Purchase Requisitions and then SAP would automatically creates a PO. Where I see the issue here is for the M&S coordintor not being able to add the required identifiers during the planned order conversion process preventing him from even adding something to link this PO to the project, that's why I thought of building my own layer of intelligence, to allow to capture important details about the PO.
 2- Second type is non stocked items, these could be either consumables that we don't create part numbers for, or could be a service. These get raised not directly on SAP, we use a separate business sytem called ARIBA, we have a team sitting in KL that process these requests. Our team raises Purchase Requisition in ARIBA and submits it, if the request was for something already in catalog in ARIBA, the PR will automatically generate a PO, if the team submits a special request, they manually populate the information and submit the PR, this request gets assigend to someone in KL team to review the quote provided by the user, and follow specific criteria, mainly based on PO value, if more than 5k they need to gather 3 quotes in total to compare between them, if user requests to go with this sole supplier KL team would create an exemption in a PowerApp which would come to me to approve, assuming I approve they will next process the PR and have a PO generated. The PO would be created eventually within SAP.
+
+A specific example, like Shell Crux project, and specifically let's talk about the current challenges that I have. I want to explain what is the way that things are currently being done versus what I think is the right way of doing it, or let's say the way that I want it to be. But I know I can't do that with our current business systems and with the limitations that we have. It will be very complicated, and that's exactly what I meant earlier by building a layer on top of our business systems. Because if I wanted to rely only on pulling the data from our own business systems, it will be very complicated to try and implement what I have in mind. So this layer that we're building is, to me, I think, inevitable. For example, this exercise that I have done myself by creating an Excel sheet. I initially took the data that was already available from the project P&L, which was created during the tender process. After we've been awarded and the team started discussing placing orders, I created this sheet, and I was trying to link the cost with the initial assumption and kind of keep track of things in terms of total cost, what we are assuming this cost will be, the status, high level, the POs. We'll pick two examples just so you understand the exact challenges, and it will allow me to explain easier by providing detailed information from these examples. Let's start with the CT strings. What I'm interested in mainly is how much is going to be the total cost of these strings and when they are likely to reflect in our P&L. For this example, we have 490K predicted to be invoiced by the supplier in Q4. After we place the PO and the PO number gets generated, I need to manually come here and put the PO number on this sheet so I can keep track of it. 
+
+So this is how things are being done at the moment. But what I want in terms of how things should be happening once, hopefully, we build the solution is to have like a simple web app, an interface where the P&L exercise initially gets recorded and input is being done in that interface, and for example, they would put that the coil strings will be costing $350k. I think for the P&L, it doesn't really necessarily have to specify when likely the cost will be hitting, like Q3 2025 or Q4 2025 or a different quarter. I think it should just specify high level, the spend type, the total cost expected, and maybe some comments. I believe this exercise would be done between the sales team or financial controller and myself being the resource manager. So I believe at this level, it should be sufficient to capture all these details. And then it would be saved, and we can say that's it for the initial phase of the P&L exercise. After we get awarded and we start the design phase I expect things to change either a little bit or sometimes a lot resulting in substantial cost increase compared to the initial P&L exercise, let's talk about the CT string, let's assume the P&L exerce was done in June 2024 and all the numbers in terms of cost cost assumtpions where recorded
+
+One of the views I'd like to see how the things look at the high level, something like below table in JSON format. I'd imagine I can update the initial cost assumptions on regular basis and can see how these assumptions evolved, and then we can see the actual invoiced value and the actual Open PO value, these two values would be retrieved from our system, and once we map the PO# to a specific project and spend type we can see also if it's been invoiced and the actual total open value in the system.
+
+Take another example is the ACTive M&S and CIRP M&S, these have 100s of POs within them, it would be ideal if we can drill through and see all these POs, maybe see another sub groups of spends under for example CIRP M&S, like hardware, CIRP Stack, and other sub groups to have an idea about what CIRP M&S has within it, and either another level that we can drill through, all the way until we drill through to the deepest level which would show us the actual POs.
+
+[
+  {
+    "Sub Business Line": "CT",
+    "Spend Type": "Coil Strings",
+    "Initial Cost Assumption Jun 2024": " 350 ",
+    "Updated Cost Assumption Jan 2025": " 490 ",
+    "Updated Cost Assumption Mar 2025": " 490 ",
+    "Invoiced As of Today": "514",
+    "Open PO Value": "0",
+    "Comments": "Two strings to be ordered"
+  },
+  {
+    "Sub Business Line": "CT",
+    "Spend Type": "Coil Drums",
+    "Initial Cost Assumption Jun 2024": " 350 ",
+    "Updated Cost Assumption Jan 2025": " 360 ",
+    "Updated Cost Assumption Mar 2025": " 370 ",
+    "Invoiced As of Today": "",
+    "Open PO Value": " 370 ",
+    "Comments": ""
+  },
+  {
+    "Sub Business Line": "CT",
+    "Spend Type": "ACTive M&S",
+    "Initial Cost Assumption Jun 2024": " 150 ",
+    "Updated Cost Assumption Jan 2025": " 350 ",
+    "Updated Cost Assumption Mar 2025": " 350 ",
+    "Invoiced As of Today": "302",
+    "Open PO Value": "",
+    "Comments": ""
+  },
+  {
+    "Sub Business Line": "TCP",
+    "Spend Type": "CIRP M&S",
+    "Initial Cost Assumption Jun 2024": " 500 ",
+    "Updated Cost Assumption Jan 2025": " 600 ",
+    "Updated Cost Assumption Mar 2025": " 900 ",
+    "Invoiced As of Today": "731",
+    "Open PO Value": "",
+    "Comments": ""
+  }
+]

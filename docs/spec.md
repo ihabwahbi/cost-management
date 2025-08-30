@@ -80,3 +80,169 @@ Take another example is the ACTive M&S and CIRP M&S, these have 100s of POs with
     "Comments": ""
   }
 ]
+
+## System Requirements (From Stakeholder Analysis)
+
+### User Roles & Permissions Model
+
+#### Role Hierarchy
+1. **Resource Manager (System Owner)**
+   - Full system access and configuration rights
+   - Can classify POs directly or delegate to others
+   - Override authority on all classifications
+   - Approve budget increases and new spend classifications
+   - Access to all projects and complete visibility
+
+2. **M&S Coordinator (Reports to Resource Manager)**
+   - Bulk PO classification capabilities
+   - Process MRP conversions and ARIBA requests
+   - Cannot create new projects or spend types without approval
+   - Full visibility of PO inbox and processing queue
+
+3. **PSD Manager (Operations Lead)**
+   - Can classify POs for their projects
+   - Delegation rights to their CECs
+   - Request budget increases (requires Resource Manager approval)
+   - Request new spend classifications (requires approval)
+   - View and manage their project's cost allocations
+
+4. **CEC (Customer Engagement Coordinator)**
+   - Classification rights when delegated by PSD Manager
+   - Can add contextual notes and justifications
+   - Flag customer-driven changes
+   - Read access to their assigned projects
+
+5. **Finance Controller**
+   - Read-only access to all data
+   - Export capabilities for reporting
+   - Access to audit trails and change history
+   - Period-end lock controls
+
+6. **Sales/Tender Team**
+   - Create initial P&L assumptions
+   - Read-only access post-handover
+   - View performance vs assumptions for lessons learned
+
+### Core Functional Requirements
+
+#### PO Classification Workflow
+1. **Inbox Management**
+   - Display new unclassified POs from daily SAP/ARIBA sync
+   - Show aging of unprocessed POs
+   - Filter by source (GOLD, EMS, Third Party)
+   - Sort by value, date, vendor
+
+2. **Classification Process**
+   - Single or bulk selection capability
+   - Mandatory fields: Project, Primary Spend Type
+   - Optional fields: Sub-categories (multiple levels), Comments
+   - Delegation option to specific user
+   - Save as draft or submit for processing
+
+3. **Approval Workflows**
+   - Budget increase requests (PSD → Resource Manager)
+   - New spend classification requests (PSD/CEC → Resource Manager)
+   - Emergency PO approvals with retroactive classification
+   - Exemption approvals for sole supplier situations
+
+#### P&L Assumption Management
+1. **Initial Capture (Tender Phase)**
+   - Project basic information
+   - Spend type breakdown with initial assumptions
+   - Comments and justification for each line
+   - Version control with timestamp and author
+
+2. **Evolution Tracking**
+   - Quarterly/monthly review updates
+   - Track changes with justification
+   - Compare versions side by side
+   - Maintain complete history (Jun 2024 → Jan 2025 → Mar 2025)
+
+3. **Variance Analysis**
+   - Actual vs Assumption comparison
+   - Invoiced vs Open PO tracking
+   - Drill-down from project → spend type → sub-category → individual POs
+   - Explanatory notes for variances
+
+#### Dashboard & Reporting
+1. **Resource Manager Command Center**
+   - Portfolio view of all projects vs budget
+   - Burn rate analysis by project and spend type
+   - P&L assumption evolution timeline
+   - Unprocessed PO alerts
+   - Monthly spend trends
+
+2. **Operational Views**
+   - PSD Manager: Project-specific dashboards
+   - M&S Coordinator: Processing queue and bulk action interface
+   - CEC: Assigned POs and classification tasks
+
+3. **Financial Reporting**
+   - Month-end reconciliation reports
+   - Audit trail exports
+   - Budget vs Actual with drill-through
+   - Invoice status tracking
+
+### Data Model Requirements
+
+#### Core Entities
+1. **Projects**
+   - Project code, name, description
+   - Start/end dates
+   - Customer information
+   - Business line mapping (RPE, RPI, RPS)
+   - Legacy segment mapping (Wireline, Testing, etc.)
+
+2. **Purchase Orders**
+   - PO number, line items
+   - Vendor details
+   - Values, dates (created, expected invoice, actual invoice)
+   - Source system (SAP/ARIBA)
+   - Classification status
+
+3. **Spend Classifications**
+   - Hierarchical structure (Type → Sub-type → Further categories)
+   - Project association
+   - Budget allocations
+   - Custom categories per project
+
+4. **P&L Assumptions**
+   - Version control
+   - Assumption values by spend type
+   - Update history with justifications
+   - Author and timestamp tracking
+
+### Integration Requirements
+
+#### SAP Integration
+- Daily batch sync of new POs
+- Pull: PO details, invoice status, GL accounts
+- Handle GOLD hub orders without project identifiers
+- Process MRP-generated POs
+
+#### ARIBA Integration
+- Sync purchase requisitions and POs
+- Capture special requests and exemptions
+- Link to KL team processing queue
+
+#### Maximo Integration (Future)
+- Link maintenance reservations to POs
+- Asset association for maintenance spend
+- Work order references
+
+### Business Rules
+
+1. **Classification Rules**
+   - All POs must be classified within 5 business days
+   - Delegation expires after 3 days, returns to delegator
+   - Bulk actions limited to 100 POs at once
+
+2. **Approval Thresholds**
+   - Budget increases > 10% require executive approval
+   - New spend categories require Resource Manager approval
+   - Emergency POs > $50k require retroactive justification
+
+3. **Period Controls**
+   - Month-end lock 3 days after period close
+   - No retroactive changes beyond 1 month without Finance approval
+   - Quarterly P&L assumption reviews mandatory

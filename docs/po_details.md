@@ -62,24 +62,8 @@ The following can be considered as the metadata and schema of the table, I'm pro
     "Local currency (IR)": "AUD",
     "Effective Invoice Amount in Document currency": "58699.46",
     "Document Currency (IR)": "USD",
-    "Material Group": "MMPT222P",
-    "Old_STCode": "",
-    "SCCode": "",
-    "Commodity": "",
-    "Category": "",
-    "Sub Category": "",
-    "Family": "",
-    "Region ": "GLB-OPS",
-    "Basin": "ASIA",
-    "GeoUnit": "APG",
-    "Mgmt Country": "AUS",
-    "Group": "RPF",
-    "Business Line": "RPE",
-    "Sub Business Line": "WLES",
-    "Material Business Line": "RPE",
-    "Material SubBusiness Line": "WLES",
-    "GTS Flag": "PO Not Blocked By GTS"
+    "Sub Business Line": "WLES", // We will use this when we do the grouping and filtering when we do the mapping in our inbox, we will have to use this one, the company code and plant to look at the POs for a project that is under one of the project managers.
+    "GTS Flag": "PO Not Blocked By GTS" // This is refers to a PO being blocked for logistics reasons, if GTS is blocked the PO won't generate a sales order even if it's fully approved, sometimes this flag is overlooked, our logistics team is not expected to release GTS without being notified to release it.
   }
 ]
 ```
-

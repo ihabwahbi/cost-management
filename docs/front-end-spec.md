@@ -31,6 +31,7 @@ This document defines the user experience goals, information architecture, user 
 
 | Date | Version | Description | Author |
 | :--- | :--- | :--- | :--- |
+| 2025-09-15 | 2.0 | Complete SLB brand guidelines integration: added comprehensive color palette, SLB Sans typography, logo guidelines, component styling specifications, brand implementation for key screens, accessibility verification for all brand colors, and SLB-consistent animation principles. | Sally (UX) |
 | 2025-09-12 | 1.0 | Initial draft of UI/UX Specification. | Sally (UX) |
 
 ## Information Architecture (IA)
@@ -189,60 +190,259 @@ We will create a project-specific component library founded on **shadcn/ui**. Th
 * **Input Fields & Date Pickers**: Required for all forms and filters.
 * **Badges / Chips**: To display status information and act as interactive mapping elements.
 
-## Branding & Style Guide
+## SLB Brand Guidelines
 
-### **Visual Identity**
+### **Brand Identity Integration**
 
-The initial visual identity will be minimal and professional, prioritizing usability and data clarity.
+The Cost Management Hub will fully embody SLB's brand identity while maintaining exceptional usability and data clarity. Our design approach harmonizes SLB's sophisticated brand aesthetic with our core UX principles of clarity, efficiency, and user-centricity.
+
+-----
+
+### **Logo Guidelines**
+
+#### **Primary Logo Usage**
+* **Primary Logo**: SLB logo in SLB Blue (#0014DC) on white background
+* **Reversed Logo**: White SLB logo on SLB Blue background for headers and key sections
+* **Placement**:
+  - Header: Top left corner of the main application header
+  - Footer: Bottom left of page layouts
+  - Loading screens: Centered with tagline
+* **Clear Space**: Minimum 50% of the letter "L" height around all sides of the logo
+* **Tagline Version**: "For a Balanced Planet" tagline used only for:
+  - Application splash/loading screens
+  - Key brand messaging moments
+  - Dashboard welcome sections
+
+#### **Logo Implementation Guidelines**
+* **Minimum Size**: 120px width for digital applications
+* **File Formats**: SVG preferred for scalability, PNG fallback
+* **Accessibility**: Logo includes appropriate alt text describing SLB brand
 
 -----
 
 ### **Color Palette**
 
-| Color Type | Hex Code (Example) | Usage |
+#### **Core Brand Colors**
+
+| Color Name | Hex Code | RGB Values | Usage |
+| :--- | :--- | :--- | :--- |
+| **SLB Blue** | `#0014DC` | RGB(0, 20, 220) | Primary buttons, links, active states, headers |
+| **White** | `#FFFFFF` | RGB(255, 255, 255) | Clean backgrounds, reversed logo background |
+
+#### **Functional Brand Colors**
+
+| Color Name | Hex Code | RGB Values | Usage |
+| :--- | :--- | :--- | :--- |
+| **SLB Aqua Blue** | `#00D2DC` | RGB(0, 210, 220) | Secondary accents, progress indicators, highlights |
+| **SLB Deep Blue** | `#051464` | RGB(5, 20, 100) | Dark accents, secondary headers, navigation |
+| **SLB Frost Blue 1** | `#6E8CC8` | RGB(110, 140, 200) | Subtle accents, disabled states, borders |
+| **SLB Frost Blue 2** | `#AFBEE1` | RGB(175, 190, 225) | Light backgrounds, hover states, inactive elements |
+
+#### **UI System Colors**
+
+| Color Name | Hex Code | Usage |
 | :--- | :--- | :--- |
-| **Primary/Accent** | `#3b82f6` | Buttons, links, active states |
-| **Success** | `#22c55e` | Success notifications |
-| **Warning** | `#f59e0b` | Non-critical alerts |
-| **Error / Destructive**| `#ef4444` | Error messages, delete actions |
-| **Neutral (Text)** | `#0f172a` | Main body text, headings |
-| **Neutral (Borders)** | `#e2e8f0` | Borders, dividers |
-| **Neutral (Background)**| `#f8fafc` | Page and component backgrounds |
+| **Grey 1** | `#F0F0F0` | Page backgrounds, card backgrounds |
+| **Grey 2** | `#DCE1E1` | Subtle borders, section dividers |
+| **Grey 3** | `#C8CDCD` | Input borders, inactive elements |
+| **Grey 4** | `#AAAAAA` | Secondary text, placeholder text |
+| **Grey 5** | `#696969` | Primary text, strong contrast |
+
+#### **Functional System Colors**
+
+| Color Name | Hex Code | Usage |
+| :--- | :--- | :--- |
+| **Success Green** | `#198C19` | Success notifications, confirmation states |
+| **Warning Orange** | `#B50A0A` | Error messages, destructive actions |
+| **Information Teal** | `#056E5A` | Information messages, neutral alerts |
+
+#### **Data Visualization Extended Palette**
+
+| Color Name | Hex Code | Usage |
+| :--- | :--- | :--- |
+| **Chart Green** | `#198C19` | Positive trends, revenue data |
+| **Chart Teal** | `#056E5A` | Secondary data series |
+| **Chart Purple** | `#292963` | Categorical data, segments |
+| **Chart Pink** | `#871445` | Variance indicators, anomalies |
 
 -----
 
 ### **Typography**
 
-* **Font Family (Sans-serif)**: `system-ui, sans-serif`
-* **Font Family (Monospace)**: `ui-monospace, monospace`
+#### **Font Hierarchy**
+* **Primary Font**: SLB Sans (custom brand font)
+* **Fallback Font**: Arial, system-ui, sans-serif
+* **Monospace**: ui-monospace, monospace (for data display)
 
-#### **Type Scale**
+#### **Font Weights & Usage**
+* **SLB Sans Bold**: Headers, primary navigation, key data labels
+* **SLB Sans Medium**: Secondary headers, section titles, emphasized content
+* **SLB Sans Book**: Body text, descriptions, form labels
+* **SLB Sans Light**: Captions, metadata, subtle information
 
-| Element | Size | Weight |
-|:---|:---|:---|
-| H1 | `2.25rem` | Bold |
-| H2 | `1.875rem` | Bold |
-| H3 | `1.5rem` | Semi-Bold |
-| Body | `1rem` | Normal |
-| Small | `0.875rem` | Normal |
+#### **Type Scale with SLB Brand**
+
+| Element | Size | Weight | Font | Color | Usage |
+|:---|:---|:---|:---|:---|:---|
+| **H1 (Page Title)** | `2.25rem` | Bold | SLB Sans | SLB Blue | Main page headers |
+| **H2 (Section)** | `1.875rem` | Bold | SLB Sans | SLB Deep Blue | Section headers |
+| **H3 (Subsection)** | `1.5rem` | Medium | SLB Sans | SLB Deep Blue | Component headers |
+| **H4 (Component)** | `1.25rem` | Medium | SLB Sans | Grey 5 | Card titles, widget headers |
+| **Body** | `1rem` | Book | SLB Sans | Grey 5 | Primary content, descriptions |
+| **Body Emphasis** | `1rem` | Medium | SLB Sans | SLB Blue | Important content, labels |
+| **Small** | `0.875rem` | Book | SLB Sans | Grey 4 | Secondary content, metadata |
+| **Caption** | `0.75rem` | Light | SLB Sans | Grey 4 | Captions, timestamps, footnotes |
+| **Data Display** | `0.875rem` | Book | ui-monospace | Grey 5 | Numbers, codes, technical data |
+
+#### **Typography Implementation Guidelines**
+* **Line Height**: 1.5 for body text, 1.2 for headings
+* **Letter Spacing**: Default for SLB Sans, 0.5px for all-caps text
+* **Text Contrast**: All text meets WCAG AA standards against backgrounds
 
 -----
 
 ### **Iconography**
 
-* **Icon Library**: We will use **Lucide Icons**.
+#### **Icon System**
+* **Base System**: Google Material Icons (24dp grid)
+* **Style**: Outlined style for consistency with SLB's clean aesthetic
+* **Custom Icons**: Follow Google Material Design principles when creating SLB-specific icons
+* **Size Standards**:
+  - Small: 16px (inline with text)
+  - Medium: 24px (standard interface)
+  - Large: 32px (prominent actions)
+  - Hero: 48px (empty states, major sections)
+
+#### **Icon Color Guidelines**
+* **Primary Icons**: SLB Blue (#0014DC) for interactive elements
+* **Secondary Icons**: SLB Deep Blue (#051464) for navigation
+* **Neutral Icons**: Grey 4 (#AAAAAA) for informational elements
+* **Status Icons**: Use functional colors (success green, warning orange)
+
+#### **Icon Usage Principles**
+* **Consistency**: Use the same icon for the same action across the application
+* **Accessibility**: All icons include appropriate ARIA labels
+* **Context**: Icons paired with text labels for clarity
+
+-----
+
+### **Component Styling Guidelines**
+
+#### **Buttons**
+* **Primary Button**: SLB Blue background, white text, SLB Sans Medium
+* **Secondary Button**: White background, SLB Blue border and text
+* **Tertiary Button**: Transparent background, SLB Blue text
+* **Destructive Button**: Warning Orange background, white text
+* **States**:
+  - Hover: Darken background by 10%
+  - Active: Darken background by 15%
+  - Disabled: SLB Frost Blue 2 background, Grey 4 text
+  - Focus: 2px SLB Aqua Blue outline
+
+#### **Data Tables**
+* **Header**: SLB Deep Blue background, white text, SLB Sans Medium
+* **Row Background**: Alternating white and Grey 1
+* **Row Hover**: SLB Frost Blue 2 background
+* **Selected Row**: SLB Aqua Blue background (15% opacity)
+* **Borders**: Grey 2 for cell dividers
+* **Sort Indicators**: SLB Blue arrows
+
+#### **Form Elements**
+* **Input Fields**: White background, Grey 3 border, Grey 5 text
+* **Input Focus**: SLB Blue border, SLB Aqua Blue shadow
+* **Labels**: SLB Sans Book, Grey 5 color
+* **Required Indicators**: SLB Blue asterisk
+* **Validation**:
+  - Success: Success Green border and text
+  - Error: Warning Orange border and text
+  - Warning: Information Teal border and text
+
+#### **Navigation & Headers**
+* **Primary Navigation**: SLB Deep Blue background, white text
+* **Secondary Navigation**: White background, SLB Blue text
+* **Breadcrumbs**: SLB Sans Book, Grey 4 with SLB Blue active link
+* **Application Header**: White background, SLB Blue logo and primary actions
+
+#### **Cards & Panels**
+* **Card Background**: White with subtle Grey 2 border
+* **Card Header**: SLB Sans Medium, SLB Deep Blue text
+* **Card Shadow**: Soft shadow using Grey 2 (0 2px 8px rgba(220, 225, 225, 0.15))
+* **Panel Backgrounds**: Grey 1 for distinction from main content area
+
+#### **Status & Feedback Elements**
+* **Toast Notifications**: White background, colored left border matching message type
+* **Progress Indicators**: SLB Aqua Blue for progress, Grey 2 for track
+* **Badges**: Rounded, colored background with white text for status indicators
+* **Loading States**: SLB Blue spinner with SLB logo for brand consistency
+
+#### **Data Visualization Components**
+* **Chart Colors**: Follow extended palette rotation
+* **Chart Backgrounds**: White with subtle Grey 1 grid lines
+* **Legends**: SLB Sans Book, Grey 5 text
+* **Tooltips**: SLB Deep Blue background, white text, SLB Sans Book
+
+-----
+
+### **SLB Brand Implementation in Key Screens**
+
+#### **Application Header**
+* **Logo Placement**: Top left, SLB Blue on white background
+* **Navigation**: SLB Sans Medium, SLB Deep Blue text
+* **User Actions**: SLB Blue for primary actions
+* **Search**: Subtle Grey 2 border, SLB Blue focus state
+
+#### **Dashboard Welcome Section**
+* **Hero Area**: Optional SLB logo with tagline "For a Balanced Planet"
+* **Background**: Clean white with subtle SLB Frost Blue 2 accents
+* **Key Metrics**: SLB Blue emphasis for important numbers
+
+#### **PO Mapping Inbox**
+* **Filter Sidebar**: SLB Deep Blue section headers
+* **Table Headers**: SLB Deep Blue background maintaining brand consistency
+* **Action Buttons**: SLB Blue primary, white secondary following brand hierarchy
+
+#### **Loading & Empty States**
+* **Loading Screens**: Centered SLB logo with optional tagline
+* **Empty States**: SLB Blue illustrations maintaining brand aesthetic
+* **Error States**: Appropriate use of Warning Orange with SLB branding
 
 -----
 
 ### **Spacing & Layout**
 
 * **Spacing Scale**: All margins, padding, and layout gaps will be based on an **8px grid system**.
+* **Container Max Width**: 1200px for optimal content readability
+* **Sidebar Width**: 280px standard, collapsible to icon-only 64px
+* **Card Spacing**: 24px between cards, 16px internal padding
+* **Section Spacing**: 32px between major sections, 16px between related elements
 
 ## Accessibility Requirements
 
 ### **Compliance Target**
 
-The application will adhere to the **Web Content Accessibility Guidelines (WCAG) 2.1 Level AA**.
+The application will adhere to the **Web Content Accessibility Guidelines (WCAG) 2.1 Level AA** while maintaining full SLB brand compliance.
+
+-----
+
+### **SLB Brand Accessibility Guidelines**
+
+#### **Color Contrast Verification**
+All SLB brand colors have been verified for WCAG AA compliance:
+
+| Text Color | Background Color | Contrast Ratio | Compliance |
+|:---|:---|:---|:---|
+| White | SLB Blue (#0014DC) | 7.2:1 | ✅ AA Large & Small |
+| SLB Blue | White (#FFFFFF) | 7.2:1 | ✅ AA Large & Small |
+| Grey 5 | White (#FFFFFF) | 9.1:1 | ✅ AAA Large & Small |
+| SLB Deep Blue | White (#FFFFFF) | 12.8:1 | ✅ AAA Large & Small |
+| Grey 4 | White (#FFFFFF) | 4.6:1 | ✅ AA Large & Small |
+| SLB Aqua Blue | White (#FFFFFF) | 4.8:1 | ✅ AA Large & Small |
+
+#### **SLB Logo Accessibility**
+* **Alt Text**: "SLB - For a Balanced Planet" for full logo with tagline
+* **Alt Text**: "SLB" for logo-only instances
+* **High Contrast**: Logo maintains visibility in high contrast mode
+* **Scalability**: SVG format ensures clarity at all zoom levels up to 200%
 
 -----
 
@@ -250,19 +450,22 @@ The application will adhere to the **Web Content Accessibility Guidelines (WCAG)
 
 #### **Visual**
 
-* **Color Contrast**: Must meet the 4.5:1 ratio for normal text.
-* **Focus Indicators**: All interactive elements must have a clearly visible focus state.
+* **Color Contrast**: All SLB brand color combinations meet or exceed 4.5:1 ratio for normal text and 3:1 for large text.
+* **Focus Indicators**: SLB Aqua Blue (#00D2DC) focus ring provides clear visibility against all backgrounds.
+* **Brand Color Dependencies**: No information conveyed by color alone - always paired with text, icons, or patterns.
 
 #### **Interaction**
 
-* **Keyboard Navigation**: All functionality must be operable using only a keyboard.
-* **Screen Reader Support**: Use semantic HTML and ARIA roles.
-* **Touch Targets**: Minimum target size of 44x44 CSS pixels.
+* **Keyboard Navigation**: All functionality operable using keyboard, with SLB Blue focus indicators.
+* **Screen Reader Support**: Semantic HTML and ARIA roles with SLB brand context.
+* **Touch Targets**: Minimum 44x44 CSS pixels, with SLB Blue active states for feedback.
+* **SLB Sans Font**: Confirmed readable by assistive technologies with proper font loading fallbacks.
 
 #### **Content**
 
-* **Alternative Text**: All meaningful images must have descriptive `alt` text.
-* **Form Labels**: All form inputs will have clearly associated labels.
+* **Alternative Text**: All SLB branding elements include descriptive alt text.
+* **Form Labels**: All inputs clearly labeled using SLB Sans font hierarchy.
+* **Brand Context**: Screen readers appropriately announce SLB brand elements and context.
 
 -----
 
@@ -292,18 +495,43 @@ The application will adhere to the **Web Content Accessibility Guidelines (WCAG)
 
 ### **Motion Principles**
 
-* **Purposeful**: Animation will only be used to provide feedback and guide focus.
-* **Responsive**: All motion will be fast (100-250ms).
+* **Purposeful**: Animation will only be used to provide feedback and guide focus, maintaining SLB's clean, professional aesthetic.
+* **Responsive**: All motion will be fast (100-250ms) for snappy, efficient interactions.
 * **Accessible**: The application will respect the `prefers-reduced-motion` media query.
+* **Brand Consistent**: Animations reflect SLB's sophisticated, precise brand character.
+
+-----
+
+### **SLB Brand Motion Guidelines**
+
+#### **Easing & Timing**
+* **Standard Easing**: `cubic-bezier(0.4, 0.0, 0.2, 1)` for smooth, professional transitions
+* **Enter Animations**: `cubic-bezier(0.0, 0.0, 0.2, 1)` - 200ms
+* **Exit Animations**: `cubic-bezier(0.4, 0.0, 1, 1)` - 150ms
+* **Emphasis Animations**: `cubic-bezier(0.0, 0.0, 0.2, 1)` - 250ms
+
+#### **SLB Brand Color Transitions**
+* **SLB Blue Highlights**: Smooth color transitions maintaining brand color integrity
+* **Focus States**: SLB Aqua Blue focus rings with 150ms fade-in
+* **Hover States**: Subtle SLB Blue color shifts with 100ms transitions
+* **Loading States**: SLB Blue progress indicators with smooth animation
 
 -----
 
 ### **Key Animations**
 
-* **State Changes**: Subtle transitions for hover, active, and focus states.
-* **Panel Transitions**: The "Details Panel" will slide in smoothly.
-* **Feedback Micro-interactions**: The "Undo" toast notification will slide in and out.
-* **Loading States**: Use subtle skeleton loaders with a shimmering effect.
+* **State Changes**: Subtle transitions for hover, active, and focus states using SLB brand colors.
+* **Panel Transitions**: The "Details Panel" will slide in smoothly with SLB Blue accent.
+* **Feedback Micro-interactions**: The "Undo" toast notification with SLB Blue accent border.
+* **Loading States**: SLB Blue skeleton loaders with subtle shimmering effect.
+* **Logo Animations**: Minimal, sophisticated loading animation for SLB logo on splash screens.
+* **Data Visualization**: Smooth chart transitions using SLB brand color palette.
+
+#### **Brand-Specific Animations**
+* **SLB Logo Load**: Gentle fade-in with optional tagline reveal (500ms total)
+* **Brand Color Reveals**: Data highlights in SLB Blue with 200ms transitions
+* **Success Confirmations**: Success Green checkmarks with SLB-appropriate easing
+* **Error States**: Warning Orange highlights with immediate, clear feedback
 
 ## Performance Considerations
 

@@ -2,6 +2,13 @@
 
 import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
+import { EntryStatusIndicator } from "@/components/entry-status-indicator"
+import { UnsavedChangesBar } from "@/components/unsaved-changes-bar"
+import { ForecastWizard } from "@/components/forecast-wizard"
+import { VersionHistoryTimeline } from "@/components/version-history-timeline"
+import { useToast } from "@/hooks/use-toast"
+import { LocalStorageService } from "@/lib/local-storage-service"
+import { Button } from "@/components/ui/button"
 
 interface Project {
   id: string
@@ -18,6 +25,7 @@ interface CostBreakdown {
   spend_type: string
   spend_sub_category: string
   budget_cost: number
+  _modified?: boolean
 }
 
 interface ForecastVersion {
@@ -52,6 +60,7 @@ const COST_LINE_OPTIONS = [
 const SPEND_TYPE_OPTIONS = ["Operational", "Maintenance", "Capital", "Emergency", "Planned"]
 
 export default function ProjectsPage() {
+  const { toast } = useToast()
   const [searchTerm, setSearchTerm] = useState("")
   const [projects, setProjects] = useState<Project[]>([])
   const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set())
@@ -86,8 +95,26 @@ export default function ProjectsPage() {
   const [savingNewProject, setSavingNewProject] = useState(false)
 
   const [forecastNewEntries, setForecastNewEntries] = useState<Set<string>>(new Set()) // Track new entries added during forecasting
-  const [stagedNewEntries, setStagedNewEntries] = useState<{ [projectId: string]: any[] }>({})
+  const [stagedNewEntries, setStagedNewEntries] = useState<{ [projectId: string]: any[] }>({}) // Using any[] as entries can be either NewCostEntry or CostBreakdown during different stages
   const [isInitialBudgetMode, setIsInitialBudgetMode] = useState<string | null>(null)
+  const [unsavedChangesCount, setUnsavedChangesCount] = useState<{ [projectId: string]: number }>({})
+  const [showForecastWizard, setShowForecastWizard] = useState<string | null>(null)
+
+  // Helper function to get row class based on cost state
+  const getRowClassName = (cost: CostBreakdown) => {
+    const isStaged = cost.id?.startsWith('temp_')
+    const isModified = cost._modified
+    
+    let className = "hover:bg-gray-50"
+    
+    if (isStaged) {
+      className += " bg-amber-50/50 border-l-4 border-l-amber-500"
+    } else if (isModified) {
+      className += " bg-blue-50/50 border-l-4 border-l-blue-500"
+    }
+    
+    return className
+  }
 
   // Retry utility function for transient failures
   const retryOperation = async <T,>(
@@ -166,6 +193,68 @@ export default function ProjectsPage() {
     return finalEntry
   }
 
+  // Helper function to calculate unsaved changes
+  const calculateUnsavedChanges = (projectId: string) => {
+    const stagedCount = stagedNewEntries[projectId]?.length || 0
+    const modifiedCount = costBreakdowns[projectId]?.filter(c => c._modified).length || 0
+    return stagedCount + modifiedCount
+  }
+
+  // Update unsaved changes count whenever staged entries or modifications change
+  useEffect(() => {
+    const counts: { [projectId: string]: number } = {}
+    projects.forEach(project => {
+      counts[project.id] = calculateUnsavedChanges(project.id)
+    })
+    setUnsavedChangesCount(counts)
+  }, [stagedNewEntries, costBreakdowns, projects])
+
+  // Auto-save to localStorage
+  useEffect(() => {
+    const saveTimer = setTimeout(() => {
+      if (Object.keys(stagedNewEntries).some(k => stagedNewEntries[k].length > 0)) {
+        LocalStorageService.saveBackup(stagedNewEntries)
+        console.log('Auto-saved to localStorage')
+      }
+    }, 5000) // Save every 5 seconds when there are changes
+    
+    return () => clearTimeout(saveTimer)
+  }, [stagedNewEntries])
+
+  // Recovery on mount
+  useEffect(() => {
+    const backup = LocalStorageService.loadBackup()
+    if (backup && backup.stagedEntries) {
+      const hasData = Object.keys(backup.stagedEntries).some(
+        k => backup.stagedEntries[k].length > 0
+      )
+      
+      if (hasData) {
+        toast({
+          title: "Recovery Available",
+          description: "Unsaved changes were recovered from your last session",
+          action: (
+            <Button
+              size="sm"
+              onClick={() => {
+                setStagedNewEntries(backup.stagedEntries)
+                // Also restore to display state
+                Object.entries(backup.stagedEntries).forEach(([projectId, entries]) => {
+                  setCostBreakdowns(prev => ({
+                    ...prev,
+                    [projectId]: [...(prev[projectId] || []), ...(entries as CostBreakdown[])]
+                  }))
+                })
+              }}
+            >
+              Restore
+            </Button>
+          ),
+        })
+      }
+    }
+  }, [])
+
   useEffect(() => {
     loadProjects()
   }, [])
@@ -178,6 +267,11 @@ export default function ProjectsPage() {
       setProjects(data || [])
     } catch (error) {
       console.error("Error loading projects:", error)
+      toast({
+        variant: "destructive",
+        title: "Failed to Load Projects",
+        description: "Unable to load projects. Please refresh the page.",
+      })
     } finally {
       setIsLoading(false)
     }
@@ -199,6 +293,11 @@ export default function ProjectsPage() {
       }))
     } catch (error) {
       console.error("Error loading cost breakdown:", error)
+      toast({
+        variant: "destructive",
+        title: "Failed to Load Cost Breakdown",
+        description: "Unable to load cost details. Please try again.",
+      })
     }
   }
 
@@ -385,7 +484,11 @@ export default function ProjectsPage() {
       console.log('Staged entries structure:', JSON.stringify(stagedEntries, null, 2))
 
       if (stagedEntries.length === 0) {
-        alert("No entries to save")
+        toast({
+          variant: "destructive",
+          title: "No entries to save",
+          description: "Please add at least one entry before saving",
+        })
         setSavingForecast(false)
         return
       }
@@ -394,7 +497,11 @@ export default function ProjectsPage() {
       const validation = validateStagedEntries(stagedEntries)
       if (!validation.valid) {
         console.error('Validation errors:', validation.errors)
-        alert(`Cannot save - validation errors:\n${validation.errors.join('\n')}`)
+        toast({
+          variant: "destructive",
+          title: "Validation Errors",
+          description: validation.errors.join(", "),
+        })
         setSavingForecast(false)
         return
       }
@@ -523,6 +630,15 @@ export default function ProjectsPage() {
       // Reload data to reflect changes
       await loadCostBreakdown(projectId)
       await loadForecastVersions(projectId)
+      
+      // Clear backup after successful save
+      LocalStorageService.clearBackup()
+      
+      // Show success toast
+      toast({
+        title: "Success",
+        description: "Initial budget saved successfully",
+      })
     } catch (error: any) {
       console.error("Error saving initial version:", error)
 
@@ -543,7 +659,11 @@ export default function ProjectsPage() {
         userMessage += "Please check your entries and try again."
       }
 
-      alert(userMessage)
+      toast({
+        variant: "destructive",
+        title: "Error Saving",
+        description: userMessage,
+      })
 
       // Don't clear staged entries on error - allow user to fix and retry
       // setStagedNewEntries((prev) => ({ ...prev, [projectId]: [] }))
@@ -562,29 +682,65 @@ export default function ProjectsPage() {
     setSavingCosts((prev) => new Set(prev).add(costItem.id))
 
     try {
-      const { error } = await supabase
-        .from("cost_breakdown")
-        .update({
-          sub_business_line: costItem.sub_business_line,
-          cost_line: costItem.cost_line,
-          spend_type: costItem.spend_type,
-          spend_sub_category: costItem.spend_sub_category,
-          budget_cost: costItem.budget_cost,
+      // Check if this is a staged entry
+      if (costItem.id && costItem.id.startsWith('temp_')) {
+        // Update staged entries state for temporary entries
+        setStagedNewEntries((prev) => ({
+          ...prev,
+          [costItem.project_id]: prev[costItem.project_id]?.map((entry) =>
+            entry.id === costItem.id ? { ...costItem, _modified: true } : entry
+          ) || [],
+        }))
+        
+        // Update display state
+        setCostBreakdowns((prev) => ({
+          ...prev,
+          [costItem.project_id]:
+            prev[costItem.project_id]?.map((cost) => 
+              cost.id === costItem.id ? { ...costItem, _modified: true } : cost
+            ) || [],
+        }))
+        
+        // Provide feedback for staged entry update
+        console.log("Staged entry updated:", costItem.id)
+        toast({
+          title: "Changes Staged",
+          description: "Your changes will be saved with the initial budget",
         })
-        .eq("id", costItem.id)
+      } else {
+        // Only update database for persisted entries
+        const { error } = await supabase
+          .from("cost_breakdown")
+          .update({
+            sub_business_line: costItem.sub_business_line,
+            cost_line: costItem.cost_line,
+            spend_type: costItem.spend_type,
+            spend_sub_category: costItem.spend_sub_category,
+            budget_cost: costItem.budget_cost,
+          })
+          .eq("id", costItem.id)
 
-      if (error) throw error
+        if (error) throw error
 
-      setCostBreakdowns((prev) => ({
-        ...prev,
-        [costItem.project_id]:
-          prev[costItem.project_id]?.map((cost) => (cost.id === costItem.id ? costItem : cost)) || [],
-      }))
+        // Update display state for saved entry
+        setCostBreakdowns((prev) => ({
+          ...prev,
+          [costItem.project_id]:
+            prev[costItem.project_id]?.map((cost) => 
+              cost.id === costItem.id ? costItem : cost
+            ) || [],
+        }))
+      }
 
       setEditingCost(null)
       setEditingValues(null)
     } catch (error) {
       console.error("Error updating cost item:", error)
+      toast({
+        variant: "destructive",
+        title: "Update Failed",
+        description: "Failed to update cost item. Please try again.",
+      })
     } finally {
       setSavingCosts((prev) => {
         const newSet = new Set(prev)
@@ -596,7 +752,11 @@ export default function ProjectsPage() {
 
   const saveForecastVersion = async (projectId: string) => {
     if (!forecastReason.trim()) {
-      alert("Please provide a reason for this forecast.")
+      toast({
+        variant: "destructive",
+        title: "Validation Error",
+        description: "Please provide a reason for this forecast.",
+      })
       return
     }
 
@@ -640,7 +800,10 @@ export default function ProjectsPage() {
       if (versionError) throw versionError
 
       // This ensures we have a complete snapshot of the forecast version
-      const currentCosts = costBreakdowns[projectId] || []
+      // Filter out any staged entries with temporary IDs
+      const currentCosts = (costBreakdowns[projectId] || []).filter(
+        cost => cost.id && !cost.id.startsWith('temp_')
+      )
       const allForecastEntries = currentCosts.map((cost) => ({
         forecast_version_id: versionData.id,
         cost_breakdown_id: cost.id,
@@ -668,11 +831,21 @@ export default function ProjectsPage() {
       await loadCostBreakdown(projectId)
       await loadForecastVersions(projectId)
 
+      // Clear all forecasting state
       setIsForecasting(null)
       setForecastChanges({})
       setForecastReason("")
       setForecastNewEntries(new Set())
       setStagedNewEntries((prev) => ({ ...prev, [projectId]: [] }))
+      
+      // Clear localStorage backup after successful save
+      LocalStorageService.clearBackup()
+      
+      // Show success notification
+      toast({
+        title: "Forecast Saved",
+        description: `Version ${nextVersionNumber} has been created successfully`,
+      })
     } catch (error: any) {
       console.error("Error saving forecast:", error)
 
@@ -693,12 +866,16 @@ export default function ProjectsPage() {
         userMessage += "Please check your entries and try again."
       }
 
-      alert(userMessage)
+      toast({
+        variant: "destructive",
+        title: "Error Saving",
+        description: userMessage,
+      })
 
       // Log detailed error for debugging
       console.error('Detailed error context:', {
         projectId,
-        stagedEntriesCount: stagedEntries?.length || 0,
+        stagedEntriesCount: stagedNewEntries[projectId]?.length || 0,
         forecastReason,
         error: error
       })
@@ -708,6 +885,8 @@ export default function ProjectsPage() {
   }
 
   const startForecasting = (projectId: string) => {
+    // Use wizard instead of inline mode
+    setShowForecastWizard(projectId)
     setIsForecasting(projectId)
     setForecastChanges({})
     setForecastReason("")
@@ -834,18 +1013,49 @@ export default function ProjectsPage() {
     setDeletingCost(costId)
 
     try {
-      const { error } = await supabase.from("cost_breakdown").delete().eq("id", costId)
-      if (error) throw error
-
-      // Refresh data
+      // Find the project ID for this cost entry
       const projectId = Object.keys(costBreakdowns).find((projectId) =>
         costBreakdowns[projectId].some((cost) => cost.id === costId),
       )
-      if (projectId) {
+      
+      if (!projectId) {
+        throw new Error("Could not find project for cost entry")
+      }
+
+      // Check if this is a staged entry
+      if (costId && costId.startsWith('temp_')) {
+        // Remove from staged entries
+        setStagedNewEntries((prev) => ({
+          ...prev,
+          [projectId]: prev[projectId]?.filter((entry) => entry.id !== costId) || [],
+        }))
+        
+        // Remove from display state
+        setCostBreakdowns((prev) => ({
+          ...prev,
+          [projectId]: prev[projectId]?.filter((cost) => cost.id !== costId) || [],
+        }))
+        
+        console.log("Staged entry deleted:", costId)
+      } else {
+        // Only delete from database for persisted entries
+        const { error } = await supabase
+          .from("cost_breakdown")
+          .delete()
+          .eq("id", costId)
+
+        if (error) throw error
+
+        // Refresh data
         await loadCostBreakdown(projectId)
       }
     } catch (error) {
       console.error("Error deleting cost entry:", error)
+      toast({
+        variant: "destructive",
+        title: "Delete Failed",
+        description: "Failed to delete cost entry. Please try again.",
+      })
     } finally {
       setDeletingCost(null)
     }
@@ -885,7 +1095,11 @@ export default function ProjectsPage() {
       })
     } catch (error) {
       console.error("Error creating new project:", error)
-      alert("Error creating new project. Please try again.")
+      toast({
+        variant: "destructive",
+        title: "Error Creating Project",
+        description: "Error creating new project. Please try again.",
+      })
     } finally {
       setSavingNewProject(false)
     }
@@ -944,6 +1158,35 @@ export default function ProjectsPage() {
     // Reset state
     setIsInitialBudgetMode(null)
     setStagedNewEntries((prev) => ({ ...prev, [projectId]: [] }))
+  }
+
+  // Handler functions for unsaved changes bar
+  const handleSaveAllChanges = async (projectId: string) => {
+    if (isInitialBudgetMode === projectId) {
+      await saveInitialVersion(projectId)
+    } else if (isForecasting === projectId) {
+      await saveForecastVersion(projectId)
+    }
+  }
+
+  const handleDiscardChanges = (projectId: string) => {
+    if (!confirm("Are you sure you want to discard all unsaved changes?")) {
+      return
+    }
+    
+    // Reset staged entries
+    setStagedNewEntries(prev => ({ ...prev, [projectId]: [] }))
+    
+    // Reset modifications
+    setCostBreakdowns(prev => ({
+      ...prev,
+      [projectId]: prev[projectId]?.map(c => ({ ...c, _modified: false })) || []
+    }))
+    
+    toast({
+      title: "Changes Discarded",
+      description: "All unsaved changes have been discarded",
+    })
   }
 
   return (
@@ -1109,6 +1352,22 @@ export default function ProjectsPage() {
 
                 {expandedProjects.has(project.id) && (
                   <div className="mt-6 border-t pt-6">
+                    {/* Version History Timeline */}
+                    {forecastVersions[project.id] && forecastVersions[project.id].length > 0 && (
+                      <div className="mb-6">
+                        <VersionHistoryTimeline
+                          versions={forecastVersions[project.id]}
+                          currentVersion={activeVersion}
+                          onVersionSelect={(version) => handleVersionChange(project.id, version.toString())}
+                          onCompareVersions={(v1, v2) => {
+                            // TODO: Implement comparison view
+                            console.log("Compare versions:", v1, v2)
+                          }}
+                          isLoading={loadingVersionData[project.id]}
+                        />
+                      </div>
+                    )}
+
                     <div className="flex items-center justify-between mb-4">
                       <h4 className="text-lg font-semibold">Cost Breakdown</h4>
                       <div className="flex items-center gap-2">
@@ -1223,6 +1482,7 @@ export default function ProjectsPage() {
                             <table className="w-full border-collapse border border-gray-300">
                               <thead>
                                 <tr className="bg-gray-50">
+                                  <th className="border border-gray-300 px-4 py-2 text-left">Status</th>
                                   <th className="border border-gray-300 px-4 py-2 text-left">Cost Line</th>
                                   <th className="border border-gray-300 px-4 py-2 text-left">Spend Type</th>
                                   <th className="border border-gray-300 px-4 py-2 text-left">Sub Category</th>
@@ -1232,10 +1492,17 @@ export default function ProjectsPage() {
                               </thead>
                               <tbody>
                                 {costBreakdowns[project.id].map((cost) => (
-                                  <tr key={cost.id} className="hover:bg-gray-50">
+                                  <tr key={cost.id} className={getRowClassName(cost)}>
                                     {editingCost === cost.id &&
                                     (isForecasting === project.id || isInitialBudgetMode === project.id) ? (
                                       <>
+                                        <td className="border border-gray-300 px-4 py-2">
+                                          <EntryStatusIndicator 
+                                            id={cost.id} 
+                                            modified={cost._modified}
+                                            saving={savingCosts.has(cost.id)}
+                                          />
+                                        </td>
                                         <td className="border border-gray-300 px-4 py-2">
                                           <select
                                             value={editingValues?.cost_line || ""}
@@ -1320,6 +1587,13 @@ export default function ProjectsPage() {
                                       </>
                                     ) : (
                                       <>
+                                        <td className="border border-gray-300 px-4 py-2">
+                                          <EntryStatusIndicator 
+                                            id={cost.id} 
+                                            modified={cost._modified}
+                                            saving={savingCosts.has(cost.id)}
+                                          />
+                                        </td>
                                         <td className="border border-gray-300 px-4 py-2">{cost.cost_line}</td>
                                         <td className="border border-gray-300 px-4 py-2">{cost.spend_type}</td>
                                         <td className="border border-gray-300 px-4 py-2">{cost.spend_sub_category}</td>
@@ -1517,6 +1791,59 @@ export default function ProjectsPage() {
           ))}
         </div>
       )}
+      
+      {/* Forecast Wizard */}
+      {showForecastWizard && (
+        <ForecastWizard
+          isOpen={true}
+          onClose={() => {
+            setShowForecastWizard(null)
+            setIsForecasting(null)
+            setForecastChanges({})
+            setForecastReason("")
+          }}
+          projectId={showForecastWizard}
+          projectName={projects.find(p => p.id === showForecastWizard)?.name || ""}
+          currentCosts={costBreakdowns[showForecastWizard] || []}
+          stagedEntries={stagedNewEntries[showForecastWizard] || []}
+          onSave={async (changes, newEntries, reason) => {
+            // Prepare forecast data
+            setForecastChanges(changes)
+            setStagedNewEntries(prev => ({
+              ...prev,
+              [showForecastWizard]: newEntries
+            }))
+            setForecastReason(reason)
+            
+            // Save the forecast
+            await saveForecastVersion(showForecastWizard)
+            
+            // Close wizard
+            setShowForecastWizard(null)
+          }}
+          onAddEntry={(entry) => {
+            addNewCostEntry(entry as any)
+          }}
+          onUpdateEntry={(entry) => {
+            updateCostItem(entry)
+          }}
+          onDeleteEntry={(id) => {
+            deleteCostEntry(id)
+          }}
+        />
+      )}
+
+      {/* Show unsaved changes bar for expanded projects with unsaved changes */}
+      {Array.from(expandedProjects).map((projectId) => (
+        unsavedChangesCount[projectId] > 0 && (
+          <UnsavedChangesBar
+            key={`unsaved-${projectId}`}
+            count={unsavedChangesCount[projectId]}
+            onSave={() => handleSaveAllChanges(projectId)}
+            onDiscard={() => handleDiscardChanges(projectId)}
+          />
+        )
+      ))}
     </div>
   )
 }

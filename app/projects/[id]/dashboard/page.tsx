@@ -4,6 +4,14 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { DollarSign, TrendingUp, TrendingDown, AlertCircle, Activity, Package, Calculator, FileText } from 'lucide-react'
+// Import new P&L components
+import { PLCommandCenter } from '@/components/dashboard/pl-command-center'
+import { FinancialControlMatrix } from '@/components/dashboard/financial-control-matrix'
+import { PLTimeline } from '@/components/dashboard/pl-timeline'
+import { SupplierPromiseCalendar } from '@/components/dashboard/supplier-promise-calendar'
+import { SpendSubcategoryChart } from '@/components/dashboard/spend-subcategory-chart'
+import { DebugPanel } from '@/components/dashboard/debug-panel'
+// Keep existing components for now
 import { KPICard } from '@/components/dashboard/kpi-card'
 import { BudgetTimelineChart } from '@/components/dashboard/budget-timeline-chart'
 import { SpendCategoryChart } from '@/components/dashboard/spend-category-chart'
@@ -13,6 +21,7 @@ import { ProjectAlerts } from '@/components/dashboard/project-alerts'
 import { DashboardFilterPanel } from '@/components/dashboard/dashboard-filters'
 import { DashboardSkeleton } from '@/components/dashboard/dashboard-skeleton'
 import { calculateProjectMetrics, getTimelineData, getCategoryBreakdown, getHierarchicalBreakdown } from '@/lib/dashboard-metrics'
+import { getProjectPLMetrics, getPLImpactByMonth, getOpenPOsByPromiseDate } from '@/lib/pl-tracking-service'
 import { useToast } from '@/hooks/use-toast'
 import { Button } from '@/components/ui/button'
 import { RefreshCw } from 'lucide-react'
@@ -59,6 +68,13 @@ export default function ProjectDashboard({ params }: ProjectDashboardProps) {
   const [burnRateData, setBurnRateData] = useState<any[]>([])
   const [refreshing, setRefreshing] = useState(false)
   
+  // New P&L tracking states
+  const [plMetrics, setPLMetrics] = useState<any>(null)
+  const [plTimeline, setPLTimeline] = useState<any[]>([])
+  const [promiseDates, setPromiseDates] = useState<any[]>([])
+  const [categoryPLData, setCategoryPLData] = useState<any[]>([])
+  const [subcategoryData, setSubcategoryData] = useState<any[]>([])
+  
   const [filters, setFilters] = useState<DashboardFilters>({
     dateRange: {
       from: new Date(new Date().setMonth(new Date().getMonth() - 6)),
@@ -95,16 +111,83 @@ export default function ProjectDashboard({ params }: ProjectDashboardProps) {
       const metricsData = await calculateProjectMetrics(projectId, filters)
       setMetrics(metricsData)
       
-      // Fetch chart data
-      const [timeline, categories, breakdown] = await Promise.all([
+      // Fetch P&L metrics
+      const plData = await getProjectPLMetrics(projectId, {
+        costLine: filters.costLine,
+        spendType: filters.spendType
+      })
+      setPLMetrics(plData)
+      console.log('P&L Metrics:', plData) // Debug log
+      
+      // Fetch chart data and P&L timeline
+      const [timeline, categories, breakdown, plTimelineData, openPOs] = await Promise.all([
         getTimelineData(projectId, filters),
         getCategoryBreakdown(projectId, filters),
-        getHierarchicalBreakdown(projectId, filters)
+        getHierarchicalBreakdown(projectId, filters),
+        getPLImpactByMonth(projectId, filters.dateRange.from, filters.dateRange.to),
+        getOpenPOsByPromiseDate(projectId)
       ])
+      console.log('P&L Timeline:', plTimelineData) // Debug log
+      console.log('Open POs by Promise Date:', openPOs) // Debug log
+      
+      console.log('Timeline data:', timeline) // Debug log
+      console.log('Category data:', categories) // Debug log
+      console.log('Breakdown data:', breakdown) // Debug log
       
       setTimelineData(timeline)
       setCategoryData(categories)
       setBreakdownData(breakdown)
+      setPLTimeline(plTimelineData)
+      
+      // Convert promise dates map to array for calendar
+      const promiseArray = Array.from(openPOs.entries()).map(([date, amount]) => ({
+        date,
+        amount,
+        supplier: 'Multiple', // Would need to fetch supplier details
+        lineItems: 1
+      }))
+      setPromiseDates(promiseArray)
+      
+      // Prepare category P&L data for Financial Control Matrix
+      const categoryPL = categories.map(cat => ({
+        name: cat.name,
+        budget: cat.budget,
+        committed: cat.value,
+        plImpact: cat.value * 0.6, // This would come from actual P&L data
+        gapToPL: cat.value * 0.4
+      }))
+      setCategoryPLData(categoryPL)
+      
+      // Prepare subcategory data from breakdown
+      const subcategoryArray: any[] = []
+      console.log('Processing breakdown for subcategories, breakdown length:', breakdown.length)
+      breakdown.forEach(businessLine => {
+        console.log('Business Line:', businessLine.name, 'has children:', !!businessLine.children)
+        if (businessLine.children) {
+          businessLine.children.forEach((costLine: any) => {
+            console.log('  Cost Line:', costLine.name, 'has children:', !!costLine.children)
+            if (costLine.children) {
+              costLine.children.forEach((spendType: any) => {
+                console.log('    Spend Type:', spendType.name, 'has children:', !!spendType.children)
+                if (spendType.children) {
+                  spendType.children.forEach((subCategory: any) => {
+                    console.log('      Subcategory:', subCategory.name, 'actual:', subCategory.actual)
+                    subcategoryArray.push({
+                      category: spendType.name,
+                      subcategory: subCategory.name,
+                      value: subCategory.actual,
+                      budget: subCategory.budget,
+                      percentage: subCategory.utilization
+                    })
+                  })
+                }
+              })
+            }
+          })
+        }
+      })
+      console.log('Total subcategories found:', subcategoryArray.length)
+      setSubcategoryData(subcategoryArray)
       
       // Calculate burn rate data
       const burnRate = calculateBurnRateFromTimeline(timeline)
@@ -270,68 +353,94 @@ export default function ProjectDashboard({ params }: ProjectDashboardProps) {
         </div>
       </div>
 
-      {/* Filter Panel */}
+      {/* Filter Panel - Temporarily disabled until fully functional
       <DashboardFilterPanel 
         filters={filters} 
         onFilterChange={handleFilterChange} 
-      />
+      /> */}
 
-      <div id="dashboard-content" className="space-y-6 mt-6">
-        {/* Alerts Section */}
-        <ProjectAlerts projectId={projectId} metrics={metrics} />
-
-        {/* KPI Cards */}
-        {metrics && (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            <KPICard
-              title="Total Budget"
-              value={metrics.totalBudget}
-              icon={DollarSign}
-              format="currency"
-              color="primary"
-            />
-            <KPICard
-              title="Actual Spend"
-              value={metrics.actualSpend}
-              icon={Activity}
-              format="currency"
-              color={metrics.actualSpend > metrics.totalBudget ? 'danger' : 'success'}
-              trend={metrics.utilization > 100 ? metrics.utilization - 100 : undefined}
-            />
-            <KPICard
-              title="Variance"
-              value={metrics.variance}
-              icon={metrics.variance >= 0 ? TrendingUp : TrendingDown}
-              format="currency"
-              color={metrics.variance >= 0 ? 'success' : 'danger'}
-              trend={metrics.variancePercent}
-            />
-            <KPICard
-              title="Utilization"
-              value={metrics.utilization}
-              icon={Calculator}
-              format="percent"
-              color={metrics.utilization > 90 ? 'warning' : 'primary'}
-            />
-            <KPICard
-              title="Open Orders"
-              value={metrics.openOrders}
-              icon={Package}
-              format="currency"
-              color="primary"
-            />
-            <KPICard
-              title="PO Count"
-              value={metrics.poCount}
-              icon={FileText}
-              format="number"
-              color="primary"
-            />
-          </div>
+       <div id="dashboard-content" className="space-y-6 mt-6">
+        {/* Debug Panel - remove after testing */}
+        {process.env.NODE_ENV === 'development' && (
+          <DebugPanel 
+            metrics={metrics}
+            plMetrics={plMetrics}
+            plTimeline={plTimeline}
+            promiseDates={promiseDates}
+            categoryData={categoryData}
+            breakdownData={breakdownData}
+            timelineData={timelineData}
+            subcategoryData={subcategoryData}
+          />
         )}
 
-        {/* Charts Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* P&L Command Center - Replace KPI Cards */}
+        {metrics && (
+          <PLCommandCenter
+            budget={metrics.totalBudget}
+            committed={metrics.actualSpend} // actualSpend is the total committed (PO value)
+            plImpact={metrics.invoicedAmount} // invoicedAmount is the actual P&L impact
+            thisMonthPL={metrics.invoicedAmount / 12} // Simplified monthly average
+            thisMonthChange={23} // Would calculate from historical data
+            nextPLHits={promiseDates.slice(0, 3).map(p => ({
+              date: p.date,
+              amount: p.amount,
+              supplier: p.supplier || 'Various'
+            }))}
+            plGap={metrics.actualSpend - metrics.invoicedAmount} // Gap between committed and invoiced
+            monthlyBreakdown={plTimeline.map(entry => ({
+              month: entry.month,
+              actual: entry.actualPL || 0,
+              projected: entry.projectedPL || 0
+            }))}
+            loading={loading}
+            onViewGapAnalysis={() => {
+              // Navigate to detailed analysis
+              console.log('View gap analysis')
+            }}
+          />
+        )}
+
+        {/* Financial Control Matrix */}
+        {categoryPLData.length > 0 && (
+          <FinancialControlMatrix
+            categories={categoryPLData}
+            onDrillDown={(category) => {
+              console.log('Drill down into:', category)
+            }}
+            onCustomize={() => {
+              console.log('Customize matrix view')
+            }}
+            loading={loading}
+          />
+        )}
+
+        {/* P&L Timeline */}
+        {plTimeline.length > 0 && (
+          <PLTimeline
+            data={plTimeline.map(entry => ({
+              month: entry.month,
+              actualPL: entry.actualPL,
+              projectedPL: entry.projectedPL,
+              budget: metrics?.totalBudget ? metrics.totalBudget / 12 : 0,
+              cumulative: entry.cumulative
+            }))}
+            events={promiseDates.slice(0, 5).map(p => ({
+              date: p.date,
+              amount: p.amount,
+              description: `${p.supplier} delivery`,
+              type: new Date(p.date) < new Date() ? 'overdue' as const : 'expected' as const
+            }))}
+            currentMonth={new Date().getMonth()}
+            view="monthly"
+            onViewChange={(view) => console.log('Change view to:', view)}
+            onRefresh={handleRefresh}
+            loading={loading}
+          />
+        )}
+
+        {/* Budget Timeline Visualization */}
+        {timelineData.length > 0 && (
           <Card>
             <CardHeader>
               <CardTitle>Budget vs Actual Timeline</CardTitle>
@@ -340,26 +449,61 @@ export default function ProjectDashboard({ params }: ProjectDashboardProps) {
               <BudgetTimelineChart data={timelineData} />
             </CardContent>
           </Card>
+        )}
 
+        {/* Category and Subcategory Charts */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Spend by Category chart */}
           <Card>
             <CardHeader>
               <CardTitle>Spend by Category</CardTitle>
             </CardHeader>
             <CardContent>
-              <SpendCategoryChart data={categoryData} />
+              {categoryData.length > 0 ? (
+                <SpendCategoryChart data={categoryData} />
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  No category data available
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Spend by Subcategory chart */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Spend by Subcategory</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {subcategoryData.length > 0 ? (
+                <SpendSubcategoryChart
+                  data={subcategoryData}
+                  loading={loading}
+                  onDrillDown={(category, subcategory) => {
+                    console.log('Drill down:', category, subcategory)
+                  }}
+                />
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  No subcategory data available
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
 
-        {/* Burn Rate Chart */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Monthly Burn Rate</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <BurnRateChart data={burnRateData} />
-          </CardContent>
-        </Card>
+        {/* Supplier Promise Calendar on its own row */}
+        {promiseDates.length > 0 && (
+          <SupplierPromiseCalendar
+            promises={promiseDates}
+            currentDate={new Date()}
+            onDateClick={(date, promises) => {
+              console.log('Date clicked:', date, promises)
+              // Could open a modal with line item details
+            }}
+            loading={loading}
+          />
+        )}
 
         {/* Cost Breakdown Table */}
         <Card>

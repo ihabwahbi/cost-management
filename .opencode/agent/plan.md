@@ -13,6 +13,7 @@ tools:
   todowrite: true
   todoread: true
   webfetch: false
+  task: true
 ---
 
 # Implementation Plan

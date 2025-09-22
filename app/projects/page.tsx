@@ -6,6 +6,7 @@ import { EntryStatusIndicator } from "@/components/entry-status-indicator"
 import { UnsavedChangesBar } from "@/components/unsaved-changes-bar"
 import { ForecastWizard } from "@/components/forecast-wizard"
 import { VersionHistoryTimeline } from "@/components/version-history-timeline"
+import { VersionComparison } from "@/components/version-comparison"
 import { useToast } from "@/hooks/use-toast"
 import { LocalStorageService } from "@/lib/local-storage-service"
 import { Button } from "@/components/ui/button"
@@ -114,6 +115,12 @@ export default function ProjectsPage() {
   // Bulk operations state
   const [selectedEntries, setSelectedEntries] = useState<Set<string>>(new Set())
   const [bulkEditMode, setBulkEditMode] = useState(false)
+  
+  // Version comparison state
+  const [showVersionComparison, setShowVersionComparison] = useState<string | null>(null)
+  const [compareVersions, setCompareVersions] = useState<{v1: number, v2: number} | null>(null)
+  const [comparisonForecasts, setComparisonForecasts] = useState<Record<number, any[]>>({})
+  const [loadingComparison, setLoadingComparison] = useState(false)
 
   // Helper function to get row class based on cost state
   const getRowClassName = (cost: CostBreakdown) => {
@@ -655,6 +662,81 @@ export default function ProjectsPage() {
       // Clear loading flag
       const loadKey = `${projectId}-${versionNumber}`
       loadingVersionRef.current.delete(loadKey)
+    }
+  }
+
+  // Load forecast data for version comparison
+  const loadComparisonData = async (projectId: string, v1: number, v2: number) => {
+    setLoadingComparison(true)
+    
+    try {
+      const forecasts: Record<number, any[]> = {}
+      
+      // Helper function to load forecast data for a specific version
+      const loadVersionForecasts = async (versionNumber: number) => {
+        if (versionNumber === 0) {
+          // For version 0, return the original cost breakdown
+          const { data, error } = await supabase
+            .from("cost_breakdown")
+            .select("*")
+            .eq("project_id", projectId)
+            .order("spend_sub_category")
+          
+          if (error) throw error
+          
+          // Transform to match BudgetForecast structure
+          return data?.map(cost => ({
+            id: `v0_${cost.id}`,
+            forecast_version_id: "version_0",
+            cost_breakdown_id: cost.id,
+            forecasted_cost: cost.budget_cost
+          })) || []
+        } else {
+          // Get the forecast version record
+          const { data: versionData, error: versionError } = await supabase
+            .from("forecast_versions")
+            .select("*")
+            .eq("project_id", projectId)
+            .eq("version_number", versionNumber)
+            .single()
+          
+          if (versionError) throw versionError
+          
+          // Get the budget forecasts for this version
+          const { data: forecastData, error: forecastError } = await supabase
+            .from("budget_forecasts")
+            .select("*")
+            .eq("forecast_version_id", versionData.id)
+            .order("id")
+          
+          if (forecastError) throw forecastError
+          
+          return forecastData || []
+        }
+      }
+      
+      // Load data for both versions in parallel
+      const [v1Data, v2Data] = await Promise.all([
+        loadVersionForecasts(v1),
+        loadVersionForecasts(v2)
+      ])
+      
+      forecasts[v1] = v1Data
+      forecasts[v2] = v2Data
+      
+      setComparisonForecasts(forecasts)
+      
+      return forecasts
+    } catch (error) {
+      console.error("Error loading comparison data:", error)
+      toast({
+        variant: "destructive",
+        title: "Failed to Load Comparison Data",
+        description: "Unable to load version data for comparison. Please try again.",
+      })
+      return {}
+    } finally {
+      setLoadingComparison(false)
     }
   }
 
@@ -2109,9 +2191,10 @@ export default function ProjectsPage() {
                           versions={forecastVersions[project.id]}
                           currentVersion={activeVersion[project.id] || "latest"}
                           onVersionSelect={(version) => handleVersionChange(project.id, version.toString())}
-                          onCompareVersions={(v1, v2) => {
-                            // TODO: Implement comparison view
-                            console.log("Compare versions:", v1, v2)
+                          onCompareVersions={async (v1, v2) => {
+                            setCompareVersions({v1, v2})
+                            setShowVersionComparison(project.id)
+                            await loadComparisonData(project.id, v1, v2)
                           }}
                           isLoading={loadingVersionData[project.id]}
                         />
@@ -2573,6 +2656,25 @@ export default function ProjectsPage() {
             </div>
           ))}
         </div>
+      )}
+      
+      {/* Version Comparison Modal */}
+      {showVersionComparison && compareVersions && (
+        <VersionComparison
+          isOpen={true}
+          onClose={() => {
+            setShowVersionComparison(null)
+            setCompareVersions(null)
+            setComparisonForecasts({})
+          }}
+          projectId={showVersionComparison}
+          projectName={projects.find(p => p.id === showVersionComparison)?.name || ""}
+          version1={compareVersions.v1}
+          version2={compareVersions.v2}
+          versions={forecastVersions[showVersionComparison] || []}
+          costBreakdowns={costBreakdowns[showVersionComparison] || []}
+          forecasts={comparisonForecasts}
+        />
       )}
       
       {/* Forecast Wizard */}

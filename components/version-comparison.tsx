@@ -1,8 +1,9 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { format } from "date-fns"
 import { Button } from "@/components/ui/button"
+import { WaterfallChart, CategoryComparisonChart, VarianceInsights } from "@/components/version-comparison-charts"
 import {
   Dialog,
   DialogContent,
@@ -31,9 +32,7 @@ import {
   TrendingDown,
   Minus,
   Eye,
-  Filter,
   ArrowUpDown,
-  ChevronRight,
 } from "lucide-react"
 import {
   DropdownMenu,
@@ -439,9 +438,10 @@ export function VersionComparison({
         </DialogHeader>
 
         <Tabs defaultValue="table" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="table">Table View</TabsTrigger>
             <TabsTrigger value="summary">Summary View</TabsTrigger>
+            <TabsTrigger value="insights">Visual Insights</TabsTrigger>
           </TabsList>
 
           <TabsContent value="table" className="space-y-4">
@@ -512,48 +512,105 @@ export function VersionComparison({
               </div>
             </div>
 
-            {/* Statistics Bar */}
-            <div className="grid grid-cols-6 gap-4">
-              <Card>
-                <CardContent className="p-4">
-                  <div className="text-2xl font-bold">
-                    {stats.totalChange > 0 ? "+" : ""}{formatCurrency(stats.totalChange)}
-                  </div>
-                  <p className="text-xs text-muted-foreground">Total Change</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4">
-                  <div className="text-2xl font-bold">
-                    {stats.changePercent > 0 ? "+" : ""}{stats.changePercent.toFixed(1)}%
-                  </div>
-                  <p className="text-xs text-muted-foreground">Change %</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4">
-                  <div className="text-2xl font-bold text-green-600">{stats.added}</div>
-                  <p className="text-xs text-muted-foreground">Added</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4">
-                  <div className="text-2xl font-bold text-red-600">{stats.removed}</div>
-                  <p className="text-xs text-muted-foreground">Removed</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4">
-                  <div className="text-2xl font-bold text-blue-600">{stats.changed}</div>
-                  <p className="text-xs text-muted-foreground">Changed</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4">
-                  <div className="text-2xl font-bold text-gray-600">{stats.unchanged}</div>
-                  <p className="text-xs text-muted-foreground">Unchanged</p>
-                </CardContent>
-              </Card>
+            {/* Enhanced Statistics Bar with Visual Indicators */}
+            <div className="space-y-4">
+              {/* Primary Metrics */}
+              <div className="grid grid-cols-6 gap-4">
+                <Card className={stats.totalChange > 0 ? "border-green-200 bg-green-50/30" : "border-red-200 bg-red-50/30"}>
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="text-2xl font-bold">
+                          {stats.totalChange > 0 ? "+" : ""}{formatCurrency(stats.totalChange)}
+                        </div>
+                        <p className="text-xs text-muted-foreground">Total Change</p>
+                      </div>
+                      {stats.totalChange !== 0 && (
+                        <div className={`p-2 rounded-full ${stats.totalChange > 0 ? "bg-green-100" : "bg-red-100"}`}>
+                          {stats.totalChange > 0 ? 
+                            <TrendingUp className="w-4 h-4 text-green-600" /> : 
+                            <TrendingDown className="w-4 h-4 text-red-600" />
+                          }
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card className={stats.changePercent > 0 ? "border-green-200" : stats.changePercent < 0 ? "border-red-200" : ""}>
+                  <CardContent className="p-4">
+                    <div className="text-2xl font-bold">
+                      {stats.changePercent > 0 ? "+" : ""}{stats.changePercent.toFixed(1)}%
+                    </div>
+                    <p className="text-xs text-muted-foreground">Change %</p>
+                    <Progress 
+                      value={Math.abs(stats.changePercent)} 
+                      className="h-1 mt-2" 
+                      style={{
+                        background: stats.changePercent > 0 ? '#dcfce7' : '#fee2e2'
+                      }}
+                    />
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="text-2xl font-bold text-green-600">{stats.added}</div>
+                    <p className="text-xs text-muted-foreground">Added</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="text-2xl font-bold text-red-600">{stats.removed}</div>
+                    <p className="text-xs text-muted-foreground">Removed</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="text-2xl font-bold text-blue-600">{stats.changed}</div>
+                    <p className="text-xs text-muted-foreground">Changed</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="text-2xl font-bold text-gray-600">{stats.unchanged}</div>
+                    <p className="text-xs text-muted-foreground">Unchanged</p>
+                  </CardContent>
+                </Card>
+              </div>
+              
+              {/* Insights Section */}
+              {stats.totalChange !== 0 && (
+                <Card className="border-blue-200 bg-blue-50/30">
+                  <CardContent className="p-4">
+                    <div className="flex items-start space-x-3">
+                      <div className="p-2 bg-blue-100 rounded-lg">
+                        <svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-blue-900">Key Insights</p>
+                        <ul className="mt-1 text-xs text-blue-800 space-y-1">
+                          {stats.totalChange > 0 && (
+                            <li>• Budget increased by {formatCurrency(Math.abs(stats.totalChange))} ({stats.changePercent.toFixed(1)}%)</li>
+                          )}
+                          {stats.totalChange < 0 && (
+                            <li>• Budget decreased by {formatCurrency(Math.abs(stats.totalChange))} ({Math.abs(stats.changePercent).toFixed(1)}%)</li>
+                          )}
+                          {stats.changed > 0 && (
+                            <li>• {stats.changed} line items were modified ({stats.increased} increased, {stats.decreased} decreased)</li>
+                          )}
+                          {stats.added > 0 && (
+                            <li>• {stats.added} new line items added to the budget</li>
+                          )}
+                          {stats.removed > 0 && (
+                            <li>• {stats.removed} line items removed from the budget</li>
+                          )}
+                        </ul>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </div>
 
             {/* Comparison Table */}
@@ -768,6 +825,128 @@ export function VersionComparison({
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+          
+          <TabsContent value="insights" className="space-y-6">
+            {/* Waterfall Chart */}
+            <WaterfallChart
+              data={comparisonData.map(item => ({
+                id: item.id,
+                category: item.sub_business_line,
+                v1_amount: item.v1_amount,
+                v2_amount: item.v2_amount,
+                change: (item.v2_amount || 0) - (item.v1_amount || 0)
+              }))}
+              title="Budget Change Waterfall Analysis"
+              description="Visual representation of how each category contributes to the total budget change"
+            />
+            
+            {/* Category Comparison */}
+            <CategoryComparisonChart
+              data={(() => {
+                const categoryMap = new Map()
+                comparisonData.forEach(item => {
+                  if (!categoryMap.has(item.sub_business_line)) {
+                    categoryMap.set(item.sub_business_line, {
+                      category: item.sub_business_line,
+                      v1_total: 0,
+                      v2_total: 0,
+                      items: 0
+                    })
+                  }
+                  const cat = categoryMap.get(item.sub_business_line)
+                  cat.v1_total += item.v1_amount || 0
+                  cat.v2_total += item.v2_amount || 0
+                  cat.items++
+                })
+                
+                return Array.from(categoryMap.values()).map(cat => ({
+                  ...cat,
+                  change: cat.v2_total - cat.v1_total,
+                  changePercent: cat.v1_total > 0 ? ((cat.v2_total - cat.v1_total) / cat.v1_total) * 100 : 0
+                }))
+              })()}
+            />
+            
+            {/* Variance Insights */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div>
+                <h3 className="text-lg font-semibold mb-4">Key Variance Drivers</h3>
+                <VarianceInsights
+                  data={comparisonData
+                    .filter(item => item.v1_amount !== null || item.v2_amount !== null)
+                    .map(item => ({
+                      category: item.sub_business_line,
+                      item: `${item.cost_line} - ${item.spend_sub_category}`,
+                      change: (item.v2_amount || 0) - (item.v1_amount || 0),
+                      changePercent: item.v1_amount ? 
+                        (((item.v2_amount || 0) - item.v1_amount) / item.v1_amount) * 100 : 
+                        item.v2_amount ? 100 : 0
+                    }))}
+                />
+              </div>
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle>Comparison Summary</CardTitle>
+                  <CardDescription>Quick overview of changes between versions</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="text-center p-3 bg-gray-50 rounded-lg">
+                      <p className="text-2xl font-bold text-gray-900">{comparisonData.length}</p>
+                      <p className="text-xs text-muted-foreground">Total Line Items</p>
+                    </div>
+                    <div className="text-center p-3 bg-gray-50 rounded-lg">
+                      <p className="text-2xl font-bold text-gray-900">
+                        {Math.round((stats.changed / Math.max(comparisonData.length, 1)) * 100)}%
+                      </p>
+                      <p className="text-xs text-muted-foreground">Items Changed</p>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center py-2 border-b">
+                      <span className="text-sm text-muted-foreground">Largest Increase</span>
+                      <span className="text-sm font-medium text-green-600">
+                        {(() => {
+                          const maxIncrease = comparisonData
+                            .map(item => ({
+                              name: item.spend_sub_category,
+                              change: (item.v2_amount || 0) - (item.v1_amount || 0)
+                            }))
+                            .sort((a, b) => b.change - a.change)[0]
+                          return maxIncrease?.change > 0 ? 
+                            `+${formatCurrency(maxIncrease.change)}` : 
+                            "No increases"
+                        })()}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center py-2 border-b">
+                      <span className="text-sm text-muted-foreground">Largest Decrease</span>
+                      <span className="text-sm font-medium text-red-600">
+                        {(() => {
+                          const maxDecrease = comparisonData
+                            .map(item => ({
+                              name: item.spend_sub_category,
+                              change: (item.v2_amount || 0) - (item.v1_amount || 0)
+                            }))
+                            .sort((a, b) => a.change - b.change)[0]
+                          return maxDecrease?.change < 0 ? 
+                            formatCurrency(Math.abs(maxDecrease.change)) : 
+                            "No decreases"
+                        })()}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center py-2">
+                      <span className="text-sm text-muted-foreground">Net Impact</span>
+                      <span className={`text-sm font-bold ${stats.totalChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {stats.totalChange >= 0 ? '+' : ''}{formatCurrency(stats.totalChange)}
+                      </span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
         </Tabs>
 

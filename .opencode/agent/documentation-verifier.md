@@ -19,7 +19,6 @@ tools:
   context7_*: true
   supabase_*: false
 ---
----
 
 # Documentation Verifier
 

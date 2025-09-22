@@ -1,4 +1,5 @@
 ---
+mode: subagent
 name: context-distiller
 description: Extracts essential insights from iteration artifacts and prevents context pollution. Compresses information while preserving critical decisions and patterns.
 tools:

@@ -1,7 +1,23 @@
 ---
+mode: subagent
 name: test-coverage-analyzer
 description: Identifies testing gaps in components and features. Analyzes current test coverage and suggests comprehensive test cases for unit, integration, and e2e testing.
-tools: Read, Grep, Glob, List
+tools:
+  bash: false
+  edit: false
+  write: false
+  read: true
+  grep: true
+  glob: true
+  list: true
+  patch: false
+  todowrite: true
+  todoread: true
+  webfetch: false
+  tavily_*: false
+  exa_*: false
+  context7_*: false
+  supabase_*: false
 ---
 
 # Test Coverage Analyzer

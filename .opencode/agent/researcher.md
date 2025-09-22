@@ -13,6 +13,8 @@ tools:
   todoread: true
   webfetch: false
   task: true
+  tavily_*: false
+  exa_*: false
 ---
 
 # Research Codebase

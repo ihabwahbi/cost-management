@@ -1,7 +1,23 @@
 ---
+mode: subagent
 name: performance-profiler
 description: Identifies render bottlenecks, bundle size issues, and optimization opportunities. Analyzes component performance and suggests improvements.
-tools: Read, Grep, Glob, List
+tools:
+  bash: false
+  edit: false
+  write: false
+  read: true
+  grep: true
+  glob: true
+  list: true
+  patch: false
+  todowrite: true
+  todoread: true
+  webfetch: false
+  tavily_*: false
+  exa_*: false
+  context7_*: false
+  supabase_*: false
 ---
 
 # Performance Profiler

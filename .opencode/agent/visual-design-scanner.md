@@ -1,7 +1,23 @@
 ---
+mode: subagent
 name: visual-design-scanner
 description: Evaluates current UI implementation against modern design standards. Identifies visual hierarchy issues, consistency gaps, and modernization opportunities.
-tools: Read, Grep, Glob, List
+tools:
+  bash: false
+  edit: false
+  write: false
+  read: true
+  grep: true
+  glob: true
+  list: false
+  patch: false
+  todowrite: true
+  todoread: true
+  webfetch: false
+  tavily_*: false
+  exa_*: false
+  context7_*: false
+  supabase_*: false
 ---
 
 # Visual Design Scanner

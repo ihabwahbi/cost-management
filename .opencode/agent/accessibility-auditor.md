@@ -1,7 +1,23 @@
 ---
+mode: subagent
 name: accessibility-auditor
 description: Checks components for ARIA compliance, keyboard navigation, screen reader support, and WCAG standards. Identifies accessibility issues and provides fixes.
-tools: Read, Grep, Glob
+tools:
+  bash: false
+  edit: false
+  write: false
+  read: true
+  grep: true
+  glob: true
+  list: false
+  patch: false
+  todowrite: true
+  todoread: true
+  webfetch: false
+  tavily_*: false
+  exa_*: false
+  context7_*: false
+  supabase_*: false
 ---
 
 # Accessibility Auditor

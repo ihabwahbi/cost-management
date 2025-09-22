@@ -1,7 +1,23 @@
 ---
+mode: subagent
 name: design-system-validator
 description: Ensures new components and changes comply with established design patterns, component library standards, and maintain visual consistency.
-tools: Read, Grep, Glob
+tools:
+  bash: false
+  edit: false
+  write: false
+  read: true
+  grep: true
+  glob: true
+  list: false
+  patch: false
+  todowrite: true
+  todoread: true
+  webfetch: false
+  tavily_*: false
+  exa_*: false
+  context7_*: false
+  supabase_*: false
 ---
 
 # Design System Validator

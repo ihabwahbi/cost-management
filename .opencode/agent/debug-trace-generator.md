@@ -1,7 +1,23 @@
 ---
+mode: subagent
 name: debug-trace-generator
 description: Creates comprehensive debug instrumentation for components and flows. Generates console logging strategies, state tracking, and performance monitoring code.
-tools: Read, Grep, Glob
+tools:
+  bash: false
+  edit: false
+  write: false
+  read: true
+  grep: true
+  glob: true
+  list: false
+  patch: false
+  todowrite: true
+  todoread: true
+  webfetch: false
+  tavily_*: false
+  exa_*: false
+  context7_*: false
+  supabase_*: false
 ---
 
 # Debug Trace Generator

@@ -1,7 +1,22 @@
 ---
 name: context-distiller
 description: Extracts essential insights from iteration artifacts and prevents context pollution. Compresses information while preserving critical decisions and patterns.
-tools: Read
+tools:
+  bash: false
+  edit: false
+  write: false
+  read: true
+  grep: false
+  glob: false
+  list: false
+  patch: false
+  todowrite: true
+  todoread: true
+  webfetch: false
+  tavily_*: false
+  exa_*: false
+  context7_*: false
+  supabase_*: false
 ---
 
 # Context Distiller

@@ -8,7 +8,7 @@ This guide explains the correct 4-phase workflow for modernizing brownfield appl
 
 **Important**: Primary agents (DiagnosticsResearcher, DesignIdeator, ModernizationOrchestrator, ModernizationImplementer) **CANNOT** spawn other primary agents. They can only spawn subagents. The user must manually invoke each primary agent in sequence.
 
-## The 4-Phase Workflow
+## The Enhanced 4-Phase Workflow with Iteration Support
 
 ### Phase 1: Diagnostics (When Fixing Bugs)
 
@@ -227,6 +227,47 @@ User: ModernizationImplementer: Execute plan from profile_implementation_plan.md
 # Output: Code changes + report
 ```
 
+### Phase 5: Iteration (When Implementation Reveals Issues)
+
+**Agent**: `IterationCoordinator`
+**Purpose**: Manage refinement cycles when implementation discovers issues
+**Trigger**: When Phase 4 reveals blockers or infeasibilities
+**Output**: Focused iteration packages for specific phase re-runs
+
+```bash
+# User invokes when implementation blocked:
+IterationCoordinator: Analyze implementation issues and coordinate iteration
+
+# Agent will:
+- Analyze implementation report for root causes
+- Trace issues back to originating phase
+- Use context-distiller to compress accumulated learning
+- Create focused iteration directive
+- Coordinate targeted phase re-run
+```
+
+**Output Document**: `thoughts/shared/iterations/iteration_[N]_[phase].md`
+
+## Enhanced Tool Access
+
+Primary agents now have strategic access to real-time tools:
+
+- **DiagnosticsResearcher**: Now has Context7, Tavily, Exa, and **Supabase** for database inspection
+- **DesignIdeator**: Now has Context7 for component verification
+- **ModernizationOrchestrator**: Now has Context7, Tavily, and **Supabase** for migration planning
+- **ModernizationImplementer**: Full tool suite including **Supabase** for schema validation
+- **IterationCoordinator**: Manages feedback loops without external tools
+
+### Supabase Integration (NEW)
+
+Database-aware capabilities throughout the workflow:
+
+- **Database Schema Analysis**: New `database-schema-analyzer` subagent provides complete schema introspection
+- **Query Performance**: `performance-profiler` now analyzes slow queries and missing indexes
+- **Code-Database Alignment**: `codebase-analyzer` verifies ORM models match actual schema
+- **Migration Planning**: Orchestrator plans safe database migrations with dependency resolution
+- **Schema Validation**: Implementer validates all database changes before applying
+
 ## Available Subagents
 
 Each primary agent can spawn these subagents:
@@ -236,7 +277,8 @@ Each primary agent can spawn these subagents:
 - `visual-design-scanner` - Evaluates UI state
 - `codebase-pattern-finder` - Finds code examples
 - `codebase-locator` - Locates files
-- `codebase-analyzer` - Deep code analysis
+- `codebase-analyzer` - Deep code analysis with database interaction verification
+- `database-schema-analyzer` - Complete Supabase schema introspection (NEW)
 
 ### Research Subagents
 - `web-search-researcher` - Web research (Tavily/Exa)
@@ -246,12 +288,12 @@ Each primary agent can spawn these subagents:
 
 ### Validation Subagents
 - `accessibility-auditor` - WCAG compliance
-- `performance-profiler` - Performance analysis
+- `performance-profiler` - Performance analysis with Supabase query optimization
 - `design-system-validator` - Design consistency
 - `test-coverage-analyzer` - Testing gaps
 
 ### Utility Subagents
-- `context-distiller` - Context compression
+- `context-distiller` - Context compression and prioritization (NEW)
 - `debug-trace-generator` - Debug instrumentation
 - `thoughts-locator` - Find documents
 - `thoughts-analyzer` - Extract insights
@@ -292,10 +334,12 @@ Each primary agent can spawn these subagents:
 
 ```bash
 # Full workflow for bug with UI improvement
-DiagnosticsResearcher: [investigate issue]
-DesignIdeator: [create designs based on diagnostics]
-ModernizationOrchestrator: [create plan from diagnostics and designs]
-ModernizationImplementer: [execute plan]
+DiagnosticsResearcher: [investigate issue with real-time search]
+DesignIdeator: [create designs with component verification]
+ModernizationOrchestrator: [create plan with feasibility checks]
+ModernizationImplementer: [execute plan with API verification]
+# If blocked:
+IterationCoordinator: [analyze and coordinate targeted iteration]
 
 # Workflow for pure UI enhancement
 DesignIdeator: [create UI designs]
@@ -306,6 +350,12 @@ ModernizationImplementer: [execute plan]
 DiagnosticsResearcher: [investigate issue]
 ModernizationOrchestrator: [create fix plan from diagnostics]
 ModernizationImplementer: [execute fix]
+
+# Workflow with iteration
+[Any phase] → Implementation blocked →
+IterationCoordinator: [analyze and coordinate] →
+[Specific phase]: [targeted refinement] →
+ModernizationImplementer: [retry with refinements]
 ```
 
 ## Summary

@@ -6,7 +6,32 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import type { PO } from "@/app/page"
+// Define PO interface locally to avoid circular dependencies
+interface PO {
+  id: string
+  po_number: string
+  vendor_name: string
+  total_value: number
+  po_creation_date: string
+  location: string
+  fmt_po: boolean
+  project_name: string | null
+  asset_code: string | null
+  line_items: POLineItem[]
+  mapped_count?: number
+  total_line_items?: number
+}
+
+interface POLineItem {
+  id: string
+  line_item_number: number
+  part_number: string
+  description: string
+  quantity: number
+  uom: string
+  line_value: number
+  is_mapped?: boolean
+}
 import { cn } from "@/lib/utils"
 
 const ChevronDownIcon = ({ className }: { className?: string }) => (
@@ -98,7 +123,7 @@ export function POTable({ pos, selectedPO, selectedPOs, onPOSelect, onPOsSelecti
   }
 
   const isPOFullyMapped = (po: PO) => {
-    return po.mapped_count === po.total_line_items && po.total_line_items > 0
+    return po.mapped_count === po.total_line_items && (po.total_line_items ?? 0) > 0
   }
 
   const allSelected = pos.length > 0 && selectedPOs.length === pos.length
@@ -131,7 +156,7 @@ export function POTable({ pos, selectedPO, selectedPOs, onPOSelect, onPOsSelecti
                       checked={allSelected}
                       onCheckedChange={handleSelectAll}
                       ref={(el) => {
-                        if (el) el.indeterminate = someSelected
+                        if (el) (el as any).indeterminate = someSelected
                       }}
                     />
                   </TableHead>

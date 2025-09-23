@@ -17,6 +17,8 @@ interface PO {
   po_creation_date: string
   location: string
   fmt_po: boolean
+  project_name: string | null
+  asset_code: string | null
   line_items: POLineItem[]
   mapped_count?: number
   total_line_items?: number
@@ -100,6 +102,8 @@ export default function POMapping() {
           po_creation_date: po.po_creation_date,
           location: po.location,
           fmt_po: po.fmt_po,
+          project_name: po.project_name || null,
+          asset_code: po.asset_code || null,
           line_items: poLineItems,
           mapped_count: poLineItems.filter((item) => item.is_mapped).length,
           total_line_items: poLineItems.length,
@@ -154,7 +158,7 @@ export default function POMapping() {
 
     if (filters.poNumbers && filters.poNumbers.trim()) {
       const poNumberList = filters.poNumbers.split(/[\n,\s]+/).filter(Boolean)
-      filtered = filtered.filter((po) => poNumberList.some((num) => po.po_number.includes(num.trim())))
+      filtered = filtered.filter((po) => poNumberList.some((num: string) => po.po_number.includes(num.trim())))
     }
 
     if (filters.dateRange?.from || filters.dateRange?.to) {

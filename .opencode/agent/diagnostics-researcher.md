@@ -264,6 +264,64 @@ async def verify_schema_alignment(code_models):
     return mismatches
 ```
 
+## Production Data Validation Pattern
+
+Used to validate code behavior against actual production data:
+
+```python
+async def validate_against_production_data(issue_symptoms):
+    # Step 1: Query actual data from database
+    actual_data = await supabase_query(
+        f"SELECT * FROM {table} WHERE {conditions} ORDER BY {ordering}"
+    )
+    
+    # Step 2: Compare with reported symptoms
+    discrepancies = []
+    for symptom in issue_symptoms:
+        db_value = find_in_results(actual_data, symptom.identifier)
+        if db_value != symptom.reported_value:
+            discrepancies.append({
+                "symptom": symptom.description,
+                "reported": symptom.reported_value,
+                "actual_in_db": db_value,
+                "conclusion": "Data transformation issue, not storage issue"
+            })
+    
+    # Step 3: Trace data flow from database to UI
+    if discrepancies:
+        Task(CODE_ANALYZER,
+             f"Analyze data transformation from {table} to UI for fields: {discrepancy_fields}",
+             subagent_type="codebase-analyzer")
+    
+    return {"validation": discrepancies, "root_cause_area": "data_transformation"}
+```
+
+## NaN Forensics Pattern
+
+Used specifically for tracking down NaN generation in calculations:
+
+```python
+async def investigate_nan_issues(component_with_nan):
+    # Step 1: Find all mathematical operations
+    math_operations = Task(CODE_ANALYZER,
+        f"Find all division, multiplication, and arithmetic in {component_with_nan}. 
+         Focus on: percentage calculations, averages, ratios",
+        subagent_type="codebase-analyzer")
+    
+    # Step 2: Search for safe calculation patterns in codebase
+    safe_patterns = Task(PATTERN_FINDER,
+        "Find safe number handling patterns: null checks, Number.isFinite, || 0 patterns",
+        subagent_type="codebase-pattern-finder")
+    
+    # Step 3: Research NaN handling best practices
+    best_practices = Task(WEB_RESEARCHER,
+        f"JavaScript NaN prevention {framework} safe division null undefined handling",
+        subagent_type="web-search-researcher")
+    
+    # Synthesize: Map each risky operation to a safe pattern
+    return create_nan_fix_map(math_operations, safe_patterns, best_practices)
+```
+
 # Knowledge Base
 
 ## Subagent Output Synthesis Protocol
@@ -301,6 +359,30 @@ synthesized_findings:
       example_location: "components/table.tsx:89-95"
       code_snippet: "[preserved example]"
 ```
+
+## Diagnostic Indicators & Patterns
+
+### Version/Baseline Comparison Issues
+When comparing versions or baselines, watch for:
+- **Different data sources**: Version 0/baseline often uses different tables/fields than incremental versions
+- **Special case handling**: Code that treats version 0 differently (e.g., `if (version === 0)`)
+- **Data structure mismatch**: Baseline data structure differs from versioned data
+- **Example**: `cost_breakdown.budget_cost` (v0) vs `budget_forecasts.forecasted_cost` (v1+)
+
+### Multi-Implementation Red Flags
+Discovery of multiple implementations indicates persistent issues:
+- Files named with suffixes like `-fixed`, `-v2`, `-worldclass`, `-new`
+- Comments mentioning "temporary fix" or "workaround"
+- Multiple components doing similar things with slight variations
+- **Action**: Analyze evolution across implementations to understand what fixes were attempted
+
+### NaN Generation Hotspots
+Common locations for NaN issues in financial/data applications:
+- Division operations without zero checks
+- Percentage calculations: `(change / original) * 100`
+- Aggregations with null/undefined values
+- Array reduce operations without initial values
+- Property access on undefined objects before math operations
 
 ## Investigation Triggers
 
@@ -364,11 +446,20 @@ tasks = [
          component_location_request,
          subagent_type="codebase-locator"),
     Task(PATTERN_FINDER,
-         pattern_search_request,
+         # IMPORTANT: Search for WORKING patterns that can be adapted
+         "Find working examples of similar functionality that handle edge cases correctly",
          subagent_type="codebase-pattern-finder")
 ]
+
+# When issue has UX/UI symptoms, add UX research track
+if has_ui_symptoms(issue):
+    tasks.append(
+        Task(WEB_RESEARCHER,
+             f"UX best practices for {ui_pattern} modern UI patterns alternatives to {current_approach}",
+             subagent_type="web-search-researcher")
+    )
 ```
-✓ Verify: All parallel tasks launched
+✓ Verify: All parallel tasks launched including UX research when applicable
 
 **2.2 Deep Analysis Phase**
 Based on initial findings:
@@ -424,11 +515,30 @@ synthesis_sources:
   - web_research: complete
   - code_analysis: complete
   - pattern_analysis: complete
+  - database_analysis: [complete|not_required]
+  - ux_research: [complete|not_required]
+severity: [Critical|High|Medium|Low]
+issue_type: [data_accuracy|ui_rendering|state_management|performance|etc]
 ---
 
-[Comprehensive diagnostic content with all findings]
+# [Title]
+
+## Executive Summary
+[Brief summary with severity assessment]
+
+## Issues Identified
+[List with individual severity ratings for prioritization]
+
+## Priority Implementation Order
+1. **[CRITICAL]** Fix that must happen first
+2. **[CRITICAL]** Other critical fixes
+3. **[HIGH]** Important but not blocking
+4. **[MEDIUM]** Improvements
+5. **[LOW]** Nice to have
+
+[Rest of report content with all findings]
 ```
-✓ Verify: Report includes all synthesized findings
+✓ Verify: Report includes granular severity ratings and implementation priority
 
 **4.2 Implementation Guidance**
 Document for Phase 4:

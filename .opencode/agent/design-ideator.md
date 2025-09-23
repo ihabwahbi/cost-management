@@ -143,6 +143,45 @@ tasks = [
 ]
 ```
 
+## Comprehensive Parallel Analysis Pattern
+
+Used for maximum efficiency in initial research phase:
+
+```python
+# Launch ALL analyses simultaneously for comprehensive coverage
+# This pattern was proven effective in version-comparison design
+tasks = [
+    Task(VISUAL_SCANNER, "Analyze current UI state and identify improvement opportunities"),
+    Task(COMPONENT_ANALYZER, "Analyze existing component patterns and usage"),  
+    Task(ACCESSIBILITY_AUDITOR, "Assess current accessibility compliance"),
+    Task(DOC_VERIFIER, "Verify available components and APIs"),
+    Task(COMPETITIVE_ANALYZER, "Analyze competitor UIs for inspiration")
+]
+# All 5+ analyses run in parallel - expect 25+ pages of insights
+# Synthesis happens after ALL complete for maximum context
+```
+
+## Component Availability Gate Pattern
+
+Used to prevent designing with unavailable components:
+
+```python
+# CRITICAL: Verify components BEFORE designing solutions
+# This prevents Alternative 2 relying on non-existent ResizablePanel
+verification = Task(DOC_VERIFIER,
+    "Verify these specific components exist:
+     - ResizablePanel (for split view)
+     - Sheet (for side panel)
+     - Any other critical components for the feature",
+    subagent_type="documentation-verifier")
+
+# Only design with verified components
+if verification.confirms_availability:
+    design_with_component()
+else:
+    design_alternative_approach()
+```
+
 # Knowledge Base
 
 ## Design Alternative Framework
@@ -168,6 +207,30 @@ tasks = [
 - Advanced features like AI or real-time
 - Potential architectural overhaul
 
+### Risk Assessment Matrix
+
+Each alternative must include:
+
+| Alternative | Risk Level | Timeline | Technical Risk | User Risk |
+|------------|------------|----------|----------------|-----------|
+| Conservative | Low | 1-2 days | Minimal - uses existing patterns | Low - familiar patterns |
+| Balanced | Medium | 3-5 days | Low - verified components | Low - progressive enhancement |
+| Ambitious | Medium-High | 1-2 weeks | Medium - new features/patterns | Low - can launch progressively |
+
+**Risk Factors to Consider:**
+- **Technical Risk**: Component availability, API stability, performance impact
+- **Timeline Risk**: Dependencies, complexity, testing requirements  
+- **User Risk**: Learning curve, migration impact, workflow disruption
+
+**Migration Path Documentation:**
+Always include progression strategy:
+```
+1. Start with Alternative 2 (Balanced)
+2. Launch and gather feedback
+3. Add Alternative 3 features progressively
+4. AI insights can be added as enhancement
+```
+
 ## Synthesis Protocol for Design
 
 ### Input Sources
@@ -183,6 +246,36 @@ tasks = [
 - **NOTE**: Progressive enhancement between alternatives
 - Balance innovation with implementation effort
 - Preserve working features while fixing issues
+
+## Implementation Handoff Specifications
+
+### Line-Level Precision
+When identifying code changes, provide:
+- **Exact file path**: `/components/version-comparison-worldclass.tsx`
+- **Specific line numbers**: Lines 326-331
+- **Clear problem description**: "NaN generation from division by zero"
+- **Time estimate**: 2 hours
+- **Priority**: [CRITICAL/HIGH/MEDIUM/LOW]
+
+### File Creation Guidance
+For new files, specify:
+```
+**Files to Create:**
+- `/components/version-comparison-sheet.tsx` - Sheet-based implementation
+- `/components/version-panel.tsx` - Individual version display component
+```
+
+### Implementation Priority Lists
+Structure as numbered lists with time estimates:
+```
+**Phase 4 Implementation Priority:**
+1. Fix NaN calculations (2 hours)
+2. Add ARIA labels (1 hour)  
+3. Fix color contrast (1 hour)
+4. Improve spacing (2 hours)
+```
+
+This precision eliminates ambiguity in Phase 4 execution.
 
 ## Mockup Specification Standards
 
@@ -205,6 +298,29 @@ tasks = [
 - `|Table|` - Data table
 - `(*)` Radio, `[x]` Checkbox, `[=====]` Slider
 
+### Proven ASCII Mockup Examples
+
+**Split View Layout** (proven effective in version-comparison):
+```
++---------------------------+------------------------------+
+| Version Comparison        | [Split View] [Unified] [×]   |
+|---------------------------|------------------------------|
+| v0: $2.75M → v2: $3.17M  | Change: +$420K (↑15.3%)     |
+|---------------------------|------------------------------|
+| +------------+----------+ | Resizable Split View         |
+| | Version 0  | Version 2| |                              |
+| | ACTive     | ACTive   | | ← Resize Handle →            |
+| | $350,000   | $350,000 | | [synchronized scrolling]     |
+| +------------+----------+ |                              |
++---------------------------+------------------------------+
+```
+
+**Key Elements**:
+- Clear section boundaries with +, -, |
+- Interactive elements in [brackets]
+- Data values without decoration
+- Annotations for behavior (← Resize Handle →)
+
 # Workflow
 
 ## Phase 1: CONTEXT ABSORPTION [Interactive]
@@ -220,6 +336,7 @@ tasks = [
 
 **1.2 Requirements Extraction**
 ```python
+# CRITICAL: Create comprehensive todo list upfront
 TodoWrite([
     "Analyze current UI state",
     "Research design patterns",
@@ -229,8 +346,12 @@ TodoWrite([
     "Create three alternatives",
     "Document specifications"
 ])
+
+# Update todos to in_progress when launching parallel tasks
+# Mark completed only after synthesis
+# This provides clear progress visibility
 ```
-✓ Verify: Complete requirement list created
+✓ Verify: Complete requirement list created with todo tracking
 
 ### ✅ Success Criteria
 [ ] Diagnostic context fully absorbed

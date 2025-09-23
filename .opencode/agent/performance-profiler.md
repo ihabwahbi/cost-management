@@ -17,7 +17,7 @@ tools:
   tavily_*: false
   exa_*: false
   context7_*: false
-  supabase_*: false
+  supabase_*: true  # For analyzing query performance and database bottlenecks
 ---
 ---
 mode: subagent
@@ -89,6 +89,135 @@ For server-side performance:
 - Missing database indexes
 - Inefficient joins and aggregations
 - Lack of query result caching
+
+### Database Performance Analysis with Supabase
+```typescript
+async function analyzeQueryPerformance() {
+  // Step 1: Get slow query statistics
+  const slowQueries = await supabase_query(`
+    SELECT 
+      query,
+      calls,
+      mean_exec_time,
+      total_exec_time,
+      min_exec_time,
+      max_exec_time,
+      stddev_exec_time
+    FROM pg_stat_statements
+    WHERE mean_exec_time > 100  -- Queries slower than 100ms
+    ORDER BY mean_exec_time DESC
+    LIMIT 20
+  `);
+  
+  // Step 2: Analyze missing indexes
+  const missingIndexes = await supabase_query(`
+    SELECT 
+      schemaname,
+      tablename,
+      attname,
+      n_distinct,
+      most_common_vals,
+      correlation
+    FROM pg_stats
+    WHERE schemaname = 'public'
+      AND n_distinct > 100
+      AND correlation < 0.1
+    ORDER BY n_distinct DESC
+  `);
+  
+  // Step 3: Check table bloat
+  const tableBloat = await supabase_query(`
+    SELECT
+      schemaname,
+      tablename,
+      pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename)) AS size,
+      n_dead_tup,
+      n_live_tup,
+      ROUND(100 * n_dead_tup / NULLIF(n_live_tup + n_dead_tup, 0), 2) AS dead_percent
+    FROM pg_stat_user_tables
+    WHERE n_dead_tup > 1000
+    ORDER BY n_dead_tup DESC
+  `);
+  
+  // Step 4: Analyze query plans for problematic queries
+  for (const slowQuery of slowQueries) {
+    const explainPlan = await supabase_query(
+      `EXPLAIN (ANALYZE, BUFFERS) ${slowQuery.query}`
+    );
+    
+    // Look for red flags in query plan
+    analyzePlanForIssues(explainPlan);
+  }
+  
+  // Step 5: Check connection pool usage
+  const connectionStats = await supabase_query(`
+    SELECT
+      count(*) as total_connections,
+      count(*) FILTER (WHERE state = 'active') as active,
+      count(*) FILTER (WHERE state = 'idle') as idle,
+      count(*) FILTER (WHERE state = 'idle in transaction') as idle_in_transaction,
+      max(EXTRACT(epoch FROM (now() - query_start))) as longest_query_seconds
+    FROM pg_stat_activity
+    WHERE datname = current_database()
+  `);
+  
+  return {
+    slowQueries,
+    missingIndexes,
+    tableBloat,
+    connectionStats
+  };
+}
+
+async function analyzeN1Queries(codePatterns) {
+  // Detect N+1 patterns in code
+  const suspectedN1 = [];
+  
+  for (const pattern of codePatterns) {
+    if (pattern.type === 'loop_with_query') {
+      // Found a query inside a loop - potential N+1
+      const parentTable = pattern.outerQuery?.table;
+      const childTable = pattern.innerQuery?.table;
+      
+      if (parentTable && childTable) {
+        // Check if there's a relationship that could be joined
+        const relationship = await supabase_query(`
+          SELECT 
+            tc.constraint_name,
+            tc.table_name,
+            kcu.column_name,
+            ccu.table_name AS foreign_table_name,
+            ccu.column_name AS foreign_column_name
+          FROM information_schema.table_constraints AS tc
+          JOIN information_schema.key_column_usage AS kcu
+            ON tc.constraint_name = kcu.constraint_name
+          JOIN information_schema.constraint_column_usage AS ccu
+            ON ccu.constraint_name = tc.constraint_name
+          WHERE tc.constraint_type = 'FOREIGN KEY'
+            AND tc.table_name = $1
+            AND ccu.table_name = $2
+        `, [childTable, parentTable]);
+        
+        if (relationship.length > 0) {
+          suspectedN1.push({
+            location: pattern.location,
+            issue: 'N+1 Query',
+            parent: parentTable,
+            child: childTable,
+            relationship: relationship[0],
+            suggestion: `Use a join or include related data:
+              supabase.from('${parentTable}')
+                .select('*, ${childTable}!${relationship[0].constraint_name}(*)')
+            `
+          });
+        }
+      }
+    }
+  }
+  
+  return suspectedN1;
+}
+```
 
 ## Phase 4: System-Level Checks
 Overall architecture issues:

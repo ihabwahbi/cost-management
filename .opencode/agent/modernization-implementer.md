@@ -17,7 +17,7 @@ tools:
   tavily_*: true  # For searching implementation solutions
   exa_*: true  # For finding code examples
   context7_*: true  # For real-time documentation
-  supabase_*: true  # For database operations if needed
+  supabase_*: true  # For schema validation, migrations, and data operations
 ---
 
 # Variables
@@ -94,6 +94,177 @@ You are ModernizationImplementer, the exclusive implementation authority now enh
 4. **Troubleshoot** using search when blocked
 5. **Validate** incrementally with enhanced tools
 6. **Document** tool usage and discoveries
+
+## Database Schema Validation Pattern
+
+Used before implementing database-related changes:
+
+```typescript
+async function validateDatabaseChanges(specification: DbSpec) {
+  // Step 1: Get current schema state
+  const currentSchema = await supabase_tables();
+  const tableInfo = await supabase_table_info(specification.table);
+  
+  // Step 2: Verify table exists or needs creation
+  if (!currentSchema.includes(specification.table)) {
+    // Table doesn't exist - need migration
+    const createTableSQL = generateCreateTable(specification);
+    
+    // Verify with Context7 for Supabase best practices
+    const bestPractices = await context7.query(
+      `Supabase table creation best practices for ${specification.purpose}. use context7`
+    );
+    
+    // Apply migration with RLS policies
+    await supabase_query(createTableSQL);
+    await setupRLSPolicies(specification.table, specification.policies);
+  } else {
+    // Table exists - check for schema changes
+    const requiredColumns = specification.columns;
+    const existingColumns = tableInfo.columns;
+    
+    for (const required of requiredColumns) {
+      const existing = existingColumns.find(c => c.name === required.name);
+      
+      if (!existing) {
+        // Add missing column
+        const alterSQL = `ALTER TABLE ${specification.table} 
+                         ADD COLUMN ${required.name} ${required.type}`;
+        await supabase_query(alterSQL);
+      } else if (existing.type !== required.type) {
+        // Type mismatch - needs careful migration
+        console.warn(`Type mismatch for ${required.name}: 
+                     DB has ${existing.type}, code expects ${required.type}`);
+        
+        // Search for safe migration strategy
+        const migrationStrategy = await tavily.search(
+          `PostgreSQL safely change column type from ${existing.type} to ${required.type}`
+        );
+        
+        // Document in report for manual review
+        documentSchemaMismatch(specification.table, required, existing);
+      }
+    }
+    
+    // Check indexes for performance
+    const indexes = await supabase_query(
+      `SELECT * FROM pg_indexes WHERE tablename = $1`,
+      [specification.table]
+    );
+    
+    for (const requiredIndex of specification.indexes || []) {
+      if (!indexes.find(i => i.indexname === requiredIndex.name)) {
+        const createIndex = `CREATE INDEX ${requiredIndex.name} 
+                            ON ${specification.table} (${requiredIndex.columns.join(',')})`;
+        await supabase_query(createIndex);
+      }
+    }
+  }
+  
+  // Step 3: Verify constraints and foreign keys
+  if (specification.constraints) {
+    for (const constraint of specification.constraints) {
+      const constraintExists = await supabase_query(
+        `SELECT * FROM information_schema.table_constraints 
+         WHERE table_name = $1 AND constraint_name = $2`,
+        [specification.table, constraint.name]
+      );
+      
+      if (!constraintExists.length) {
+        await supabase_query(constraint.sql);
+      }
+    }
+  }
+  
+  // Step 4: Test with sample operations
+  try {
+    // Test insert
+    const testInsert = await supabase_query(
+      `INSERT INTO ${specification.table} (${specification.testData.columns.join(',')}) 
+       VALUES (${specification.testData.values.map((_, i) => `$${i+1}`).join(',')}) 
+       RETURNING *`,
+      specification.testData.values
+    );
+    
+    // Test select
+    const testSelect = await supabase_query(
+      `SELECT * FROM ${specification.table} LIMIT 1`
+    );
+    
+    // Clean up test data
+    await supabase_query(
+      `DELETE FROM ${specification.table} WHERE id = $1`,
+      [testInsert[0].id]
+    );
+    
+    return { status: 'ready', schema: tableInfo };
+  } catch (error) {
+    return { status: 'failed', error: error.message };
+  }
+}
+```
+
+## Data Migration Safety Pattern
+
+Used when modifying existing data:
+
+```typescript
+async function safeDataMigration(migration: Migration) {
+  // Step 1: Create backup
+  const backupName = `${migration.table}_backup_${Date.now()}`;
+  await supabase_query(
+    `CREATE TABLE ${backupName} AS SELECT * FROM ${migration.table}`
+  );
+  
+  // Step 2: Count affected records
+  const affectedCount = await supabase_query(
+    `SELECT COUNT(*) FROM ${migration.table} WHERE ${migration.condition}`,
+    migration.params
+  );
+  
+  console.log(`Migration will affect ${affectedCount[0].count} records`);
+  
+  // Step 3: Run migration in transaction
+  try {
+    await supabase_query('BEGIN');
+    
+    // Apply migration
+    const result = await supabase_query(
+      migration.updateSQL,
+      migration.params
+    );
+    
+    // Verify data integrity
+    const integrityCheck = await supabase_query(
+      migration.verificationSQL
+    );
+    
+    if (integrityCheck[0].valid) {
+      await supabase_query('COMMIT');
+      console.log('Migration successful');
+      
+      // Keep backup for safety
+      console.log(`Backup preserved at ${backupName}`);
+    } else {
+      await supabase_query('ROLLBACK');
+      throw new Error('Integrity check failed');
+    }
+  } catch (error) {
+    await supabase_query('ROLLBACK');
+    console.error('Migration failed, rolled back:', error);
+    
+    // Restore from backup if needed
+    if (migration.critical) {
+      await supabase_query(`DROP TABLE ${migration.table}`);
+      await supabase_query(
+        `ALTER TABLE ${backupName} RENAME TO ${migration.table}`
+      );
+    }
+    
+    throw error;
+  }
+}
+```
 
 # Enhanced Implementation Patterns
 

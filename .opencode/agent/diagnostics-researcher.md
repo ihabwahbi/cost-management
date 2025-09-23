@@ -13,11 +13,11 @@ tools:
   patch: false  # CRITICAL: Must NOT patch files
   todowrite: true
   todoread: true
-  webfetch: false
-  tavily_*: false
-  exa_*: false
-  context7_*: false
-  supabase_*: false
+  webfetch: true  # For checking package versions and changelogs
+  tavily_*: true  # For searching known issues and solutions in real-time
+  exa_*: true  # For finding similar bug patterns and fixes
+  context7_*: true  # For API verification during diagnosis
+  supabase_*: true  # For database state inspection and data integrity checks
 ---
 
 # Variables
@@ -28,6 +28,7 @@ MAX_PARALLEL_TASKS: 3
 SEARCH_DEPTH: "comprehensive"
 REPORT_FORMAT: "diagnostic-v2"
 SEVERITY_LEVELS: ["Critical", "High", "Medium", "Low"]
+DB_INVESTIGATION_TRIGGERS: ["data integrity", "query performance", "schema mismatch", "constraint violation", "migration issue"]
 
 ## Agent References
 WEB_RESEARCHER: "web-search-researcher"
@@ -109,6 +110,40 @@ tasks = [
 # All three run simultaneously, results synthesized after
 ```
 
+## Enhanced Direct Search Pattern
+
+Used when subagent delegation isn't needed for simple searches:
+
+```python
+# Direct API verification during diagnosis
+async def verify_api_during_diagnosis(api_call):
+    # Use Context7 directly for immediate API verification
+    verification = await context7_query(
+        f"Verify if {api_call} is current in React 18. use context7"
+    )
+    
+    if verification.deprecated:
+        # Search for migration path
+        migration = await tavily_search(
+            f"migrate {api_call} React 18 deprecated",
+            include_domains=["reactjs.org", "github.com"]
+        )
+        return {"status": "deprecated", "migration": migration}
+    
+    return {"status": "valid", "usage": verification.syntax}
+
+# Direct error research without subagent overhead
+async def research_error_directly(error):
+    # Parallel search across platforms
+    results = await Promise.all([
+        tavily_search(f'"{error.message}" {error.context} solution'),
+        exa_search(f"fix {error.type} in {error.component}", type="neural"),
+        context7_query(f"Common causes of {error.type}. use context7")
+    ])
+    
+    return synthesize_solutions(results)
+```
+
 ## Sequential Refinement Pattern
 
 Used when each investigation builds on the previous:
@@ -139,6 +174,94 @@ results = parallel_tasks([
 
 # Synthesize into unified diagnostic model
 synthesis = merge_findings(results, preserve_all_context=True)
+```
+
+## Database Investigation Pattern
+
+Used for data-related issues and schema verification:
+
+```python
+async def investigate_database_issue(symptom):
+    # Step 1: Get current schema
+    schema = await supabase_tables()
+    
+    # Step 2: Check specific table structure
+    if symptom.involves_table:
+        table_info = await supabase_table_info(symptom.table_name)
+        columns = table_info.columns
+        constraints = table_info.constraints
+        indexes = table_info.indexes
+    
+    # Step 3: Verify data integrity
+    if symptom.involves_data_inconsistency:
+        # Check for orphaned records
+        orphan_check = await supabase_query(
+            f"SELECT * FROM {symptom.table} WHERE {symptom.foreign_key} NOT IN 
+             (SELECT id FROM {symptom.referenced_table})"
+        )
+        
+        # Check for constraint violations
+        constraint_check = await supabase_query(
+            f"SELECT * FROM {symptom.table} WHERE {symptom.constraint_condition}"
+        )
+    
+    # Step 4: Analyze query performance
+    if symptom.involves_performance:
+        # Get query execution plan
+        explain = await supabase_query(
+            f"EXPLAIN ANALYZE {symptom.slow_query}"
+        )
+        
+        # Check index usage
+        index_usage = await supabase_query(
+            "SELECT * FROM pg_stat_user_indexes WHERE relname = $1",
+            [symptom.table_name]
+        )
+    
+    return {
+        "schema_state": schema,
+        "table_analysis": table_info,
+        "integrity_issues": orphan_check,
+        "performance_analysis": explain
+    }
+```
+
+## Schema-Code Alignment Pattern
+
+Used to verify database expectations match reality:
+
+```python
+async def verify_schema_alignment(code_models):
+    # Step 1: Get actual database schema
+    actual_schema = await supabase_tables()
+    
+    # Step 2: Compare with code expectations
+    mismatches = []
+    for model in code_models:
+        table_info = await supabase_table_info(model.table_name)
+        
+        # Check columns exist
+        for field in model.fields:
+            if field.db_column not in table_info.columns:
+                mismatches.append({
+                    "type": "missing_column",
+                    "model": model.name,
+                    "field": field.name,
+                    "expected_column": field.db_column
+                })
+        
+        # Check data types match
+        for column in table_info.columns:
+            model_field = model.get_field_by_column(column.name)
+            if model_field and model_field.type != column.type:
+                mismatches.append({
+                    "type": "type_mismatch",
+                    "column": column.name,
+                    "db_type": column.type,
+                    "code_type": model_field.type
+                })
+    
+    return mismatches
 ```
 
 # Knowledge Base

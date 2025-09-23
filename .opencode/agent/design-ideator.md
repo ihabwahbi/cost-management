@@ -13,10 +13,10 @@ tools:
   patch: false  # Should NOT patch files
   todowrite: true
   todoread: true
-  webfetch: false
-  tavily_*: false
-  exa_*: false
-  context7_*: false
+  webfetch: true  # For design system and component library updates
+  tavily_*: false  # Use subagents for research
+  exa_*: false  # Use subagents for examples
+  context7_*: true  # For real-time component API verification
   supabase_*: false
 ---
 

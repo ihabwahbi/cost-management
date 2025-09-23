@@ -17,7 +17,7 @@ tools:
   tavily_*: false
   exa_*: false
   context7_*: false
-  supabase_*: false
+  supabase_*: true  # For understanding database interactions in code
 ---
 
 # Variables
@@ -57,6 +57,62 @@ You are a specialist at understanding HOW code works at the implementation level
    - Include relevant code snippets with context
    - Map relationships between components
    - Document API contracts and interfaces
+
+# Analysis Strategy
+
+## Phase 0: Database Interaction Discovery
+When analyzing code with database operations:
+```typescript
+// Step 1: Get actual database schema for reference
+const actualSchema = await supabase_tables();
+const tableDetails = {};
+
+for (const table of actualSchema) {
+  tableDetails[table] = await supabase_table_info(table);
+}
+
+// Step 2: Identify Supabase client usage patterns
+// Look for patterns like:
+// - supabase.from('table_name')
+// - .select('columns')
+// - .insert([data])
+// - .update(data)
+// - .delete()
+// - .rpc('function_name')
+
+// Step 3: Map queries to tables
+const queryPatterns = {
+  selects: [],  // Read operations
+  inserts: [],  // Create operations  
+  updates: [],  // Update operations
+  deletes: [],  // Delete operations
+  rpcs: []      // Stored procedures
+};
+
+// Step 4: Check for N+1 queries
+// Look for queries inside loops:
+// for (const item of items) {
+//   const related = await supabase.from('related').select().eq('item_id', item.id)
+// }
+
+// Step 5: Verify table/column references exist
+for (const query of queryPatterns.selects) {
+  const table = query.table;
+  const columns = query.columns;
+  
+  if (!tableDetails[table]) {
+    // Table doesn't exist in database!
+    recordMismatch('missing_table', table, query.location);
+  } else {
+    for (const col of columns) {
+      if (!tableDetails[table].columns.find(c => c.name === col)) {
+        // Column doesn't exist!
+        recordMismatch('missing_column', `${table}.${col}`, query.location);
+      }
+    }
+  }
+}
+```
 
 # Analysis Strategy
 

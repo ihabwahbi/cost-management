@@ -13,11 +13,11 @@ tools:
   patch: false  # Should NOT patch files
   todowrite: true
   todoread: true
-  webfetch: false
-  tavily_*: false
-  exa_*: false
-  context7_*: false
-  supabase_*: false
+  webfetch: true  # For dependency version checking
+  tavily_*: true  # For risk research and mitigation strategies
+  exa_*: false  # Use subagents for pattern finding
+  context7_*: true  # For real-time feasibility validation
+  supabase_*: true  # For database migration planning and dependency checking
 ---
 
 # Variables
@@ -37,6 +37,7 @@ LIBRARY_MONITOR: "library-update-monitor"
 PERF_PROFILER: "performance-profiler"
 ACCESSIBILITY_AUDITOR: "accessibility-auditor"
 TEST_ANALYZER: "test-coverage-analyzer"
+DB_ANALYZER: "database-schema-analyzer"
 
 ## Dynamic Variables
 DIAGNOSTIC_REPORT: "[[diagnostic_report_path]]"
@@ -92,6 +93,115 @@ You are ModernizationOrchestrator, the master coordinator who transforms diagnos
 4. **Validate** feasibility and identify risks
 5. **Prioritize** tasks by dependency and impact
 6. **Document** with surgical precision for Phase 4
+
+## Database Migration Planning Pattern
+
+Used for database-related changes:
+
+```python
+async def plan_database_changes(diagnostics, designs):
+    # Step 1: Analyze current database state
+    db_analysis = Task(DB_ANALYZER,
+        "Analyze complete database schema and performance",
+        subagent_type="database-schema-analyzer")
+    
+    # Step 2: Get actual schema from Supabase
+    current_schema = await supabase_tables()
+    
+    # Step 3: Identify required changes
+    required_changes = []
+    
+    # From diagnostics (bug fixes)
+    if diagnostics.database_issues:
+        for issue in diagnostics.database_issues:
+            # Check if schema change needed
+            table_info = await supabase_table_info(issue.table)
+            
+            if issue.type == "missing_index":
+                required_changes.append({
+                    "type": "add_index",
+                    "table": issue.table,
+                    "columns": issue.columns,
+                    "priority": "high"
+                })
+            elif issue.type == "constraint_violation":
+                required_changes.append({
+                    "type": "add_constraint",
+                    "table": issue.table,
+                    "constraint": issue.constraint_sql,
+                    "priority": "critical"
+                })
+    
+    # From design (new features)
+    if designs.requires_database_changes:
+        for change in designs.database_requirements:
+            if change.new_table:
+                # Verify table doesn't exist
+                if change.table_name not in current_schema:
+                    required_changes.append({
+                        "type": "create_table",
+                        "definition": change.table_definition,
+                        "priority": "high"
+                    })
+            elif change.new_columns:
+                # Check columns don't exist
+                table_info = await supabase_table_info(change.table_name)
+                for col in change.columns:
+                    if not any(c.name == col.name for c in table_info.columns):
+                        required_changes.append({
+                            "type": "add_column",
+                            "table": change.table_name,
+                            "column": col,
+                            "priority": "medium"
+                        })
+    
+    # Step 4: Order changes by dependency
+    ordered_changes = order_by_dependency(required_changes)
+    
+    # Step 5: Generate migration plan
+    migration_plan = {
+        "pre_checks": generate_pre_checks(ordered_changes),
+        "migrations": generate_migrations(ordered_changes),
+        "rollback": generate_rollbacks(ordered_changes),
+        "validation": generate_validations(ordered_changes)
+    }
+    
+    return migration_plan
+```
+
+## Database Dependency Resolution Pattern
+
+Used to ensure safe migration order:
+
+```python
+async def resolve_database_dependencies():
+    # Get all foreign key relationships
+    foreign_keys = await supabase_query(`
+        SELECT
+            tc.table_name,
+            kcu.column_name,
+            ccu.table_name AS referenced_table,
+            ccu.column_name AS referenced_column
+        FROM information_schema.table_constraints tc
+        JOIN information_schema.key_column_usage kcu
+            ON tc.constraint_name = kcu.constraint_name
+        JOIN information_schema.constraint_column_usage ccu
+            ON ccu.constraint_name = tc.constraint_name
+        WHERE tc.constraint_type = 'FOREIGN KEY'
+    `)
+    
+    # Build dependency graph
+    dependency_graph = {}
+    for fk in foreign_keys:
+        if fk.table_name not in dependency_graph:
+            dependency_graph[fk.table_name] = []
+        dependency_graph[fk.table_name].append(fk.referenced_table)
+    
+    # Topological sort for migration order
+    migration_order = topological_sort(dependency_graph)
+    
+    return migration_order
+```
 
 # Orchestration Patterns
 

@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { format } from "date-fns"
 import { Button } from "@/components/ui/button"
-import { WaterfallChart, CategoryComparisonChart, VarianceInsights } from "@/components/version-comparison-charts"
+import { WaterfallChart, CategoryComparisonChart, VarianceInsights } from "@/components/version-comparison-charts-fixed"
 import {
   Dialog,
   DialogContent,
@@ -429,22 +429,23 @@ export function VersionComparison({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-7xl max-h-[90vh]">
-        <DialogHeader>
+      <DialogContent className="max-w-7xl max-h-[90vh] overflow-hidden flex flex-col">
+        <DialogHeader className="flex-shrink-0 px-6 py-4 border-b">
           <DialogTitle>Version Comparison - {projectName}</DialogTitle>
           <DialogDescription>
             Comparing Version {version1} vs Version {version2}
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs defaultValue="table" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="table">Table View</TabsTrigger>
-            <TabsTrigger value="summary">Summary View</TabsTrigger>
-            <TabsTrigger value="insights">Visual Insights</TabsTrigger>
-          </TabsList>
+        <div className="flex-1 overflow-hidden flex flex-col px-6">
+          <Tabs defaultValue="table" className="flex-1 flex flex-col">
+            <TabsList className="grid w-full grid-cols-3 flex-shrink-0 my-4">
+              <TabsTrigger value="table">Table View</TabsTrigger>
+              <TabsTrigger value="summary">Summary View</TabsTrigger>
+              <TabsTrigger value="insights">Visual Insights</TabsTrigger>
+            </TabsList>
 
-          <TabsContent value="table" className="space-y-4">
+            <TabsContent value="table" className="flex-1 overflow-hidden space-y-4">
             {/* Filters and Controls */}
             <div className="flex flex-wrap gap-4 items-center">
               <input
@@ -515,9 +516,9 @@ export function VersionComparison({
             {/* Enhanced Statistics Bar with Visual Indicators */}
             <div className="space-y-4">
               {/* Primary Metrics */}
-              <div className="grid grid-cols-6 gap-4">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <Card className={stats.totalChange > 0 ? "border-green-200 bg-green-50/30" : "border-red-200 bg-red-50/30"}>
-                  <CardContent className="p-4">
+                  <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div>
                         <div className="text-2xl font-bold">
@@ -537,7 +538,7 @@ export function VersionComparison({
                   </CardContent>
                 </Card>
                 <Card className={stats.changePercent > 0 ? "border-green-200" : stats.changePercent < 0 ? "border-red-200" : ""}>
-                  <CardContent className="p-4">
+                  <CardContent className="p-6">
                     <div className="text-2xl font-bold">
                       {stats.changePercent > 0 ? "+" : ""}{stats.changePercent.toFixed(1)}%
                     </div>
@@ -552,25 +553,25 @@ export function VersionComparison({
                   </CardContent>
                 </Card>
                 <Card>
-                  <CardContent className="p-4">
+                  <CardContent className="p-6">
                     <div className="text-2xl font-bold text-green-600">{stats.added}</div>
                     <p className="text-xs text-muted-foreground">Added</p>
                   </CardContent>
                 </Card>
                 <Card>
-                  <CardContent className="p-4">
+                  <CardContent className="p-6">
                     <div className="text-2xl font-bold text-red-600">{stats.removed}</div>
                     <p className="text-xs text-muted-foreground">Removed</p>
                   </CardContent>
                 </Card>
                 <Card>
-                  <CardContent className="p-4">
+                  <CardContent className="p-6">
                     <div className="text-2xl font-bold text-blue-600">{stats.changed}</div>
                     <p className="text-xs text-muted-foreground">Changed</p>
                   </CardContent>
                 </Card>
                 <Card>
-                  <CardContent className="p-4">
+                  <CardContent className="p-6">
                     <div className="text-2xl font-bold text-gray-600">{stats.unchanged}</div>
                     <p className="text-xs text-muted-foreground">Unchanged</p>
                   </CardContent>
@@ -614,8 +615,9 @@ export function VersionComparison({
             </div>
 
             {/* Comparison Table */}
-            <ScrollArea className="h-[400px]">
-              <Table>
+            <div className="w-full overflow-x-auto">
+              <ScrollArea className="h-[400px]">
+                <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Status</TableHead>
@@ -729,8 +731,9 @@ export function VersionComparison({
                     )
                   })}
                 </TableBody>
-              </Table>
-            </ScrollArea>
+                </Table>
+              </ScrollArea>
+            </div>
           </TabsContent>
 
           <TabsContent value="summary" className="space-y-4">
@@ -827,7 +830,9 @@ export function VersionComparison({
             </Card>
           </TabsContent>
           
-          <TabsContent value="insights" className="space-y-6">
+          <TabsContent value="insights" className="relative h-[calc(90vh-200px)]">
+            <ScrollArea className="h-full pr-4">
+              <div className="space-y-6 pb-6">
             {/* Waterfall Chart */}
             <WaterfallChart
               data={comparisonData.map(item => ({
@@ -947,10 +952,13 @@ export function VersionComparison({
                 </CardContent>
               </Card>
             </div>
+          </div>
+        </ScrollArea>
           </TabsContent>
-        </Tabs>
+          </Tabs>
+        </div>
 
-        <DialogFooter>
+        <DialogFooter className="flex-shrink-0 px-6 py-4 border-t">
           <Button variant="outline" onClick={onClose}>
             Close
           </Button>

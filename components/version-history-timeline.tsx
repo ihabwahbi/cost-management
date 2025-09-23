@@ -125,6 +125,23 @@ export function VersionHistoryTimeline({
     return { totalChange, changePercent, itemsChanged }
   }
 
+  // Handle dialog open/close with state reset
+  const handleDialogOpenChange = (open: boolean) => {
+    setShowCompareDialog(open)
+    if (!open) {
+      // Reset state when dialog closes
+      setCompareFrom(null)
+      setCompareTo(null)
+      // Debug instrumentation
+      console.log('[VersionComparison] Dialog state reset:', { 
+        isOpen: open, 
+        compareFrom: null, 
+        compareTo: null,
+        timestamp: Date.now() 
+      })
+    }
+  }
+
   const handleCompare = () => {
     if (compareFrom !== null && compareTo !== null && onCompareVersions) {
       onCompareVersions(compareFrom, compareTo)
@@ -353,7 +370,7 @@ export function VersionHistoryTimeline({
       </Card>
 
       {/* Compare Versions Dialog */}
-      <Dialog open={showCompareDialog} onOpenChange={setShowCompareDialog}>
+      <Dialog open={showCompareDialog} onOpenChange={handleDialogOpenChange}>
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
             <DialogTitle>Compare Versions</DialogTitle>
@@ -366,8 +383,10 @@ export function VersionHistoryTimeline({
               <label className="text-sm font-medium">From Version</label>
               <select
                 className="w-full mt-1 px-3 py-2 border rounded-md"
-                value={compareFrom || ""}
-                onChange={(e) => setCompareFrom(Number(e.target.value))}
+                value={compareFrom !== null ? compareFrom : ""}
+                onChange={(e) => setCompareFrom(e.target.value ? Number(e.target.value) : null)}
+                aria-label="Select from version"
+                aria-describedby="version-from-helper"
               >
                 <option value="">Select version</option>
                 {sortedVersions.map((v) => (
@@ -381,12 +400,12 @@ export function VersionHistoryTimeline({
               <label className="text-sm font-medium">To Version</label>
               <select
                 className="w-full mt-1 px-3 py-2 border rounded-md"
-                value={compareTo || ""}
-                onChange={(e) => setCompareTo(Number(e.target.value))}
+                value={compareTo !== null ? compareTo : ""}
+                onChange={(e) => setCompareTo(e.target.value ? Number(e.target.value) : null)}
               >
                 <option value="">Select version</option>
                 {sortedVersions
-                  .filter((v) => compareFrom === null || v.version_number > compareFrom)
+                  .filter((v) => compareFrom === null || v.version_number !== compareFrom)
                   .map((v) => (
                     <option key={v.id} value={v.version_number}>
                       Version {v.version_number}

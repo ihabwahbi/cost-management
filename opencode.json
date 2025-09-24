@@ -1,0 +1,68 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+
+  "mcp": {
+        "tavily": {
+      "type": "remote",
+      "url": "https://mcp.tavily.com/mcp/?tavilyApiKey=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",
+      "enabled": true
+    },
+    "exa": {
+      "type": "remote",
+      "url": "https://mcp.exa.ai/mcp?exaApiKey=854032ad-d997-4859-821d-f3ef4a8de3db",
+      "enabled": true
+    },
+    "context7": {
+      "type": "remote",
+      "url": "https://mcp.context7.com/mcp",
+      "headers": {
+        "CONTEXT7_API_KEY": "ctx7sk-298aad58-b76f-4c8d-a922-1a1bed7638c9"
+      },
+      "enabled": true
+    },
+        "supabase": {
+      "type": "local",
+      "command": [
+        "npx",
+        "-y",
+        "@supabase/mcp-server-supabase",
+        "--read-only",
+        "--project-ref=bykrhpaqaxhyfrqfvbus"
+      ],
+      "enabled": true,
+      "environment": {
+        "SUPABASE_ACCESS_TOKEN": "sbp_d5d53520ee44e2cae1fe7fb52050c5e5444c2e18"
+      }
+    },
+     "playwright": {
+      "type": "local",
+      "command": [
+        "npx",
+        "-y",
+        "@playwright/mcp@latest"
+      ],
+      "enabled": true
+    }
+  },
+  "tools": {
+    "tavily_*": false,
+    "exa_*": false,
+    "context7_*": false,
+    "supabase_*": false,
+    "playwright_*": false,
+  },
+  "provider": {
+    "anthropic": {
+      "models": {
+        "claude-opus-4-1-20250805": {
+          "options": {
+            "thinking": {
+              "type": "enabled",
+              "budgetTokens": 16000
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
 import { cn } from "@/lib/utils"
+import { versionComparisonUtils } from "@/lib/version-comparison-utils"
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -323,12 +324,17 @@ export function VersionComparison({
       else if (item.status === "changed") changed++
       else if (item.status === "unchanged") unchanged++
       
-      totalV1 += item.v1_amount || 0
-      totalV2 += item.v2_amount || 0
+      // Safe number handling to prevent NaN
+      const safeV1 = Number.isFinite(item.v1_amount) ? item.v1_amount : 0
+      const safeV2 = Number.isFinite(item.v2_amount) ? item.v2_amount : 0
+      
+      totalV1 += safeV1
+      totalV2 += safeV2
     })
 
     const totalChange = totalV2 - totalV1
-    const changePercent = totalV1 > 0 ? (totalChange / totalV1) * 100 : 0
+    // Use safe percentage calculation to prevent NaN
+    const changePercent = versionComparisonUtils.safePercentage(totalV2, totalV1)
 
     return {
       added,
@@ -435,12 +441,12 @@ export function VersionComparison({
       item.cost_line,
       item.spend_type,
       item.spend_sub_category,
-      item.version1_cost?.toString() || "0",
-      item.version2_cost?.toString() || "0",
-      (item.version2_cost! - item.version1_cost!).toString(),
-      item.version1_cost && item.version2_cost 
-        ? ((item.version2_cost - item.version1_cost) / item.version1_cost * 100).toFixed(2) + "%"
-        : "N/A",
+      item.v1_amount?.toString() || "0",
+      item.v2_amount?.toString() || "0",
+      ((item.v2_amount || 0) - (item.v1_amount || 0)).toString(),
+      versionComparisonUtils.formatPercentage(
+        versionComparisonUtils.safePercentage(item.v2_amount, item.v1_amount)
+      ),
       item.status
     ])
     

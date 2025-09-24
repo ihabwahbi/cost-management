@@ -7,6 +7,7 @@ import { UnsavedChangesBar } from "@/components/unsaved-changes-bar"
 import { ForecastWizard } from "@/components/forecast-wizard"
 import { VersionHistoryTimeline } from "@/components/version-history-timeline"
 import { VersionComparison } from "@/components/version-comparison-worldclass"
+import { VersionComparisonSheet } from "@/components/version-comparison-sheet"
 import { useToast } from "@/hooks/use-toast"
 import { LocalStorageService } from "@/lib/local-storage-service"
 import { Button } from "@/components/ui/button"
@@ -668,9 +669,10 @@ export default function ProjectsPage() {
   // Load forecast data for version comparison
   const loadComparisonData = async (projectId: string, v1: number, v2: number) => {
     setLoadingComparison(true)
+    console.log('[loadComparisonData] Starting comparison load:', { projectId, v1, v2 })
     
     try {
-      const forecasts: Record<number, any[]> = {}
+      const forecasts: Record<number | string, any[]> = {}
       
       // Helper function to load forecast data for a specific version
       const loadVersionForecasts = async (versionNumber: number) => {
@@ -723,6 +725,29 @@ export default function ProjectsPage() {
       
       forecasts[v1] = v1Data
       forecasts[v2] = v2Data
+      
+      // Also load the original cost breakdown to ensure we have all items and names
+      const { data: originalCostBreakdown, error: cbError } = await supabase
+        .from("cost_breakdown")
+        .select("*")
+        .eq("project_id", projectId)
+        .order("cost_line, spend_sub_category")
+      
+      if (cbError) {
+        console.error("Error loading cost breakdown:", cbError)
+      } else {
+        // Store original cost breakdown for comparison use
+        forecasts.originalItems = originalCostBreakdown || []
+      }
+      
+      console.log('[loadComparisonData] Loaded data:', {
+        v1Count: v1Data.length,
+        v2Count: v2Data.length,
+        originalItemsCount: originalCostBreakdown?.length || 0,
+        v1Sample: v1Data.slice(0, 2),
+        v2Sample: v2Data.slice(0, 2),
+        originalSample: originalCostBreakdown?.slice(0, 2)
+      })
       
       setComparisonForecasts(forecasts)
       
@@ -2658,24 +2683,131 @@ export default function ProjectsPage() {
         </div>
       )}
       
-      {/* Version Comparison Modal */}
-      {showVersionComparison && compareVersions && (
-        <VersionComparison
-          isOpen={true}
-          onClose={() => {
-            setShowVersionComparison(null)
-            setCompareVersions(null)
-            setComparisonForecasts({})
-          }}
-          projectId={showVersionComparison}
-          projectName={projects.find(p => p.id === showVersionComparison)?.name || ""}
-          version1={compareVersions.v1}
-          version2={compareVersions.v2}
-          versions={forecastVersions[showVersionComparison] || []}
-          costBreakdowns={costBreakdowns[showVersionComparison] || []}
-          forecasts={comparisonForecasts}
-        />
-      )}
+      {/* Version Comparison Sheet - New Implementation */}
+      {showVersionComparison && compareVersions && (() => {
+        // Transform the data for the new Sheet component
+        const projectData = projects.find(p => p.id === showVersionComparison);
+        
+        // Get the forecast data that was loaded by loadComparisonData
+        const v1Forecasts = comparisonForecasts[compareVersions.v1] || [];
+        const v2Forecasts = comparisonForecasts[compareVersions.v2] || [];
+        const originalItems = (comparisonForecasts as any)['originalItems'] || [];
+        
+        // Build a complete list of ALL cost items from the original cost breakdown
+        const allCostItemIds = new Set<string>();
+        const costItemMap = new Map<string, { id: string; name: string }>();
+        
+        // Use original cost breakdown items to ensure we have ALL items
+        if (originalItems.length > 0) {
+          originalItems.forEach((item: any) => {
+            allCostItemIds.add(item.id);
+            // Use spend_sub_category as primary identifier since cost_line is same for all
+            // If both exist, combine them for clarity
+            let displayName = item.spend_sub_category || item.cost_line || 'Unknown';
+            if (item.cost_line && item.spend_sub_category && item.cost_line !== item.spend_sub_category) {
+              displayName = `${item.cost_line} - ${item.spend_sub_category}`;
+            }
+            costItemMap.set(item.id, {
+              id: item.id,
+              name: displayName
+            });
+          });
+        } else {
+          // Fallback: build from forecasts if original items not available
+          v1Forecasts.forEach(forecast => {
+            allCostItemIds.add(forecast.cost_breakdown_id);
+          });
+          
+          v2Forecasts.forEach(forecast => {
+            allCostItemIds.add(forecast.cost_breakdown_id);
+          });
+          
+          // Try to get names from current cost breakdowns
+          const currentCostBreakdowns = costBreakdowns[showVersionComparison] || [];
+          currentCostBreakdowns.forEach(item => {
+            // Use spend_sub_category as primary identifier since cost_line is same for all
+            let displayName = item.spend_sub_category || item.cost_line || 'Unknown';
+            if (item.cost_line && item.spend_sub_category && item.cost_line !== item.spend_sub_category) {
+              displayName = `${item.cost_line} - ${item.spend_sub_category}`;
+            }
+            costItemMap.set(item.id, {
+              id: item.id,
+              name: displayName
+            });
+          });
+        }
+        
+        // Build version data for v1
+        const v1CostLines = Array.from(allCostItemIds).map(itemId => {
+          const forecast = v1Forecasts.find(f => f.cost_breakdown_id === itemId);
+          const costItem = costItemMap.get(itemId);
+          
+          return {
+            costLineName: costItem?.name || 'Unknown',
+            totalCost: forecast ? (forecast.forecasted_cost || 0) : 0
+          };
+        }); // Keep all items, don't filter out unknowns to maintain data integrity
+        
+        const v1Total = v1CostLines.reduce((sum, line) => sum + line.totalCost, 0);
+        
+        // Build version data for v2
+        const v2CostLines = Array.from(allCostItemIds).map(itemId => {
+          const forecast = v2Forecasts.find(f => f.cost_breakdown_id === itemId);
+          const costItem = costItemMap.get(itemId);
+          
+          return {
+            costLineName: costItem?.name || 'Unknown',
+            totalCost: forecast ? (forecast.forecasted_cost || 0) : 0
+          };
+        }); // Keep all items for data integrity
+        
+        const v2Total = v2CostLines.reduce((sum, line) => sum + line.totalCost, 0);
+        
+        // Log data for debugging
+        console.log('[Version Comparison] Data transformation:', {
+          v1: compareVersions.v1,
+          v2: compareVersions.v2,
+          v1ForecastCount: v1Forecasts.length,
+          v2ForecastCount: v2Forecasts.length,
+          v1Total,
+          v2Total,
+          costItemCount: allCostItemIds.size,
+          originalItemsCount: originalItems.length,
+          costItemMapEntries: Array.from(costItemMap.entries()).slice(0, 3),
+          v1Sample: v1CostLines.slice(0, 3),
+          v2Sample: v2CostLines.slice(0, 3)
+        });
+        
+        // Create the transformed versions array with just the two versions being compared
+        const transformedVersions = [
+          {
+            version: compareVersions.v1,
+            totalCost: v1Total,
+            costLines: v1CostLines
+          },
+          {
+            version: compareVersions.v2,
+            totalCost: v2Total,
+            costLines: v2CostLines
+          }
+        ];
+        
+        return (
+          <VersionComparisonSheet
+            isOpen={true}
+            onClose={() => {
+              setShowVersionComparison(null)
+              setCompareVersions(null)
+              setComparisonForecasts({})
+            }}
+            projectData={{
+              id: showVersionComparison,
+              name: projectData?.name || ""
+            }}
+            versions={transformedVersions}
+          />
+        );
+      })()}
       
       {/* Forecast Wizard */}
       {showForecastWizard && (

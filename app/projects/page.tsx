@@ -676,15 +676,50 @@ export default function ProjectsPage() {
       
       // Helper function to load forecast data for a specific version
       const loadVersionForecasts = async (versionNumber: number) => {
-        if (versionNumber === 0) {
-          // For version 0, return the original cost breakdown
+        // First check if there's an actual forecast version for this version number
+        const { data: versionData, error: versionError } = await supabase
+          .from("forecast_versions")
+          .select("*")
+          .eq("project_id", projectId)
+          .eq("version_number", versionNumber)
+          .single()
+        
+        if (versionData && versionData.id) {
+          // There's an actual forecast version, load its forecasts
+          const { data: forecastData, error: forecastError } = await supabase
+            .from("budget_forecasts")
+            .select("*")
+            .eq("forecast_version_id", versionData.id)
+            .order("id")
+          
+          if (forecastError) throw forecastError
+          
+          console.log(`[loadComparisonData] Version ${versionNumber} forecasts from budget_forecasts:`, {
+            count: forecastData?.length || 0,
+            versionId: versionData.id
+          })
+          
+          return forecastData || []
+        } else if (versionNumber === 0) {
+          // Special handling for Version 0 if not in forecast_versions
+          // Only use cost_breakdown items that have budget_cost > 0
+          // This represents the initial baseline budget
           const { data, error } = await supabase
             .from("cost_breakdown")
             .select("*")
             .eq("project_id", projectId)
+            .gt("budget_cost", 0) // Only items with actual budget values
             .order("spend_sub_category")
           
           if (error) throw error
+          
+          console.log('[loadComparisonData] Version 0 baseline items (budget_cost > 0):', {
+            count: data?.length || 0,
+            items: data?.map(d => ({ 
+              name: d.spend_sub_category, 
+              budget_cost: d.budget_cost 
+            }))
+          })
           
           // Transform to match BudgetForecast structure
           return data?.map(cost => ({
@@ -694,26 +729,9 @@ export default function ProjectsPage() {
             forecasted_cost: cost.budget_cost
           })) || []
         } else {
-          // Get the forecast version record
-          const { data: versionData, error: versionError } = await supabase
-            .from("forecast_versions")
-            .select("*")
-            .eq("project_id", projectId)
-            .eq("version_number", versionNumber)
-            .single()
-          
-          if (versionError) throw versionError
-          
-          // Get the budget forecasts for this version
-          const { data: forecastData, error: forecastError } = await supabase
-            .from("budget_forecasts")
-            .select("*")
-            .eq("forecast_version_id", versionData.id)
-            .order("id")
-          
-          if (forecastError) throw forecastError
-          
-          return forecastData || []
+          // Version doesn't exist
+          console.warn(`[loadComparisonData] Version ${versionNumber} not found`)
+          return []
         }
       }
       
@@ -2693,47 +2711,51 @@ export default function ProjectsPage() {
         const v2Forecasts = comparisonForecasts[compareVersions.v2] || [];
         const originalItems = (comparisonForecasts as any)['originalItems'] || [];
         
-        // Build a complete list of ALL cost items from the original cost breakdown
+        // Build a list of cost items from BOTH versions' forecasts
+        // This ensures we only show items that actually exist in at least one version
         const allCostItemIds = new Set<string>();
         const costItemMap = new Map<string, { id: string; name: string }>();
         
-        // Use original cost breakdown items to ensure we have ALL items
+        // Add items from v1 forecasts
+        v1Forecasts.forEach(forecast => {
+          allCostItemIds.add(forecast.cost_breakdown_id);
+        });
+        
+        // Add items from v2 forecasts
+        v2Forecasts.forEach(forecast => {
+          allCostItemIds.add(forecast.cost_breakdown_id);
+        });
+        
+        // Now get names from original items or current cost breakdowns
         if (originalItems.length > 0) {
           originalItems.forEach((item: any) => {
-            allCostItemIds.add(item.id);
-            // Use spend_sub_category as primary identifier since cost_line is same for all
-            // If both exist, combine them for clarity
-            let displayName = item.spend_sub_category || item.cost_line || 'Unknown';
-            if (item.cost_line && item.spend_sub_category && item.cost_line !== item.spend_sub_category) {
-              displayName = `${item.cost_line} - ${item.spend_sub_category}`;
+            // Only add to map if this item is in one of the versions
+            if (allCostItemIds.has(item.id)) {
+              // Use spend_sub_category as primary identifier since cost_line is same for all
+              let displayName = item.spend_sub_category || item.cost_line || 'Unknown';
+              if (item.cost_line && item.spend_sub_category && item.cost_line !== item.spend_sub_category) {
+                displayName = `${item.cost_line} - ${item.spend_sub_category}`;
+              }
+              costItemMap.set(item.id, {
+                id: item.id,
+                name: displayName
+              });
             }
-            costItemMap.set(item.id, {
-              id: item.id,
-              name: displayName
-            });
           });
         } else {
-          // Fallback: build from forecasts if original items not available
-          v1Forecasts.forEach(forecast => {
-            allCostItemIds.add(forecast.cost_breakdown_id);
-          });
-          
-          v2Forecasts.forEach(forecast => {
-            allCostItemIds.add(forecast.cost_breakdown_id);
-          });
-          
-          // Try to get names from current cost breakdowns
+          // Fallback: try to get names from current cost breakdowns
           const currentCostBreakdowns = costBreakdowns[showVersionComparison] || [];
           currentCostBreakdowns.forEach(item => {
-            // Use spend_sub_category as primary identifier since cost_line is same for all
-            let displayName = item.spend_sub_category || item.cost_line || 'Unknown';
-            if (item.cost_line && item.spend_sub_category && item.cost_line !== item.spend_sub_category) {
-              displayName = `${item.cost_line} - ${item.spend_sub_category}`;
+            if (allCostItemIds.has(item.id)) {
+              let displayName = item.spend_sub_category || item.cost_line || 'Unknown';
+              if (item.cost_line && item.spend_sub_category && item.cost_line !== item.spend_sub_category) {
+                displayName = `${item.cost_line} - ${item.spend_sub_category}`;
+              }
+              costItemMap.set(item.id, {
+                id: item.id,
+                name: displayName
+              });
             }
-            costItemMap.set(item.id, {
-              id: item.id,
-              name: displayName
-            });
           });
         }
         
@@ -2773,9 +2795,18 @@ export default function ProjectsPage() {
           v2Total,
           costItemCount: allCostItemIds.size,
           originalItemsCount: originalItems.length,
-          costItemMapEntries: Array.from(costItemMap.entries()).slice(0, 3),
-          v1Sample: v1CostLines.slice(0, 3),
-          v2Sample: v2CostLines.slice(0, 3)
+          costItemMapEntries: Array.from(costItemMap.entries()).map(([id, item]) => ({
+            id: id.substring(0, 8) + '...',
+            name: item.name
+          })),
+          v1Items: v1CostLines.filter(l => l.totalCost > 0).map(l => ({
+            name: l.costLineName,
+            cost: l.totalCost
+          })),
+          v2Items: v2CostLines.filter(l => l.totalCost > 0).map(l => ({
+            name: l.costLineName,
+            cost: l.totalCost
+          }))
         });
         
         // Create the transformed versions array with just the two versions being compared

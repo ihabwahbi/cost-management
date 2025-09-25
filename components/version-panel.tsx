@@ -72,12 +72,15 @@ export function VersionPanel({
             c => c.costLineName === item.costLineName
           );
           
+          // Calculate change from the perspective of this panel
+          // If this is v2 and comparing to v0, show how v2 changed FROM v0
+          // Formula: (current - comparison) / comparison * 100
           const change = comparisonItem 
-            ? versionComparisonUtils.safePercentage(comparisonItem.totalCost, item.totalCost)
+            ? versionComparisonUtils.safePercentage(item.totalCost, comparisonItem.totalCost)
             : null;
           
           const status = comparisonItem
-            ? versionComparisonUtils.getChangeStatus(item.totalCost, comparisonItem.totalCost)
+            ? versionComparisonUtils.getChangeStatus(comparisonItem.totalCost, item.totalCost)
             : 'unchanged';
           
           const isHighlighted = highlights.includes(item.costLineName);

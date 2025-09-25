@@ -1,0 +1,90 @@
+Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+page.tsx:367 First project has 2 versions, loading latest
+page.tsx:1700 Project 94d1eaad-4ada-4fb6-b872-212b6cd6007a has 3 versions, loading latest
+bykrhpaqaxhyfrqfvbus.supabase.co/rest/v1/po_mappings?select=id%2Cproject_id%2Cpo_number%2Cline_item_number%2Ccost_breakdown_id%2Camount&project_id=eq.94d1eaad-4ada-4fb6-b872-212b6cd6007a:1  Failed to load resource: the server responded with a status of 400 ()Understand this error
+app-index.js:33 Error fetching PO mappings: Object
+window.console.error @ app-index.js:33Understand this error
+page.tsx:672 [loadComparisonData] Starting comparison load: Object
+page.tsx:2767 [Version Comparison] Data transformation: Object
+page.tsx:2767 [Version Comparison] Data transformation: Object
+app-index.js:33 Warning: Function components cannot be given refs. Attempts to access this ref will fail. Did you mean to use React.forwardRef()?
+
+Check the render method of `SlotClone`.
+    at SheetOverlay (webpack-internal:///(app-pages-browser)/./components/ui/sheet.tsx:72:11)
+    at eval (webpack-internal:///(app-pages-browser)/./node_modules/.pnpm/@radix-ui+react-slot@1.1.1_@types+react@18.3.24_react@18.3.1/node_modules/@radix-ui/react-slot/dist/index.mjs:34:11)
+    at eval (webpack-internal:///(app-pages-browser)/./node_modules/.pnpm/@radix-ui+react-slot@1.1.1_@types+react@18.3.24_react@18.3.1/node_modules/@radix-ui/react-slot/dist/index.mjs:15:11)
+    at eval (webpack-internal:///(app-pages-browser)/./node_modules/.pnpm/@radix-ui+react-primitive@2.0.1_@types+react-dom@18.3.7_@types+react@18.3.24__@types+re_76448c71dc0bd9c322c4fe3e5c001014/node_modules/@radix-ui/react-primitive/dist/index.mjs:36:13)
+    at eval (webpack-internal:///(app-pages-browser)/./node_modules/.pnpm/@radix-ui+react-portal@1.1.3_@types+react-dom@18.3.7_@types+react@18.3.24__@types+react_8787d661fc533083853657d6c08b3f77/node_modules/@radix-ui/react-portal/dist/index.mjs:22:24)
+    at Presence (webpack-internal:///(app-pages-browser)/./node_modules/.pnpm/@radix-ui+react-presence@1.1.2_@types+react-dom@18.3.7_@types+react@18.3.24__@types+rea_c6aa41ad6b83d429f511a46c1630fa05/node_modules/@radix-ui/react-presence/dist/index.mjs:26:13)
+    at Provider (webpack-internal:///(app-pages-browser)/./node_modules/.pnpm/@radix-ui+react-context@1.1.1_@types+react@18.3.24_react@18.3.1/node_modules/@radix-ui/react-context/dist/index.mjs:34:15)
+    at DialogPortal (webpack-internal:///(app-pages-browser)/./node_modules/.pnpm/@radix-ui+react-dialog@1.1.4_@types+react-dom@18.3.7_@types+react@18.3.24__@types+react_3ca581d3ec10f602670ed03559960e4b/node_modules/@radix-ui/react-dialog/dist/index.mjs:130:13)
+    at SheetPortal (webpack-internal:///(app-pages-browser)/./components/ui/sheet.tsx:60:14)
+    at SheetContent (webpack-internal:///(app-pages-browser)/./components/ui/sheet.tsx:85:11)
+    at Provider (webpack-internal:///(app-pages-browser)/./node_modules/.pnpm/@radix-ui+react-context@1.1.1_@types+react@18.3.24_react@18.3.1/node_modules/@radix-ui/react-context/dist/index.mjs:34:15)
+    at Dialog (webpack-internal:///(app-pages-browser)/./node_modules/.pnpm/@radix-ui+react-dialog@1.1.4_@types+react-dom@18.3.7_@types+react@18.3.24__@types+react_3ca581d3ec10f602670ed03559960e4b/node_modules/@radix-ui/react-dialog/dist/index.mjs:61:13)
+    at Sheet (webpack-internal:///(app-pages-browser)/./components/ui/sheet.tsx:24:14)
+    at VersionComparisonSheet (webpack-internal:///(app-pages-browser)/./components/version-comparison-sheet.tsx:233:11)
+    at div
+    at ProjectsPage (webpack-internal:///(app-pages-browser)/./app/projects/page.tsx:63:81)
+    at ClientPageRoot (webpack-internal:///(app-pages-browser)/./node_modules/.pnpm/next@14.2.21_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/client/components/client-page.js:14:11)
+    at InnerLayoutRouter (webpack-internal:///(app-pages-browser)/./node_modules/.pnpm/next@14.2.21_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/client/components/layout-router.js:243:11)
+    at RedirectErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/.pnpm/next@14.2.21_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/client/components/redirect-boundary.js:74:9)
+    at RedirectBoundary (webpack-internal:///(app-pages-browser)/./node_modules/.pnpm/next@14.2.21_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/client/components/redirect-boundary.js:82:11)
+    at NotFoundBoundary (webpack-internal:///(app-pages-browser)/./node_modules/.pnpm/next@14.2.21_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/client/components/not-found-boundary.js:84:11)
+    at Suspense
+    at LoadingBoundary (webpack-internal:///(app-pages-browser)/./node_modules/.pnpm/next@14.2.21_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/client/components/layout-router.js:349:11)
+    at ErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/.pnpm/next@14.2.21_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/client/components/error-boundary.js:160:11)
+    at InnerScrollAndFocusHandler (webpack-internal:///(app-pages-browser)/./node_modules/.pnpm/next@14.2.21_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/client/components/layout-router.js:153:9)
+    at ScrollAndFocusHandler (webpack-internal:///(app-pages-browser)/./node_modules/.pnpm/next@14.2.21_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/client/components/layout-router.js:228:11)
+    at RenderFromTemplateContext (webpack-internal:///(app-pages-browser)/./node_modules/.pnpm/next@14.2.21_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/client/components/render-from-template-context.js:16:44)
+    at OuterLayoutRouter (webpack-internal:///(app-pages-browser)/./node_modules/.pnpm/next@14.2.21_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/client/components/layout-router.js:370:11)
+    at InnerLayoutRouter (webpack-internal:///(app-pages-browser)/./node_modules/.pnpm/next@14.2.21_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/client/components/layout-router.js:243:11)
+    at RedirectErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/.pnpm/next@14.2.21_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/client/components/redirect-boundary.js:74:9)
+    at RedirectBoundary (webpack-internal:///(app-pages-browser)/./node_modules/.pnpm/next@14.2.21_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/client/components/redirect-boundary.js:82:11)
+    at NotFoundErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/.pnpm/next@14.2.21_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/client/components/not-found-boundary.js:76:9)
+    at NotFoundBoundary (webpack-internal:///(app-pages-browser)/./node_modules/.pnpm/next@14.2.21_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/client/components/not-found-boundary.js:84:11)
+    at LoadingBoundary (webpack-internal:///(app-pages-browser)/./node_modules/.pnpm/next@14.2.21_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/client/components/layout-router.js:349:11)
+    at ErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/.pnpm/next@14.2.21_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/client/components/error-boundary.js:160:11)
+    at InnerScrollAndFocusHandler (webpack-internal:///(app-pages-browser)/./node_modules/.pnpm/next@14.2.21_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/client/components/layout-router.js:153:9)
+    at ScrollAndFocusHandler (webpack-internal:///(app-pages-browser)/./node_modules/.pnpm/next@14.2.21_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/client/components/layout-router.js:228:11)
+    at RenderFromTemplateContext (webpack-internal:///(app-pages-browser)/./node_modules/.pnpm/next@14.2.21_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/client/components/render-from-template-context.js:16:44)
+    at OuterLayoutRouter (webpack-internal:///(app-pages-browser)/./node_modules/.pnpm/next@14.2.21_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/client/components/layout-router.js:370:11)
+    at Suspense
+    at body
+    at html
+    at RootLayout (Server)
+    at RedirectErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/.pnpm/next@14.2.21_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/client/components/redirect-boundary.js:74:9)
+    at RedirectBoundary (webpack-internal:///(app-pages-browser)/./node_modules/.pnpm/next@14.2.21_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/client/components/redirect-boundary.js:82:11)
+    at NotFoundErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/.pnpm/next@14.2.21_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/client/components/not-found-boundary.js:76:9)
+    at NotFoundBoundary (webpack-internal:///(app-pages-browser)/./node_modules/.pnpm/next@14.2.21_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/client/components/not-found-boundary.js:84:11)
+    at DevRootNotFoundBoundary (webpack-internal:///(app-pages-browser)/./node_modules/.pnpm/next@14.2.21_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/client/components/dev-root-not-found-boundary.js:33:11)
+    at ReactDevOverlay (webpack-internal:///(app-pages-browser)/./node_modules/.pnpm/next@14.2.21_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/client/components/react-dev-overlay/app/ReactDevOverlay.js:87:9)
+    at HotReload (webpack-internal:///(app-pages-browser)/./node_modules/.pnpm/next@14.2.21_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/client/components/react-dev-overlay/app/hot-reloader-client.js:321:11)
+    at Router (webpack-internal:///(app-pages-browser)/./node_modules/.pnpm/next@14.2.21_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/client/components/app-router.js:207:11)
+    at ErrorBoundaryHandler (webpack-internal:///(app-pages-browser)/./node_modules/.pnpm/next@14.2.21_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/client/components/error-boundary.js:113:9)
+    at ErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/.pnpm/next@14.2.21_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/client/components/error-boundary.js:160:11)
+    at AppRouter (webpack-internal:///(app-pages-browser)/./node_modules/.pnpm/next@14.2.21_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/client/components/app-router.js:585:13)
+    at ServerRoot (webpack-internal:///(app-pages-browser)/./node_modules/.pnpm/next@14.2.21_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/client/app-index.js:112:27)
+    at Root (webpack-internal:///(app-pages-browser)/./node_modules/.pnpm/next@14.2.21_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/client/app-index.js:117:11)
+window.console.error @ app-index.js:33Understand this error
+2index.mjs:466 Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+eval @ index.mjs:466Understand this warning
+hot-reloader-client.js:187 [Fast Refresh] rebuilding
+page.tsx:743 [loadComparisonData] Loaded data: ObjectoriginalItemsCount: 4originalSample: Array(2)0: budget_cost: 350000cost_line: "M&S"created_at: "2025-09-20T16:59:39.387562+00:00"id: "7151cac0-5269-47cd-a339-9b3611ea73d3"project_id: "94d1eaad-4ada-4fb6-b872-212b6cd6007a"spend_sub_category: "ACTive Parts"spend_type: "Operational"sub_business_line: "WIS"updated_at: "2025-09-20T16:59:39.387562+00:00"[[Prototype]]: Object1: budget_cost: 900000cost_line: "M&S"created_at: "2025-09-20T16:59:39.080082+00:00"id: "696b7d3a-4a8a-4a9f-aa31-e6c9ece3ddc0"project_id: "94d1eaad-4ada-4fb6-b872-212b6cd6007a"spend_sub_category: "CRIP M&S"spend_type: "Operational"sub_business_line: "WIS"updated_at: "2025-09-20T16:59:39.080082+00:00"[[Prototype]]: Objectlength: 2[[Prototype]]: Array(0)v1Count: 4v1Sample: Array(2)0: cost_breakdown_id: "7151cac0-5269-47cd-a339-9b3611ea73d3"forecast_version_id: "version_0"forecasted_cost: 350000id: "v0_7151cac0-5269-47cd-a339-9b3611ea73d3"[[Prototype]]: Object1: cost_breakdown_id: "696b7d3a-4a8a-4a9f-aa31-e6c9ece3ddc0"forecast_version_id: "version_0"forecasted_cost: 900000id: "v0_696b7d3a-4a8a-4a9f-aa31-e6c9ece3ddc0"[[Prototype]]: Objectlength: 2[[Prototype]]: Array(0)v2Count: 4v2Sample: Array(2)0: cost_breakdown_id: "696b7d3a-4a8a-4a9f-aa31-e6c9ece3ddc0"created_at: "2025-09-20T16:59:40.164928+00:00"forecast_version_id: "e453ef04-bda9-4408-94fd-d5461558c0f6"forecasted_cost: 900000id: "08dffdc2-b6f3-498a-b3a9-9466db506354"[[Prototype]]: Object1: cost_breakdown_id: "3aad10ed-0227-4f9b-884a-2c99ac05973a"created_at: "2025-09-20T16:59:40.164928+00:00"forecast_version_id: "e453ef04-bda9-4408-94fd-d5461558c0f6"forecasted_cost: 450000id: "55edd848-48cd-4636-971e-21a854df3375"[[Prototype]]: Objectlength: 2[[Prototype]]: Array(0)[[Prototype]]: Object
+page.tsx:2767 [Version Comparison] Data transformation: ObjectcostItemCount: 4costItemMapEntries: Array(3)0: Array(2)0: "7151cac0-5269-47cd-a339-9b3611ea73d3"1: id: "7151cac0-5269-47cd-a339-9b3611ea73d3"name: "M&S - ACTive Parts"[[Prototype]]: Objectlength: 2[[Prototype]]: Array(0)1: Array(2)0: "696b7d3a-4a8a-4a9f-aa31-e6c9ece3ddc0"1: id: "696b7d3a-4a8a-4a9f-aa31-e6c9ece3ddc0"name: "M&S - CRIP M&S"[[Prototype]]: Objectlength: 2[[Prototype]]: Array(0)2: Array(2)0: "85bc1279-4b67-42c0-98f6-d680be8c4fca"1: id: "85bc1279-4b67-42c0-98f6-d680be8c4fca"name: "M&S - Drums"[[Prototype]]: Objectlength: 2[[Prototype]]: Array(0)length: 3[[Prototype]]: Array(0)originalItemsCount: 4v1: 0v1ForecastCount: 4v1Sample: Array(3)0: costLineName: "M&S - ACTive Parts"totalCost: 350000[[Prototype]]: Object1: costLineName: "M&S - CRIP M&S"totalCost: 900000[[Prototype]]: Object2: costLineName: "M&S - Drums"totalCost: 100000[[Prototype]]: Objectlength: 3[[Prototype]]: Array(0)v1Total: 1750000v2: 2v2ForecastCount: 4v2Sample: Array(3)0: costLineName: "M&S - ACTive Parts"totalCost: 350000[[Prototype]]: Object1: costLineName: "M&S - CRIP M&S"totalCost: 900000[[Prototype]]: Object2: costLineName: "M&S - Drums"totalCost: 370000[[Prototype]]: Objectlength: 3[[Prototype]]: Array(0)v2Total: 2070000[[Prototype]]: Object
+page.tsx:2767 [Version Comparison] Data transformation: ObjectcostItemCount: 4costItemMapEntries: Array(3)0: Array(2)0: "7151cac0-5269-47cd-a339-9b3611ea73d3"1: id: "7151cac0-5269-47cd-a339-9b3611ea73d3"name: "M&S - ACTive Parts"[[Prototype]]: Objectlength: 2[[Prototype]]: Array(0)1: Array(2)0: "696b7d3a-4a8a-4a9f-aa31-e6c9ece3ddc0"1: id: "696b7d3a-4a8a-4a9f-aa31-e6c9ece3ddc0"name: "M&S - CRIP M&S"[[Prototype]]: Objectlength: 2[[Prototype]]: Array(0)2: Array(2)0: "85bc1279-4b67-42c0-98f6-d680be8c4fca"1: id: "85bc1279-4b67-42c0-98f6-d680be8c4fca"name: "M&S - Drums"[[Prototype]]: Objectlength: 2[[Prototype]]: Array(0)length: 3[[Prototype]]: Array(0)originalItemsCount: 4v1: 0v1ForecastCount: 4v1Sample: Array(3)0: costLineName: "M&S - ACTive Parts"totalCost: 350000[[Prototype]]: Object1: costLineName: "M&S - CRIP M&S"totalCost: 900000[[Prototype]]: Object2: costLineName: "M&S - Drums"totalCost: 100000[[Prototype]]: Objectlength: 3[[Prototype]]: Array(0)v1Total: 1750000v2: 2v2ForecastCount: 4v2Sample: Array(3)0: costLineName: "M&S - ACTive Parts"totalCost: 350000[[Prototype]]: Object1: costLineName: "M&S - CRIP M&S"totalCost: 900000[[Prototype]]: Object2: costLineName: "M&S - Drums"totalCost: 370000[[Prototype]]: Objectlength: 3[[Prototype]]: Array(0)v2Total: 2070000[[Prototype]]: Object
+hot-reloader-client.js:44 [Fast Refresh] done in 535ms
+page.tsx:2767 [Version Comparison] Data transformation: Object
+page.tsx:2767 [Version Comparison] Data transformation: Object
+hot-reloader-client.js:187 [Fast Refresh] rebuilding
+page.tsx:2767 [Version Comparison] Data transformation: Object
+page.tsx:2767 [Version Comparison] Data transformation: Object
+hot-reloader-client.js:44 [Fast Refresh] done in 652ms
+hot-reloader-client.js:187 [Fast Refresh] rebuilding
+hot-reloader-client.js:44 [Fast Refresh] done in 385ms
+page.tsx:2767 [Version Comparison] Data transformation: Object
+page.tsx:2767 [Version Comparison] Data transformation: Object
+hot-reloader-client.js:187 [Fast Refresh] rebuilding
+hot-reloader-client.js:44 [Fast Refresh] done in 352ms
+page.tsx:2767 [Version Comparison] Data transformation: {v1: 0, v2: 2, v1ForecastCount: 4, v2ForecastCount: 4, v1Total: 1750000, …}costItemCount: 4costItemMapEntries: Array(3)0: Array(2)0: "7151cac0-5269-47cd-a339-9b3611ea73d3"1: {id: '7151cac0-5269-47cd-a339-9b3611ea73d3', name: 'M&S - ACTive Parts'}length: 2[[Prototype]]: Array(0)1: Array(2)0: "696b7d3a-4a8a-4a9f-aa31-e6c9ece3ddc0"1: id: "696b7d3a-4a8a-4a9f-aa31-e6c9ece3ddc0"name: "M&S - CRIP M&S"[[Prototype]]: Objectlength: 2[[Prototype]]: Array(0)2: Array(2)0: "85bc1279-4b67-42c0-98f6-d680be8c4fca"1: id: "85bc1279-4b67-42c0-98f6-d680be8c4fca"name: "M&S - Drums"[[Prototype]]: Objectlength: 2[[Prototype]]: Array(0)length: 3[[Prototype]]: Array(0)originalItemsCount: 4v1: 0v1ForecastCount: 4v1Sample: Array(3)0: costLineName: "M&S - ACTive Parts"totalCost: 350000[[Prototype]]: Object1: costLineName: "M&S - CRIP M&S"totalCost: 900000[[Prototype]]: Object2: costLineName: "M&S - Drums"totalCost: 100000[[Prototype]]: Objectlength: 3[[Prototype]]: Array(0)v1Total: 1750000v2: 2v2ForecastCount: 4v2Sample: Array(3)0: costLineName: "M&S - ACTive Parts"totalCost: 350000[[Prototype]]: Object1: costLineName: "M&S - CRIP M&S"totalCost: 900000[[Prototype]]: Object2: costLineName: "M&S - Drums"totalCost: 370000[[Prototype]]: Objectlength: 3[[Prototype]]: Array(0)v2Total: 2070000[[Prototype]]: Object
+page.tsx:2767 [Version Comparison] Data transformation: 

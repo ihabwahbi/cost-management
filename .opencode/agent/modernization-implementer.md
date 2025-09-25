@@ -36,6 +36,7 @@ CONTEXT7_WHEN: "Before implementing library-specific code"
 TAVILY_WHEN: "When encountering implementation errors"
 EXA_WHEN: "When needing real-world code examples"
 WEBFETCH_WHEN: "Checking package versions and changelogs"
+SUPABASE_WHEN: "When errors suggest data issues, undefined values, or API failures"
 
 ## Dynamic Variables
 DIAGNOSTIC_REPORT: "[[diagnostic_report_path]]"
@@ -309,7 +310,53 @@ Used when encountering implementation errors:
 
 ```typescript
 async function resolveImplementationError(error: Error, context: Context) {
-  // Step 1: Search for specific error resolution
+  // Step 1: Check if error suggests database/data issues
+  const dataErrorPatterns = [
+    'undefined', 'null', 'cannot read', 'no data', 
+    'empty response', '404', 'not found', 'missing'
+  ];
+  
+  const isDataRelated = dataErrorPatterns.some(pattern => 
+    error.message.toLowerCase().includes(pattern)
+  );
+  
+  if (isDataRelated) {
+    // Step 2: Investigate database first
+    console.log('[DEBUG] Error suggests data issue, checking database...');
+    
+    // Check table structure
+    const tables = await supabase_tables();
+    const relevantTable = context.feature.table || extractTableFromError(error);
+    
+    if (relevantTable) {
+      const tableInfo = await supabase_table_info(relevantTable);
+      console.log(`[DEBUG] Table structure:`, tableInfo);
+      
+      // Check for actual data
+      const sampleData = await supabase_query(
+        `SELECT * FROM ${relevantTable} LIMIT 5`
+      );
+      
+      if (!sampleData || sampleData.length === 0) {
+        console.log(`[ISSUE] Table ${relevantTable} is empty - this explains the error`);
+        // Document the root cause
+        return { rootCause: 'empty_table', solution: 'seed_data_needed' };
+      }
+      
+      // Check for schema mismatches
+      const expectedColumns = context.feature.expectedColumns || [];
+      const missingColumns = expectedColumns.filter(col => 
+        !tableInfo.columns.find(c => c.name === col)
+      );
+      
+      if (missingColumns.length > 0) {
+        console.log(`[ISSUE] Missing columns: ${missingColumns.join(', ')}`);
+        return { rootCause: 'schema_mismatch', solution: 'migration_needed', missingColumns };
+      }
+    }
+  }
+  
+  // Step 3: If not database-related, proceed with web search
   const errorQuery = `site:stackoverflow.com OR site:github.com 
                      "${error.message}" ${context.library} ${context.version}`;
   
@@ -318,7 +365,7 @@ async function resolveImplementationError(error: Error, context: Context) {
     max_results: 5
   });
   
-  // Step 2: Get semantic matches for error pattern
+  // Step 4: Get semantic matches
   const semanticQuery = `Fix for: ${error.message} when ${context.action}`;
   const examples = await exa.search(semanticQuery, {
     type: "neural",
@@ -326,15 +373,14 @@ async function resolveImplementationError(error: Error, context: Context) {
     num_results: 3
   });
   
-  // Step 3: Synthesize solutions
+  // Step 5: Synthesize solutions
   const validSolutions = validateSolutions(solutions, examples, context);
   
-  // Step 4: Apply best solution
   if (validSolutions.length > 0) {
     applyErrorFix(validSolutions[0]);
     validateFix();
   } else {
-    // Fallback to Context7 for official guidance
+    // Fallback to Context7
     const officialFix = await context7.query(
       `How to handle ${error.type} in ${context.library}. use context7`
     );
@@ -379,6 +425,167 @@ async function implementWithVersionAwareness(feature: Feature) {
   );
   
   implement(versionSpecificImplementation);
+}
+```
+
+## Frontend-Database Error Investigation Pattern
+
+Used when frontend functionality issues might stem from database problems:
+
+```typescript
+async function investigateFrontendDataIssue(symptom: FrontendSymptom) {
+  console.log(`[DEBUG] Investigating: ${symptom.description}`);
+  
+  // Step 1: Identify the data flow
+  const dataFlow = {
+    component: symptom.component,
+    expectedData: symptom.expectedData,
+    actualBehavior: symptom.actualBehavior
+  };
+  
+  // Step 2: Trace to database source
+  const query = symptom.query || extractQueryFromComponent(symptom.component);
+  
+  if (query) {
+    // Step 3: Test the query directly
+    console.log(`[DEBUG] Testing query: ${query}`);
+    
+    try {
+      const result = await supabase_query(query);
+      console.log(`[DEBUG] Query returned ${result.length} rows`);
+      
+      if (result.length === 0) {
+        // Empty result set explains the issue
+        console.log('[ROOT CAUSE] Query returns no data');
+        
+        // Check if table has any data at all
+        const tableName = extractTableFromQuery(query);
+        const totalCount = await supabase_query(
+          `SELECT COUNT(*) FROM ${tableName}`
+        );
+        
+        if (totalCount[0].count === 0) {
+          return {
+            issue: 'empty_table',
+            solution: 'Table needs seed data or check data insertion logic',
+            action: 'seed_or_fix_insertion'
+          };
+        } else {
+          return {
+            issue: 'query_filters_too_restrictive',
+            solution: 'Adjust query conditions or check data values',
+            action: 'review_query_conditions'
+          };
+        }
+      }
+      
+      // Check data shape matches frontend expectations
+      const sampleRow = result[0];
+      const expectedFields = symptom.expectedFields || [];
+      const missingFields = expectedFields.filter(field => 
+        !(field in sampleRow)
+      );
+      
+      if (missingFields.length > 0) {
+        console.log(`[ROOT CAUSE] Data missing fields: ${missingFields.join(', ')}`);
+        return {
+          issue: 'schema_mismatch',
+          solution: 'Database schema doesn\'t match frontend expectations',
+          missingFields,
+          action: 'update_schema_or_frontend'
+        };
+      }
+      
+      // Check for null/undefined values
+      const nullFields = Object.entries(sampleRow)
+        .filter(([key, value]) => value === null && expectedFields.includes(key))
+        .map(([key]) => key);
+      
+      if (nullFields.length > 0) {
+        console.log(`[WARNING] Null values in: ${nullFields.join(', ')}`);
+        return {
+          issue: 'null_data',
+          solution: 'Required fields have null values',
+          nullFields,
+          action: 'add_not_null_constraints_or_defaults'
+        };
+      }
+      
+      // Step 4: Check for data transformation issues
+      // Key insight: Data might look correct in DB but transform incorrectly
+      console.log('[DEBUG] Checking data transformation logic...');
+      
+      // Trace how data flows from database to frontend
+      const transformationPoints = [
+        'API response transformation',
+        'Frontend state mapping', 
+        'Component prop drilling',
+        'Display formatting'
+      ];
+      
+      // Log actual vs expected data at each point
+      console.log('[DEBUG] Raw DB data sample:', sampleRow);
+      console.log('[DEBUG] Expected shape:', symptom.expectedData);
+      
+      // Check if the issue is transformation, not source data
+      if (JSON.stringify(sampleRow) !== JSON.stringify(symptom.expectedData)) {
+        // Data exists but doesn't match expected format
+        const differences = Object.keys(symptom.expectedData)
+          .filter(key => sampleRow[key] !== symptom.expectedData[key]);
+        
+        if (differences.length > 0) {
+          console.log(`[ROOT CAUSE] Data transformation mismatch in fields: ${differences.join(', ')}`);
+          return {
+            issue: 'transformation_mismatch',
+            solution: 'Data exists in DB but transforms incorrectly to frontend',
+            differences,
+            rawData: sampleRow,
+            expectedData: symptom.expectedData,
+            action: 'fix_transformation_logic'
+          };
+        }
+      }
+      
+    } catch (dbError) {
+      console.error('[DATABASE ERROR]', dbError);
+      
+      // Check if it's a permissions issue
+      if (dbError.message.includes('permission') || dbError.message.includes('denied')) {
+        return {
+          issue: 'rls_policy',
+          solution: 'Row Level Security blocking access',
+          action: 'review_rls_policies'
+        };
+      }
+      
+      return {
+        issue: 'database_error',
+        error: dbError.message,
+        action: 'fix_database_configuration'
+      };
+    }
+  }
+  
+  // Step 4: Check Supabase logs for API errors
+  const logs = await supabase_logs('api', { 
+    timeframe: '1h',
+    filter: symptom.component 
+  });
+  
+  const errors = logs.filter(log => log.level === 'error');
+  if (errors.length > 0) {
+    console.log(`[API ERRORS] Found ${errors.length} errors in logs`);
+    return {
+      issue: 'api_errors',
+      errors: errors.slice(0, 5),
+      action: 'analyze_api_errors'
+    };
+  }
+  
+  return {
+    issue: 'not_database_related',
+    action: 'investigate_frontend_logic'
+  };
 }
 ```
 
@@ -627,7 +834,53 @@ if (bundleAnalysis.size > threshold) {
 ```
 ✓ Verify: Build optimized
 
-**5.3 Final Quality Gates**
+**5.3 Database State Validation**
+```typescript
+// Verify database state supports the implementation
+async function validateDatabaseState() {
+  console.log('[VALIDATION] Checking database state...');
+  
+  // Get all tables referenced in implementation
+  const referencedTables = extractTablesFromCode();
+  
+  for (const table of referencedTables) {
+    // Verify table exists
+    const tableInfo = await supabase_table_info(table);
+    if (!tableInfo) {
+      console.error(`[FAIL] Table ${table} doesn't exist`);
+      return false;
+    }
+    
+    // Check for sample data
+    const count = await supabase_query(
+      `SELECT COUNT(*) FROM ${table}`
+    );
+    
+    if (count[0].count === 0) {
+      console.warn(`[WARNING] Table ${table} is empty - tests may fail`);
+    }
+    
+    // Verify RLS policies if auth is used
+    if (usesAuth) {
+      const policies = await supabase_query(
+        `SELECT * FROM pg_policies WHERE tablename = $1`,
+        [table]
+      );
+      
+      if (policies.length === 0) {
+        console.warn(`[WARNING] No RLS policies on ${table}`);
+      }
+    }
+  }
+  
+  return true;
+}
+
+await validateDatabaseState();
+```
+✓ Verify: Database supports implementation
+
+**5.4 Final Quality Gates**
 ```bash
 npm test          # All tests pass
 npm run lint      # No linting errors
@@ -749,6 +1002,11 @@ Tool assistance enabled current, optimized, production-ready code.
 - When WebFetch shows version mismatch → Adapt implementation carefully
 - When tools conflict → Context7 (official) > Tavily (community) > Exa (examples)
 - When implementation blocked → Search for solution before asking for help
+- When frontend shows undefined/null → Check database with supabase_query FIRST
+- When API returns empty → Verify table data and RLS policies via Supabase
+- When functionality works locally but not deployed → Check production database state
+- When "cannot read property" errors → Investigate data shape mismatch with supabase_table_info
+- When working with data structures → Identify unique identifiers by priority: 'id' > 'uuid' > table_name+'_id' > first unique field
 
 ## 🔧 Environment-Specific Rules
 
@@ -758,6 +1016,9 @@ Tool assistance enabled current, optimized, production-ready code.
 - For Exa searches, filter to repositories with >100 stars
 - With WebFetch, always check response status before parsing
 - For Context7, always include "use context7" at end of query
+- Before marking "cannot reproduce" → Check database state matches expectations
+- When errors mention missing data → Use supabase_logs to check API calls
+- For intermittent issues → Check database connection pool and rate limits
 
 # Example Interactions
 

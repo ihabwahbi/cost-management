@@ -101,7 +101,9 @@ tasks = [
          "Evaluate current UI state and identify improvement opportunities",
          subagent_type="visual-design-scanner"),
     Task(COMPONENT_ANALYZER,
-         "Analyze existing component patterns and usage",
+         """Analyze existing component patterns and usage.
+            CRITICAL: Verify which components are actually imported and active.
+            Flag any files with -fixed/-v2/-worldclass suffixes as anti-patterns.""",
          subagent_type="component-pattern-analyzer"),
     Task(ACCESSIBILITY_AUDITOR,
          "Assess current accessibility compliance and gaps",
@@ -334,6 +336,33 @@ This precision eliminates ambiguity in Phase 4 execution.
 4. Identify performance constraints
 ✓ Verify: All diagnostic findings documented
 
+**1.1a Component Verification** [CRITICAL]
+```python
+# Verify components from diagnostic are active before designing
+if diagnostic.component_verification:
+    # Use verified active components from diagnostic
+    target_components = diagnostic.component_verification.active_components
+    
+    # Warn about any orphaned components
+    if diagnostic.component_verification.orphaned_found:
+        console.warn(f"Diagnostic found orphaned components: {diagnostic.component_verification.orphaned_found}")
+        console.log("Designing only for active components")
+    
+    # Alert on anti-patterns
+    if diagnostic.component_verification.anti_patterns:
+        console.error(f"ANTI-PATTERN detected: {diagnostic.component_verification.anti_patterns}")
+        console.log("Will design updates for base components, not create new versions")
+else:
+    # Fallback: verify components ourselves if diagnostic didn't
+    mentioned_components = extract_components_from_diagnostic(diagnostic)
+    for component_path in mentioned_components:
+        component_name = component_path.split('/')[-1].replace('.tsx', '')
+        if any(suffix in component_name for suffix in ['-fixed', '-v2', '-worldclass']):
+            console.warn(f"⚠️ Component {component_path} has version suffix - find base component")
+            # Redirect to base component for design
+```
+✓ Verify: Designing for correct active components
+
 **1.2 Requirements Extraction**
 ```python
 # CRITICAL: Create comprehensive todo list upfront
@@ -511,6 +540,9 @@ Run: `ModernizationOrchestrator: Create plan from [proposal]`
 - When using new components, verify tree-shaking capabilities
 - For ambitious designs, include performance budget considerations
 - In all alternatives, maintain brand consistency where defined
+- When component has version suffix (-fixed/-v2) → Design for base component instead
+- When diagnostic reports orphaned components → Exclude from design proposals
+- When multiple versions exist → Design only for the active imported version
 
 # Example Interactions
 

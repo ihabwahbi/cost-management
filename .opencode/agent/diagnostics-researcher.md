@@ -176,6 +176,49 @@ results = parallel_tasks([
 synthesis = merge_findings(results, preserve_all_context=True)
 ```
 
+## Component Activity Verification Pattern
+
+Used to verify components are actually active before investigating issues:
+
+```python
+async def verify_component_activity(component_paths):
+    # Check for components that may be orphaned
+    active_components = []
+    warnings = []
+    
+    for path in component_paths:
+        component_name = path.split('/')[-1].replace('.tsx', '')
+        
+        # Detect anti-pattern suffixes
+        if any(suffix in component_name for suffix in ['-fixed', '-v2', '-worldclass', '-new']):
+            warnings.append(f"ANTI-PATTERN: {path} has version suffix")
+            # Find base component
+            base_name = component_name.split('-')[0]
+            # Check if base exists and is active
+            base_path = path.replace(component_name, base_name)
+            path = base_path  # Redirect to base
+        
+        # Check if imported anywhere
+        import_check = await grep(f"import.*{component_name}", "--include='*.tsx' --include='*.jsx'")
+        
+        if import_check:
+            # Verify reaches a page/layout
+            import_files = import_check.split('\n')
+            reaches_ui = any('page.tsx' in f or 'layout.tsx' in f for f in import_files)
+            if reaches_ui:
+                active_components.append(path)
+            else:
+                warnings.append(f"Component {path} imported but doesn't reach UI")
+        else:
+            warnings.append(f"ORPHANED: {path} is not imported anywhere")
+    
+    return {
+        'active': active_components,
+        'warnings': warnings,
+        'investigate_only': active_components  # Only investigate active components
+    }
+```
+
 ## Database Investigation Pattern
 
 Used for data-related issues and schema verification:
@@ -437,13 +480,29 @@ TodoWrite([
 
 **2.1 Launch Parallel Investigations**
 ```python
-# CRITICAL: Run these simultaneously for efficiency
+# CRITICAL: Verify component activity FIRST if UI components involved
+if issue.involves_components:
+    component_paths = extract_component_paths(issue)
+    verification = await verify_component_activity(component_paths)
+    
+    if verification['warnings']:
+        for warning in verification['warnings']:
+            console.log(f"⚠️ {warning}")
+    
+    # Only investigate active components
+    components_to_investigate = verification['active']
+    if not components_to_investigate:
+        console.error("No active components found - may be investigating orphaned code")
+else:
+    components_to_investigate = issue.components
+
+# Run parallel investigations on verified components
 tasks = [
     Task(WEB_RESEARCHER, 
          search_query_with_context,
          subagent_type="web-search-researcher"),
     Task(CODE_LOCATOR,
-         component_location_request,
+         f"Locate implementation of: {components_to_investigate}",
          subagent_type="codebase-locator"),
     Task(PATTERN_FINDER,
          # IMPORTANT: Search for WORKING patterns that can be adapted
@@ -459,7 +518,7 @@ if has_ui_symptoms(issue):
              subagent_type="web-search-researcher")
     )
 ```
-✓ Verify: All parallel tasks launched including UX research when applicable
+✓ Verify: Component verification complete, parallel tasks launched
 
 **2.2 Deep Analysis Phase**
 Based on initial findings:
@@ -511,6 +570,10 @@ date: [ISO date]
 researcher: DiagnosticsResearcher
 status: diagnosis-complete
 ready_for: design-phase
+component_verification:
+  active_components: [list of verified active components]
+  orphaned_found: [list of orphaned components skipped]
+  anti_patterns: [any -fixed/-v2 components detected]
 synthesis_sources:
   - web_research: complete
   - code_analysis: complete
@@ -601,6 +664,9 @@ Run: `DesignIdeator: Create designs based on [report]`
 - In multi-environment issues, document environment-specific symptoms
 - When using parallel tasks, ensure none exceed MAX_PARALLEL_TASKS
 - For synthesized reports, always preserve original source references
+- When component has -fixed/-v2/-worldclass suffix → Flag anti-pattern and find base component
+- When component not imported anywhere → Mark as orphaned and skip investigation
+- When multiple versions exist → Focus only on the actively imported version
 
 # Example Interactions
 

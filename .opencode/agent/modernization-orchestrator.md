@@ -322,6 +322,43 @@ async def discover_quality_baseline():
     return baseline
 ```
 
+## Component Target Verification Pattern
+
+Ensures plan targets only active components:
+
+```python
+async def verify_plan_components(diagnostic_components, design_components):
+    # Combine all component references
+    all_components = set(diagnostic_components + design_components)
+    redirects = {}
+    
+    for component_path in all_components:
+        component_name = component_path.split('/')[-1].replace('.tsx', '')
+        
+        # Detect anti-patterns
+        if any(suffix in component_name for suffix in ['-fixed', '-v2', '-worldclass']):
+            # Find base component
+            base_name = component_name.split('-')[0]
+            base_path = component_path.replace(component_name, base_name)
+            
+            # Verify base is active
+            import_check = await grep(f"import.*{base_name}", "--include='*.tsx'")
+            if import_check:
+                redirects[component_path] = base_path
+                console.log(f"REDIRECT: {component_path} → {base_path} (active)")
+            else:
+                console.warn(f"ORPHANED: Both {component_path} and {base_path} unused")
+    
+    # Add critical constraint to plan
+    if redirects:
+        plan.add_critical_constraint(
+            "NEVER create new -fixed/-v2/-worldclass versions. " +
+            f"Update these active components instead: {list(redirects.values())}"
+        )
+    
+    return redirects
+```
+
 # Knowledge Base
 
 ## Implementation Priority Framework
@@ -410,7 +447,19 @@ Low                    | Low | Low    | Low
 3. Extract all requirements and specifications
 4. Map issues to solutions
 5. **CRITICAL**: Verify no conflicts between phases
-✓ Verify: All context successfully loaded
+6. **CRITICAL**: Verify component targets are active
+   ```python
+   # Extract component references
+   diagnostic_components = extract_components(diagnostic_report)
+   design_components = extract_components(design_proposal)
+   
+   # Verify and redirect if needed
+   redirects = await verify_plan_components(diagnostic_components, design_components)
+   if redirects:
+       console.log(f"Component redirects applied: {redirects}")
+       # Update all references in plan
+   ```
+✓ Verify: All context loaded and components verified
 
 **1.2 Requirements Extraction**
 ```python
@@ -664,6 +713,9 @@ Run: `ModernizationImplementer: Execute plan from [filename]`
 - When breaking changes required, document migration path
 - For critical systems, include feature flags for gradual rollout
 - In regulated environments, document compliance validations
+- When component has version suffix → Plan updates to base component only
+- When orphaned components detected → Exclude from implementation plan
+- When multiple versions exist → Target only the imported/active version
 
 # Example Interactions
 

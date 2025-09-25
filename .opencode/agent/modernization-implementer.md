@@ -656,6 +656,50 @@ TodoWrite([
 
 ### Execution Steps
 
+**2.0 Pre-Implementation Component Verification** [CRITICAL]
+```typescript
+// ALWAYS verify before modifying ANY component
+async function verifyComponentBeforeEdit(componentPath: string): string {
+  const componentName = path.basename(componentPath, '.tsx');
+  
+  // Check for anti-pattern suffixes
+  if (componentName.includes('-fixed') || componentName.includes('-v2') || componentName.includes('-worldclass')) {
+    console.error(`🚫 ANTI-PATTERN: Never modify ${componentPath}`);
+    // Find and return base component
+    const baseName = componentName.split('-')[0];
+    const basePath = componentPath.replace(componentName, baseName);
+    console.log(`✅ Redirecting to base component: ${basePath}`);
+    return basePath;
+  }
+  
+  // Verify component is imported somewhere
+  const imports = await bash(`grep -r "import.*${componentName}" --include="*.tsx" --include="*.jsx"`);
+  
+  if (!imports.stdout) {
+    console.warn(`⚠️ Component ${componentPath} is not imported anywhere!`);
+    
+    // Look for active alternative
+    const variants = await glob(`**/*${componentName.split('-')[0]}*.tsx`);
+    for (const variant of variants) {
+      const variantName = path.basename(variant, '.tsx');
+      const variantImports = await bash(`grep -r "import.*${variantName}" --include="*.tsx"`);
+      if (variantImports.stdout) {
+        console.log(`✅ Found active variant: ${variant}`);
+        return variant;  // Return active component
+      }
+    }
+    
+    throw new Error(`Refusing to modify orphaned component: ${componentPath}`);
+  }
+  
+  return componentPath;  // Component is valid
+}
+
+// Apply before EVERY component edit
+targetPath = await verifyComponentBeforeEdit(targetPath);
+```
+✓ Verify: Working on correct active component
+
 **2.1 Enhanced Bug Fix Implementation**
 For each bug from Phase 1:
 ```typescript
@@ -794,6 +838,34 @@ if (!meetsTargets(metrics, techSpec.targets)) {
 ## Phase 5: COMPREHENSIVE VALIDATION [Synchronous]
 
 ### Execution Steps
+
+**5.0 Component Activity Final Verification**
+```bash
+#!/bin/bash
+# Ensure all modified components are actually used
+
+echo "[VERIFY] Checking all modified components are active..."
+
+for file in $(git diff --name-only | grep -E '\.tsx$'); do
+  component=$(basename "$file" .tsx)
+  
+  # Check if imported anywhere
+  if ! grep -r "import.*$component" --include="*.tsx" --include="*.jsx" > /dev/null; then
+    echo "⚠️ WARNING: $file may be orphaned (not imported)"
+    echo "   Changes won't be visible in UI!"
+  fi
+  
+  # Check for anti-pattern files
+  if echo "$file" | grep -E '(-fixed|-v2|-worldclass)\.tsx$' > /dev/null; then
+    echo "🚫 ERROR: Modified anti-pattern file: $file"
+    echo "   Should have updated the base component instead!"
+    exit 1
+  fi
+done
+
+echo "✅ Component verification complete"
+```
+✓ Verify: All changes in active components
 
 **5.1 Incremental Testing with Error Resolution**
 ```bash
@@ -1007,6 +1079,9 @@ Tool assistance enabled current, optimized, production-ready code.
 - When functionality works locally but not deployed → Check production database state
 - When "cannot read property" errors → Investigate data shape mismatch with supabase_table_info
 - When working with data structures → Identify unique identifiers by priority: 'id' > 'uuid' > table_name+'_id' > first unique field
+- When component has -fixed/-v2/-worldclass suffix → NEVER modify it, update base component instead
+- When component not imported anywhere → Refuse modification, find active alternative
+- When multiple versions of component exist → Only modify the imported/active one
 
 ## 🔧 Environment-Specific Rules
 

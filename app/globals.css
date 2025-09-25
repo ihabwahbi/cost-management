@@ -233,3 +233,48 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* SLB Corporate Logo Standards - Exact implementation from slb001.sharepoint.com */
+.quisitiveBrand {
+  min-width: 120px;
+  height: 60px;
+  overflow: hidden;
+  display: -ms-flexbox;
+  display: flex;
+  -ms-flex-align: center;
+  align-items: center;
+  padding: 0 24px;
+  -ms-flex: 1 1 0%;
+  flex: 1 1 0%;
+}
+
+.quisitiveBrand * {
+  box-sizing: border-box;
+  -moz-box-sizing: border-box;
+  -webkit-box-sizing: border-box;
+}
+
+.quisitiveBrandImage {
+  max-width: 200px;
+  height: 50px;
+}
+
+.quisitiveBrandImageLink {
+  display: block;
+  height: 50px;
+  text-decoration: none;
+  transition: all .4s ease;
+  color: unset;
+}
+
+.quisitiveBrandImageLink:hover,
+.quisitiveBrandImageLink:visited {
+  text-decoration: none;
+  color: unset;
+}
+
+.quisitiveBrandImage img {
+  object-fit: scale-down;
+  height: 100%;
+  width: 100%;
+}

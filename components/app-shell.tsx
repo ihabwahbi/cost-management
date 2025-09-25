@@ -73,29 +73,28 @@ export function AppShell({ children }: AppShellProps) {
         )}
       >
         <div className="flex h-full flex-col">
-          {/* Logo and header - Following SLB Brand Guidelines */}
-          <div className="flex h-20 items-center gap-4 px-6 border-b border-border">
-            {/* Official SLB SVG Logo matching main website implementation */}
-            <div className="py-3">
-              <a 
-                href="https://slb001.sharepoint.com" 
-                title="Our Brand"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-block hover:opacity-90 transition-opacity"
-                data-interception="off"
-              >
-                <img 
-                  src="/SLB_Logo_Positive_RGB_General.svg" 
-                  alt="SLB Logo" 
-                  className="h-12 w-auto min-w-[75px]" 
-                  style={{ minHeight: '48px' }}
-                />
-              </a>
-            </div>
-            <div>
-              <h1 className="text-lg font-semibold text-card-foreground">Cost Management Hub</h1>
-              <p className="text-xs text-muted-foreground">For a Balanced Planet</p>
+          {/* Logo and header - Exact SLB Corporate Standard */}
+          <div className="border-b border-border">
+            <div className="quisitiveBrand">
+              <div className="quisitiveBrandImage">
+                <a 
+                  className="quisitiveBrandImageLink" 
+                  title="Our Brand" 
+                  data-interception="off" 
+                  href="https://slb001.sharepoint.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <img 
+                    src="/SLB_Logo_Positive_RGB_General.svg"
+                    alt="SLB Logo"
+                  />
+                </a>
+              </div>
+              <div className="flex-1 ml-4">
+                <h1 className="text-lg font-semibold text-card-foreground">Cost Management Hub</h1>
+                <p className="text-xs text-muted-foreground">For a Balanced Planet</p>
+              </div>
             </div>
           </div>
 

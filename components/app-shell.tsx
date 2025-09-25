@@ -73,9 +73,17 @@ export function AppShell({ children }: AppShellProps) {
         )}
       >
         <div className="flex h-full flex-col">
-          {/* Logo and header */}
-          <div className="flex h-16 items-center gap-3 px-6 border-b border-border">
-            <img src="/slb-logo-blue.jpg" alt="SLB Logo" className="h-10 w-14" />
+          {/* Logo and header - Following SLB Brand Guidelines */}
+          <div className="flex h-20 items-center gap-4 px-6 border-b border-border">
+            {/* Logo with proper clear space (0.5L rule) and minimum size */}
+            <div className="py-3">
+              <img 
+                src="/images/slb-logo.png" 
+                alt="SLB Logo" 
+                className="h-12 w-auto min-w-[75px]" 
+                style={{ minHeight: '48px' }}
+              />
+            </div>
             <div>
               <h1 className="text-lg font-semibold text-card-foreground">Cost Management Hub</h1>
               <p className="text-xs text-muted-foreground">For a Balanced Planet</p>

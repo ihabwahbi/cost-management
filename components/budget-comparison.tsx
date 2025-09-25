@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { TrendingUp, TrendingDown, DollarSign, FileText, Package, AlertCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -34,6 +35,21 @@ export function BudgetComparison({ budget, actual, loading = false, className, o
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(Math.abs(amount))
+  }
+
+  const formatCompactCurrency = (value: number) => {
+    const absValue = Math.abs(value)
+    if (absValue >= 1000000) {
+      return `$${(absValue / 1000000).toFixed(1)}M`
+    } else if (absValue >= 1000) {
+      return `$${(absValue / 1000).toFixed(0)}K`
+    }
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(absValue)
   }
   
   const getVarianceColor = () => {
@@ -98,11 +114,29 @@ export function BudgetComparison({ budget, actual, loading = false, className, o
         <div className="grid grid-cols-2 gap-4">
           <div>
             <p className="text-sm text-muted-foreground">Budget</p>
-            <p className="text-xl font-bold">{formatCurrency(budget)}</p>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <p className="text-xl font-bold cursor-help">{formatCompactCurrency(budget)}</p>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{formatCurrency(budget)}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Actual (POs)</p>
-            <p className="text-xl font-bold">{formatCurrency(actual.total)}</p>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <p className="text-xl font-bold cursor-help">{formatCompactCurrency(actual.total)}</p>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{formatCurrency(actual.total)}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
         </div>
         

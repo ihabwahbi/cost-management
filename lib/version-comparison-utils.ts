@@ -43,6 +43,28 @@ export const versionComparisonUtils = {
   },
   
   /**
+   * Format currency values in compact notation (1.2M, 988K)
+   */
+  formatCompactCurrency: (value: number | null | undefined): string => {
+    if (value == null) return '$0';
+    
+    const absValue = Math.abs(value);
+    const sign = value < 0 ? '-' : '';
+    
+    if (absValue >= 1000000) {
+      return `${sign}$${(absValue / 1000000).toFixed(1)}M`;
+    } else if (absValue >= 1000) {
+      return `${sign}$${(absValue / 1000).toFixed(0)}K`;
+    }
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(value);
+  },
+  
+  /**
    * Format percentage values with proper null handling
    */
   formatPercentage: (value: number | null | undefined): string => {

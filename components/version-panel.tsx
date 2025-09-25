@@ -2,6 +2,7 @@
 
 import { useRef, useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { versionComparisonUtils } from '@/lib/version-comparison-utils';
 import { cn } from '@/lib/utils';
 
@@ -57,7 +58,7 @@ export function VersionPanel({
       <div className="p-3 border-b bg-muted/30 sticky top-0 z-10">
         <h3 className="font-semibold">Version {version.version}</h3>
         <p className="text-sm text-muted-foreground">
-          Total: {versionComparisonUtils.formatCurrency(version.totalCost)}
+          Total: {versionComparisonUtils.formatCompactCurrency(version.totalCost)}
         </p>
       </div>
       
@@ -97,17 +98,40 @@ export function VersionPanel({
             >
               <div className="flex-1">
                 <div className="font-medium">{item.costLineName}</div>
-                <div className="text-lg">
-                  {versionComparisonUtils.formatCurrency(item.totalCost)}
-                </div>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="text-lg cursor-help">
+                        {versionComparisonUtils.formatCompactCurrency(item.totalCost)}
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>{versionComparisonUtils.formatCurrency(item.totalCost)}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
               
               {change !== null && change !== 0 && (
                 <Badge 
                   variant={status === 'increased' ? 'destructive' : status === 'decreased' ? 'outline' : 'secondary'}
-                  className="ml-2"
+                  className={cn(
+                    "ml-2",
+                    change > 0 && "text-red-600 dark:text-red-400",
+                    change < 0 && "text-green-600 dark:text-green-400",
+                    change === 0 && "text-gray-600 dark:text-gray-400"
+                  )}
                 >
                   {versionComparisonUtils.formatPercentage(change)}
+                </Badge>
+              )}
+              {/* Show special badge for new entries */}
+              {!comparisonItem && item.totalCost > 0 && (
+                <Badge 
+                  variant="secondary"
+                  className="ml-2 text-green-600 dark:text-green-400"
+                >
+                  New +100%
                 </Badge>
               )}
             </div>

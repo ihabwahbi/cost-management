@@ -10,10 +10,12 @@ import {
 } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Columns, Square, Download, ArrowRight } from 'lucide-react';
 import { versionComparisonUtils } from '@/lib/version-comparison-utils';
+import { WaterfallChart } from './version-comparison-charts-fixed';
 import { cn } from '@/lib/utils';
 import {
   ResizablePanelGroup,
@@ -109,7 +111,30 @@ function UnifiedComparisonView({ v1Data, v2Data }: { v1Data?: BudgetVersion; v2D
   });
   
   return (
-    <div className="space-y-2">
+    <div className="space-y-4">
+      {/* Waterfall Chart */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Budget Change Waterfall</CardTitle>
+          <CardDescription>Visual breakdown of changes between versions</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <WaterfallChart
+            data={comparisonData.map(item => ({
+              id: item.name,
+              category: item.name,
+              v1_amount: item.v1Cost,
+              v2_amount: item.v2Cost,
+              change: item.change
+            }))}
+            title=""
+            description=""
+          />
+        </CardContent>
+      </Card>
+      
+      {/* Detailed Comparison */}
+      <div className="space-y-2">
       {comparisonData.map((item, index) => (
         <div key={index} className="p-4 border rounded-lg hover:bg-muted/30 transition-colors">
           <div className="flex items-start justify-between">
@@ -117,25 +142,33 @@ function UnifiedComparisonView({ v1Data, v2Data }: { v1Data?: BudgetVersion; v2D
               <div className="font-medium">{item.name}</div>
               <div className="flex items-center gap-4 mt-2">
                 <span className="text-sm text-muted-foreground">
-                  V{v1Data.version}: {versionComparisonUtils.formatCurrency(item.v1Cost)}
+                  V{v1Data.version}: {versionComparisonUtils.formatCompactCurrency(item.v1Cost)}
                 </span>
                 <ArrowRight className="h-3 w-3" />
                 <span className="text-sm font-medium">
-                  V{v2Data.version}: {versionComparisonUtils.formatCurrency(item.v2Cost)}
+                  V{v2Data.version}: {versionComparisonUtils.formatCompactCurrency(item.v2Cost)}
                 </span>
               </div>
             </div>
             <div className="flex flex-col items-end gap-1">
-              <Badge variant={item.status === 'increased' ? 'destructive' : item.status === 'decreased' ? 'outline' : 'secondary'}>
+              <Badge 
+                variant={item.status === 'increased' ? 'destructive' : item.status === 'decreased' ? 'outline' : 'secondary'}
+                className={cn(
+                  item.changePercent > 0 && "text-red-600 dark:text-red-400",
+                  item.changePercent < 0 && "text-green-600 dark:text-green-400",
+                  item.changePercent === 0 && "text-gray-600 dark:text-gray-400"
+                )}
+              >
                 {versionComparisonUtils.getChangeIcon(item.status)} {versionComparisonUtils.formatPercentage(item.changePercent)}
               </Badge>
               <span className="text-xs text-muted-foreground">
-                {versionComparisonUtils.formatCurrency(item.change)}
+                {versionComparisonUtils.formatCompactCurrency(item.change)}
               </span>
             </div>
           </div>
         </div>
       ))}
+      </div>
     </div>
   );
 }
@@ -204,6 +237,28 @@ export function VersionComparisonSheet({
       });
     }
   }, [syncScroll]);
+
+  // Adaptive panel sizes based on viewport width
+  const getDefaultPanelSizes = useCallback(() => {
+    if (typeof window === 'undefined') return [50, 50];
+    
+    const width = window.innerWidth;
+    if (width < 768) return [100, 0]; // Mobile: single panel
+    if (width < 1024) return [60, 40]; // Tablet: 60/40 split
+    return [50, 50]; // Desktop: equal split
+  }, []);
+
+  const [panelSizes, setPanelSizes] = useState(() => getDefaultPanelSizes());
+
+  // Update panel sizes on window resize
+  useEffect(() => {
+    const handleResize = () => {
+      setPanelSizes(getDefaultPanelSizes());
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [getDefaultPanelSizes]);
   
   // Get data for selected versions
   const v1Data = versions.find(v => v.version === Number(v1));
@@ -334,7 +389,9 @@ export function VersionComparisonSheet({
         side={isMobile ? "bottom" : "right"} 
         className={cn(
           "p-0 flex flex-col",
-          isMobile ? "h-[90vh]" : "w-full sm:w-[600px] lg:w-[800px]"
+          isMobile 
+            ? "h-[90vh]" 
+            : "w-[90vw] max-w-[1200px] lg:w-[1000px] xl:w-[1200px]"
         )}
         aria-describedby="version-comparison-description"
       >
@@ -448,7 +505,7 @@ export function VersionComparisonSheet({
               className="h-full"
             >
               <ResizablePanel 
-                defaultSize={50} 
+                defaultSize={panelSizes[0]} 
                 minSize={30}
                 maxSize={70}
               >
@@ -466,7 +523,7 @@ export function VersionComparisonSheet({
               <ResizableHandle withHandle />
               
               <ResizablePanel 
-                defaultSize={50}
+                defaultSize={panelSizes[1]}
                 minSize={30}
                 maxSize={70}
               >

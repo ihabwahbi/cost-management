@@ -161,19 +161,7 @@ export function VersionComparison({
   const [selectedCategory, setSelectedCategory] = useState<string>("all")
   const [activeTab, setActiveTab] = useState("overview")
 
-  // Debug logging for data investigation
-  useEffect(() => {
-    console.log('[VersionComparison] Data loaded:', {
-      version1,
-      version2,
-      costBreakdownsCount: costBreakdowns.length,
-      v1ForecastsCount: forecasts[version1]?.length || 0,
-      v2ForecastsCount: forecasts[version2]?.length || 0,
-      costBreakdownIds: costBreakdowns.map(c => c.id),
-      v1ForecastIds: forecasts[version1]?.map(f => f.cost_breakdown_id) || [],
-      v2ForecastIds: forecasts[version2]?.map(f => f.cost_breakdown_id) || []
-    })
-  }, [version1, version2, costBreakdowns, forecasts])
+  // Debug logging removed for production
 
   const v1Forecasts = forecasts[version1] || []
   const v2Forecasts = forecasts[version2] || []
@@ -181,6 +169,11 @@ export function VersionComparison({
   // FIXED comparison logic - properly handles version 0 and non-existent items
   const buildComparisonData = () => {
     const comparisonMap = new Map<string, any>()
+    
+    // Create lookup map for cost breakdowns for O(1) access
+    const costBreakdownsMap = new Map(
+      costBreakdowns.map(c => [c.id, c])
+    )
     
     // For version 0, we use ALL cost breakdowns with their budget_cost
     // For other versions, we only use items that have forecasts
@@ -204,7 +197,7 @@ export function VersionComparison({
     } else {
       // Other versions: Only include items with forecasts
       v1Forecasts.forEach(forecast => {
-        const cost = costBreakdowns.find(c => c.id === forecast.cost_breakdown_id)
+        const cost = costBreakdownsMap.get(forecast.cost_breakdown_id) // O(1) lookup
         if (cost) {
           comparisonMap.set(cost.id, {
             id: cost.id,
@@ -257,7 +250,7 @@ export function VersionComparison({
     } else {
       // Other versions: Only process items with forecasts
       v2Forecasts.forEach(forecast => {
-        const cost = costBreakdowns.find(c => c.id === forecast.cost_breakdown_id)
+        const cost = costBreakdownsMap.get(forecast.cost_breakdown_id) // O(1) lookup
         if (cost) {
           const existing = comparisonMap.get(cost.id)
           if (existing) {
@@ -295,14 +288,7 @@ export function VersionComparison({
     // This is already handled above, but let's ensure it's correct
     const results = Array.from(comparisonMap.values())
     
-    console.log('[VersionComparison] Comparison results:', {
-      total: results.length,
-      added: results.filter(r => r.status === 'added').length,
-      removed: results.filter(r => r.status === 'removed').length,
-      changed: results.filter(r => r.status === 'changed').length,
-      unchanged: results.filter(r => r.status === 'unchanged').length,
-      sample: results.slice(0, 3)
-    })
+    // Debug logging removed for production
     
     return results
   }
@@ -749,8 +735,23 @@ export function VersionComparison({
                                       {change > 0 ? '+' : ''}{formatCurrency(change)}
                                     </p>
                                     {changePercent !== 0 && (
-                                      <p className="text-xs text-muted-foreground">
+                                      <p className={cn(
+                                        "text-xs",
+                                        changePercent > 0 ? "text-green-600 dark:text-green-400" : 
+                                        changePercent < 0 ? "text-red-600 dark:text-red-400" : 
+                                        "text-gray-600 dark:text-gray-400"
+                                      )}>
                                         {changePercent > 0 ? '+' : ''}{changePercent.toFixed(1)}%
+                                      </p>
+                                    )}
+                                    {item.v1_amount === null && item.v2_amount !== null && (
+                                      <p className="text-xs text-green-600 dark:text-green-400">
+                                        New +100%
+                                      </p>
+                                    )}
+                                    {item.v1_amount !== null && item.v2_amount === null && (
+                                      <p className="text-xs text-red-600 dark:text-red-400">
+                                        Removed -100%
                                       </p>
                                     )}
                                   </div>

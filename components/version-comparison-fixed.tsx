@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useMemo } from "react"
+import { cn } from "@/lib/utils"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -534,6 +535,27 @@ export function VersionComparison({
                 </Card>
               </div>
 
+              {/* Waterfall Chart - Prominent Display */}
+              <Card className="mb-4">
+                <CardHeader>
+                  <CardTitle>Budget Change Waterfall</CardTitle>
+                  <CardDescription>Visual breakdown of changes between versions</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <WaterfallChart
+                    data={comparisonData.map(item => ({
+                      id: item.id,
+                      category: item.sub_business_line,
+                      v1_amount: item.v1_amount,
+                      v2_amount: item.v2_amount,
+                      change: (item.v2_amount || 0) - (item.v1_amount || 0)
+                    }))}
+                    title=""
+                    description=""
+                  />
+                </CardContent>
+              </Card>
+
               {/* Comparison Table */}
               <div className="w-full overflow-x-auto">
                 <ScrollArea className="h-[400px]">
@@ -638,8 +660,23 @@ export function VersionComparison({
                                     {change > 0 ? "+" : ""}{formatCurrency(change)}
                                   </span>
                                   {changePercent !== null && (
-                                    <span className="text-xs text-muted-foreground">
+                                    <span className={cn(
+                                      "text-xs",
+                                      changePercent > 0 ? "text-green-600 dark:text-green-400" : 
+                                      changePercent < 0 ? "text-red-600 dark:text-red-400" : 
+                                      "text-gray-600 dark:text-gray-400"
+                                    )}>
                                       ({changePercent > 0 ? "+" : ""}{changePercent.toFixed(1)}%)
+                                    </span>
+                                  )}
+                                  {item.v1_amount === null && item.v2_amount !== null && (
+                                    <span className="text-xs text-green-600 dark:text-green-400">
+                                      (New +100%)
+                                    </span>
+                                  )}
+                                  {item.v1_amount !== null && item.v2_amount === null && (
+                                    <span className="text-xs text-red-600 dark:text-red-400">
+                                      (Removed -100%)
                                     </span>
                                   )}
                                 </div>

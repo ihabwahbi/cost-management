@@ -6,8 +6,7 @@ import { EntryStatusIndicator } from "@/components/entry-status-indicator"
 import { UnsavedChangesBar } from "@/components/unsaved-changes-bar"
 import { ForecastWizard } from "@/components/forecast-wizard"
 import { VersionHistoryTimeline } from "@/components/version-history-timeline"
-import { VersionComparison } from "@/components/version-comparison-worldclass"
-import { VersionComparisonSheet } from "@/components/version-comparison-sheet"
+import { VersionComparison } from "@/components/version-comparison"
 import { useToast } from "@/hooks/use-toast"
 import { LocalStorageService } from "@/lib/local-storage-service"
 import { Button } from "@/components/ui/button"
@@ -2824,7 +2823,7 @@ export default function ProjectsPage() {
         ];
         
         return (
-          <VersionComparisonSheet
+          <VersionComparison
             isOpen={true}
             onClose={() => {
               setShowVersionComparison(null)
@@ -2836,6 +2835,8 @@ export default function ProjectsPage() {
               name: projectData?.name || ""
             }}
             versions={transformedVersions}
+            mode="sheet"  // Use sheet mode to maintain current UI
+            showAdvancedFeatures={false}  // Can be enabled later if needed
           />
         );
       })()}

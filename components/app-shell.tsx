@@ -75,15 +75,23 @@ export function AppShell({ children }: AppShellProps) {
         <div className="flex h-full flex-col">
           {/* Logo and header - Following SLB Brand Guidelines */}
           <div className="flex h-20 items-center gap-4 px-6 border-b border-border">
-            {/* Official SLB SVG Logo with proper clear space (0.5L rule) and minimum size */}
+            {/* Official SLB SVG Logo matching main website implementation */}
             <div className="py-3">
-              <img 
-                src="/SLB_Logo_Positive_RGB_General.svg" 
-                alt="SLB Logo" 
-                title="SLB - For a Balanced Planet"
-                className="h-12 w-auto min-w-[75px]" 
-                style={{ minHeight: '48px' }}
-              />
+              <a 
+                href="https://slb001.sharepoint.com" 
+                title="Our Brand"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-block hover:opacity-90 transition-opacity"
+                data-interception="off"
+              >
+                <img 
+                  src="/SLB_Logo_Positive_RGB_General.svg" 
+                  alt="SLB Logo" 
+                  className="h-12 w-auto min-w-[75px]" 
+                  style={{ minHeight: '48px' }}
+                />
+              </a>
             </div>
             <div>
               <h1 className="text-lg font-semibold text-card-foreground">Cost Management Hub</h1>

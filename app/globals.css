@@ -3,40 +3,149 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* SLB Sans Font Definitions - Following Brand Guidelines */
+@font-face {
+  font-family: 'SLB Sans';
+  src: url('/fonts/SLBSans-Bold.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'SLB Sans';
+  src: url('/fonts/SLBSans-BoldItalic.otf') format('opentype');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'SLB Sans';
+  src: url('/fonts/SLBSans-Medium.otf') format('opentype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'SLB Sans';
+  src: url('/fonts/SLBSans-MediumItalic.otf') format('opentype');
+  font-weight: 500;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'SLB Sans';
+  src: url('/fonts/SLBSans-Regular.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'SLB Sans';
+  src: url('/fonts/SLBSans-Book.otf') format('opentype');
+  font-weight: 350;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'SLB Sans';
+  src: url('/fonts/SLBSans-BookItalic.otf') format('opentype');
+  font-weight: 350;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'SLB Sans';
+  src: url('/fonts/SLBSans-Light.otf') format('opentype');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'SLB Sans';
+  src: url('/fonts/SLBSans-LightItalic.otf') format('opentype');
+  font-weight: 300;
+  font-style: italic;
+  font-display: swap;
+}
+
 :root {
-  /* SLB Brand Color System - Following design brief with proper contrast */
-  --background: #f5f5f5; /* Light gray background */
-  --foreground: #374151; /* Dark gray text */
-  --card: #ffffff; /* White card backgrounds */
-  --card-foreground: #051464; /* SLB Deep Blue for card titles */
-  --popover: #ffffff;
-  --popover-foreground: #374151;
-  --primary: #0014dc; /* SLB Blue for primary actions */
-  --primary-foreground: #ffffff;
-  --secondary: #0099a3; /* Darker SLB Aqua Blue for better contrast with white text */
-  --secondary-foreground: #ffffff;
-  --muted: #a0a0a0; /* Muted gray for secondary text */
-  --muted-foreground: #6b7280; /* Fixed contrast - using proper gray instead of white */
-  --accent: #00d2dc; /* SLB Aqua for highlights */
-  --accent-foreground: #051464;
+  /* SLB Brand Color System - Official Brand Guidelines Compliance */
+  
+  /* Core Colors */
+  --slb-blue: #0014dc; /* PMS 286C - Primary brand color */
+  --slb-white: #ffffff;
+  
+  /* Functional Colors */
+  --slb-aqua-blue: #00d2dc; /* PMS 3105C */
+  --slb-deep-blue: #051464; /* PMS 281C */
+  --slb-frost-blue-1: #6e8cc8; /* PMS 2718C */
+  --slb-frost-blue-2: #afbee1; /* PMS 2718C 50% */
+  --slb-light-grey-1: #f0f0f0;
+  --slb-light-grey-2: #dce1e1;
+  --slb-light-grey-3: #c8cdcd;
+  --slb-light-grey-4: #aaaaaa;
+  --slb-dark-grey: #696969;
+  --slb-black: #000000;
+  
+  /* Extended Palette - Data Visualization */
+  --slb-ext-green-1: #198c19;
+  --slb-ext-teal-1: #056e5a;
+  --slb-ext-purple-1: #292963;
+  --slb-ext-pink-1: #871445;
+  --slb-ext-orange-1: #b50a0a;
+  
+  /* Application Color Mapping */
+  --background: var(--slb-light-grey-1);
+  --foreground: var(--slb-dark-grey);
+  --card: var(--slb-white);
+  --card-foreground: var(--slb-deep-blue);
+  --popover: var(--slb-white);
+  --popover-foreground: var(--slb-dark-grey);
+  --primary: var(--slb-blue);
+  --primary-foreground: var(--slb-white);
+  --secondary: var(--slb-aqua-blue);
+  --secondary-foreground: var(--slb-deep-blue);
+  --muted: var(--slb-light-grey-3);
+  --muted-foreground: var(--slb-dark-grey);
+  --accent: var(--slb-aqua-blue);
+  --accent-foreground: var(--slb-deep-blue);
   --destructive: #dc2626;
-  --destructive-foreground: #ffffff;
-  --border: #e0e0e0; /* Light border color */
-  --input: #ffffff;
-  --ring: rgba(0, 20, 220, 0.2); /* SLB Blue focus ring */
-  --chart-1: #0014dc; /* SLB Blue */
-  --chart-2: #00d2dc; /* SLB Aqua */
-  --chart-3: #051464; /* SLB Deep Blue */
-  --chart-4: #6e8cc8; /* SLB Frost Blue 1 */
-  --chart-5: #afbee1; /* SLB Frost Blue 2 */
+  --destructive-foreground: var(--slb-white);
+  --border: var(--slb-light-grey-2);
+  --input: var(--slb-white);
+  --ring: rgba(0, 20, 220, 0.2); /* SLB Blue with transparency */
+  
+  /* Chart Colors - Using SLB Brand Palette */
+  --chart-1: var(--slb-blue);
+  --chart-2: var(--slb-aqua-blue);
+  --chart-3: var(--slb-deep-blue);
+  --chart-4: var(--slb-frost-blue-1);
+  --chart-5: var(--slb-frost-blue-2);
+  --chart-6: var(--slb-ext-green-1);
+  --chart-7: var(--slb-ext-teal-1);
+  --chart-8: var(--slb-ext-purple-1);
+  --chart-9: var(--slb-ext-pink-1);
+  --chart-10: var(--slb-ext-orange-1);
+  
+  /* Layout */
   --radius: 0.5rem;
-  --sidebar: #f5f5f5;
-  --sidebar-foreground: #374151;
-  --sidebar-primary: #0014dc;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #00d2dc;
-  --sidebar-accent-foreground: #051464;
-  --sidebar-border: #e0e0e0;
+  
+  /* Sidebar specific */
+  --sidebar: var(--slb-light-grey-1);
+  --sidebar-foreground: var(--slb-dark-grey);
+  --sidebar-primary: var(--slb-blue);
+  --sidebar-primary-foreground: var(--slb-white);
+  --sidebar-accent: var(--slb-aqua-blue);
+  --sidebar-accent-foreground: var(--slb-deep-blue);
+  --sidebar-border: var(--slb-light-grey-2);
   --sidebar-ring: rgba(0, 20, 220, 0.2);
 }
 
@@ -76,7 +185,8 @@
 }
 
 @theme inline {
-  --font-sans: var(--font-inter);
+  /* SLB Brand Typography - SLB Sans with Arial fallback per guidelines */
+  --font-sans: 'SLB Sans', Arial, sans-serif;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);

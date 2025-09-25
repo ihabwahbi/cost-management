@@ -75,11 +75,12 @@ export function AppShell({ children }: AppShellProps) {
         <div className="flex h-full flex-col">
           {/* Logo and header - Following SLB Brand Guidelines */}
           <div className="flex h-20 items-center gap-4 px-6 border-b border-border">
-            {/* Logo with proper clear space (0.5L rule) and minimum size */}
+            {/* Official SLB SVG Logo with proper clear space (0.5L rule) and minimum size */}
             <div className="py-3">
               <img 
-                src="/images/slb-logo.png" 
+                src="/SLB_Logo_Positive_RGB_General.svg" 
                 alt="SLB Logo" 
+                title="SLB - For a Balanced Planet"
                 className="h-12 w-auto min-w-[75px]" 
                 style={{ minHeight: '48px' }}
               />

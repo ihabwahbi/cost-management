@@ -42,6 +42,15 @@
         "@playwright/mcp@latest"
       ],
       "enabled": true
+    },
+    "shadcn": {
+      "type": "local",
+      "command": [
+        "npx",
+        "shadcn-ui@latest",
+        "mcp"
+      ],
+      "enabled": true
     }
   },
   "tools": {

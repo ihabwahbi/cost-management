@@ -8,13 +8,10 @@ import {
   YAxis, 
   CartesianGrid, 
   Tooltip, 
-  Legend,
   ResponsiveContainer,
   Cell,
-  ReferenceLine,
   ComposedChart,
-  Line,
-  Area
+  Line
 } from "recharts"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { TrendingUp, TrendingDown, AlertCircle } from "lucide-react"
@@ -32,94 +29,64 @@ interface WaterfallChartProps {
 }
 
 export function WaterfallChart({ data, title = "Budget Change Waterfall", description }: WaterfallChartProps) {
-  // Aggregate data by category
-  const aggregatedData = useMemo(() => {
-    // Debug instrumentation
+  // Process data for waterfall visualization
+  const chartData = useMemo(() => {
     console.log('[Charts] WaterfallChart rendering:', {
       inputData: data,
       dataLength: data.length,
-      hasOverflow: typeof document !== 'undefined' && document.querySelector('.overflow-visible'),
       timestamp: Date.now()
     })
     
-    const categoryMap = new Map<string, { increase: number; decrease: number }>()
-    
+    // Aggregate by category
+    const categoryTotals = new Map<string, number>()
     data.forEach(item => {
-      if (!categoryMap.has(item.category)) {
-        categoryMap.set(item.category, { increase: 0, decrease: 0 })
-      }
-      
-      const cat = categoryMap.get(item.category)!
-      if (item.change > 0) {
-        cat.increase += item.change
-      } else if (item.change < 0) {
-        cat.decrease += Math.abs(item.change)
-      }
+      const current = categoryTotals.get(item.category) || 0
+      categoryTotals.set(item.category, current + item.change)
     })
     
-    // Create proper waterfall data with base and value for floating effect
-    const waterfall: Array<{
-      name: string
-      base: number      // Where the bar starts (for floating)
-      value: number     // The actual value to display
-      end: number       // Where the bar ends
-      fill: string
-      isTotal?: boolean
-    }> = []
+    // Build waterfall data
+    const result: any[] = []
+    let cumulative = data.reduce((sum, item) => sum + (item.v1_amount || 0), 0)
     
-    let runningTotal = data.reduce((sum, item) => sum + (item.v1_amount || 0), 0)
-    const startTotal = runningTotal
-    
-    // Starting total bar
-    waterfall.push({
-      name: "Start",
-      base: 0,
-      value: runningTotal,
-      end: runningTotal,
-      fill: "#6366f1",
+    // Start bar
+    result.push({
+      name: 'Start',
+      value: cumulative,
+      displayValue: cumulative,
+      fill: '#6366f1',
       isTotal: true
     })
     
-    // Add changes by category
-    Array.from(categoryMap.entries()).forEach(([category, changes]) => {
-      if (changes.increase > 0) {
-        // Increase bar floats from current total upward
-        waterfall.push({
-          name: `${category} (+)`,
-          base: runningTotal,
-          value: changes.increase,
-          end: runningTotal + changes.increase,
-          fill: "#22c55e",
+    // Category changes
+    Array.from(categoryTotals.entries()).forEach(([category, change]) => {
+      if (change !== 0) {
+        const previousCumulative = cumulative
+        cumulative += change
+        
+        result.push({
+          name: category,
+          // For floating bars: [min, max] array
+          value: change > 0 
+            ? [previousCumulative, cumulative]  // Increase: float up from previous
+            : [cumulative, previousCumulative],  // Decrease: float down to new value
+          displayValue: Math.abs(change),
+          actualChange: change,
+          fill: change > 0 ? '#22c55e' : '#ef4444',
           isTotal: false
         })
-        runningTotal += changes.increase
-      }
-      
-      if (changes.decrease > 0) {
-        // Decrease bar floats downward from current total
-        waterfall.push({
-          name: `${category} (-)`,
-          base: runningTotal - changes.decrease,
-          value: changes.decrease,
-          end: runningTotal - changes.decrease,
-          fill: "#ef4444",
-          isTotal: false
-        })
-        runningTotal -= changes.decrease
       }
     })
     
-    // Ending total bar
-    waterfall.push({
-      name: "End",
-      base: 0,
-      value: runningTotal,
-      end: runningTotal,
-      fill: "#6366f1",
+    // End bar
+    result.push({
+      name: 'End',
+      value: cumulative,
+      displayValue: cumulative,
+      fill: '#6366f1',
       isTotal: true
     })
     
-    return waterfall
+    return result
   }, [data])
   
   const formatCurrency = (value: number) => {
@@ -134,25 +101,35 @@ export function WaterfallChart({ data, title = "Budget Change Waterfall", descri
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload[0]) {
       const data = payload[0].payload
-      const isIncrease = data.fill === "#22c55e"
-      const isDecrease = data.fill === "#ef4444"
       
       return (
         <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
           <p className="font-medium text-sm">{data.name}</p>
-          <p className={`text-sm ${isIncrease ? 'text-green-600' : isDecrease ? 'text-red-600' : 'text-blue-600'}`}>
-            {data.isTotal ? 'Total: ' : isIncrease ? 'Increase: +' : 'Decrease: -'}
-            {formatCurrency(data.value)}
+          <p className={`text-sm font-semibold ${
+            data.isTotal ? 'text-blue-600' : 
+            data.actualChange > 0 ? 'text-green-600' : 'text-red-600'
+          }`}>
+            {data.isTotal ? 'Total: ' : data.actualChange > 0 ? '+' : '-'}
+            {formatCurrency(data.displayValue)}
           </p>
-          {!data.isTotal && data.displayValue !== undefined && (
-            <p className="text-xs text-gray-500 mt-1">
-              New total: {formatCurrency(data.displayValue)}
-            </p>
-          )}
         </div>
       )
     }
     return null
+  }
+  
+  // Custom bar shape for floating effect
+  const FloatingBar = (props: any) => {
+    const { fill, x, y, width, height, payload } = props
+    
+    // For total bars, render normally from 0
+    if (payload.isTotal) {
+      return <rect x={x} y={y} width={width} height={height} fill={fill} rx={4} />
+    }
+    
+    // For change bars, we already have the correct y and height from Recharts
+    // when using array values [min, max]
+    return <rect x={x} y={y} width={width} height={height} fill={fill} rx={4} />
   }
   
   return (
@@ -164,7 +141,7 @@ export function WaterfallChart({ data, title = "Budget Change Waterfall", descri
       <CardContent>
         <ResponsiveContainer width="100%" height={400}>
           <BarChart 
-            data={aggregatedData}
+            data={chartData}
             margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
           >
             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
@@ -180,24 +157,12 @@ export function WaterfallChart({ data, title = "Budget Change Waterfall", descri
               tick={{ fontSize: 11 }}
             />
             <Tooltip content={<CustomTooltip />} />
-            {/* For totals, render from 0 */}
             <Bar 
-              dataKey={(entry: any) => entry.isTotal ? entry.value : 0}
-              fill="#6366f1"
-              radius={[4, 4, 0, 0]}
-            />
-            {/* For changes, use base as invisible and value as visible */}
-            <Bar 
-              dataKey="base" 
-              stackId="changes"
-              fill="transparent"
-            />
-            <Bar 
-              dataKey={(entry: any) => !entry.isTotal ? entry.value : 0}
-              stackId="changes"
-              radius={[4, 4, 0, 0]}
+              dataKey="value"
+              shape={FloatingBar}
+              isAnimationActive={false}
             >
-              {aggregatedData.map((entry, index) => (
+              {chartData.map((entry, index) => (
                 <Cell key={`cell-${index}`} fill={entry.fill} />
               ))}
             </Bar>
@@ -220,7 +185,6 @@ interface CategoryComparisonChartProps {
 
 export function CategoryComparisonChart({ data }: CategoryComparisonChartProps) {
   const chartData = useMemo(() => {
-    // Debug instrumentation
     console.log('[Charts] CategoryComparison data:', {
       inputData: data,
       dataLength: data.length,
@@ -271,7 +235,6 @@ export function CategoryComparisonChart({ data }: CategoryComparisonChartProps) 
                 return `$${(value / 1000).toFixed(1)}K`
               }}
             />
-            <Legend />
             <Bar yAxisId="amount" dataKey="v1_total" fill="#cbd5e1" name="Version 1" />
             <Bar yAxisId="amount" dataKey="v2_total" fill="#6366f1" name="Version 2" />
             <Line 
@@ -330,16 +293,24 @@ export function VarianceInsights({ data }: VarianceInsightsProps) {
             </div>
           </CardHeader>
           <CardContent>
-            <ul className="space-y-2 text-sm">
-              {insights.topIncreases.map((item, index) => (
-                <li key={index} className="flex justify-between items-center">
-                  <span className="text-gray-700">{item.item}</span>
-                  <span className="font-medium text-green-700">
-                    +{formatCurrency(item.change)} ({item.changePercent > 0 ? '+' : ''}{item.changePercent.toFixed(1)}%)
-                  </span>
-                </li>
+            <div className="space-y-2">
+              {insights.topIncreases.map((item, idx) => (
+                <div key={idx} className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">{item.category}</p>
+                    <p className="text-xs text-muted-foreground">{item.item}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-semibold text-green-600">
+                      +{formatCurrency(item.change)}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      +{item.changePercent.toFixed(1)}%
+                    </p>
+                  </div>
+                </div>
               ))}
-            </ul>
+            </div>
           </CardContent>
         </Card>
       )}
@@ -353,36 +324,45 @@ export function VarianceInsights({ data }: VarianceInsightsProps) {
             </div>
           </CardHeader>
           <CardContent>
-            <ul className="space-y-2 text-sm">
-              {insights.topDecreases.map((item, index) => (
-                <li key={index} className="flex justify-between items-center">
-                  <span className="text-gray-700">{item.item}</span>
-                  <span className="font-medium text-red-700">
-                    -{formatCurrency(Math.abs(item.change))} ({item.changePercent.toFixed(1)}%)
-                  </span>
-                </li>
+            <div className="space-y-2">
+              {insights.topDecreases.map((item, idx) => (
+                <div key={idx} className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">{item.category}</p>
+                    <p className="text-xs text-muted-foreground">{item.item}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-semibold text-red-600">
+                      -{formatCurrency(Math.abs(item.change))}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {item.changePercent.toFixed(1)}%
+                    </p>
+                  </div>
+                </div>
               ))}
-            </ul>
+            </div>
           </CardContent>
         </Card>
       )}
       
-      {insights.largestPercent && Math.abs(insights.largestPercent.changePercent) > 20 && (
-        <Card className="border-amber-200 bg-amber-50/30">
+      {insights.largestPercent && Math.abs(insights.largestPercent.changePercent) > 10 && (
+        <Card className="border-orange-200 bg-orange-50/30">
           <CardHeader className="pb-3">
             <div className="flex items-center space-x-2">
-              <AlertCircle className="w-5 h-5 text-amber-600" />
-              <CardTitle className="text-base">Significant Change Alert</CardTitle>
+              <AlertCircle className="w-5 h-5 text-orange-600" />
+              <CardTitle className="text-base">Significant % Change</CardTitle>
             </div>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-gray-700">
-              <span className="font-medium">{insights.largestPercent.item}</span> has changed by{' '}
-              <span className="font-bold text-amber-700">
+            <p className="text-sm">
+              <span className="font-medium">{insights.largestPercent.category}</span> had a{" "}
+              <span className={`font-bold ${insights.largestPercent.change > 0 ? 'text-green-600' : 'text-red-600'}`}>
                 {insights.largestPercent.changePercent > 0 ? '+' : ''}{insights.largestPercent.changePercent.toFixed(1)}%
-              </span>
-              {' '}({insights.largestPercent.change > 0 ? '+' : '-'}{formatCurrency(Math.abs(insights.largestPercent.change))})
+              </span>{" "}
+              change ({insights.largestPercent.change > 0 ? '+' : ''}{formatCurrency(insights.largestPercent.change)})
             </p>
+            <p className="text-xs text-muted-foreground mt-1">{insights.largestPercent.item}</p>
           </CardContent>
         </Card>
       )}

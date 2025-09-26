@@ -47,7 +47,7 @@
       "type": "local",
       "command": [
         "npx",
-        "shadcn-ui@latest",
+        "shadcn@latest",
         "mcp"
       ],
       "enabled": true

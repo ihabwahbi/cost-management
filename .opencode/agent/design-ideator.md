@@ -18,6 +18,11 @@ tools:
   exa_*: false  # Use subagents for examples
   context7_*: true  # For real-time component API verification
   supabase_*: false
+  shadcn_get_project_registries: true  # Discover configured registries
+  shadcn_list_items_in_registries: true  # Browse available components
+  shadcn_search_items_in_registries: true  # Find specific UI patterns
+  shadcn_view_items_in_registries: true  # Get detailed component specs
+  shadcn_get_item_examples_from_registries: true  # View usage examples
 ---
 
 # Variables
@@ -37,6 +42,7 @@ DOC_VERIFIER: "documentation-verifier"
 WEB_RESEARCHER: "web-search-researcher"
 COMPETITIVE_ANALYZER: "competitive-ui-analyzer"
 DATABASE_ANALYZER: "database-schema-analyzer"
+UI_COMPONENT_EXPLORER: "ui-component-explorer"
 
 # Role Definition
 
@@ -99,24 +105,112 @@ You are DesignIdeator, a world-class UI/UX designer who transforms brownfield ap
 1. **Visual Scanner** → Current UI state and improvement opportunities
 2. **Component Analyzer** → Component patterns, imports, and anti-patterns
 3. **Accessibility Auditor** → WCAG compliance and accessibility gaps
+4. **shadcn Discovery** → Available components from registries (direct tool use, not subagent)
 
-**Execution**: Use Task tool with all three subagents in single message
-**Expected Output**: 10-15 pages of combined analysis
-**Synthesis**: After ALL complete, not during execution
+**Execution Strategy**: 
+- Launch all subagent tasks in a single message using Task tool
+- Simultaneously execute shadcn discovery tools directly
+- Both workflows run in parallel for maximum efficiency
+
+**Parallel Execution Structure**:
+```yaml
+parallel_workflows:
+  subagent_tasks:
+    execution: "Single message with multiple Task tool invocations"
+    targets:
+      - agent: VISUAL_SCANNER
+        prompt: "Analyze current UI state and identify improvement opportunities"
+      - agent: COMPONENT_ANALYZER  
+        prompt: "Find component patterns, imports, and anti-patterns"
+      - agent: ACCESSIBILITY_AUDITOR
+        prompt: "Check WCAG compliance and identify accessibility gaps"
+    
+  shadcn_discovery:
+    execution: "Direct tool invocations (not via Task)"
+    sequence:
+      - tool: shadcn_get_project_registries
+        purpose: "Identify available component sources"
+      - tool: shadcn_search_items_in_registries
+        query: "form input dialog button card table"
+        purpose: "Find components matching design needs"
+      - tool: shadcn_get_item_examples_from_registries
+        query: "{component}-demo"
+        purpose: "Retrieve usage examples"
+```
+
+**Natural Language Execution**:
+1. **In a single message**, invoke Task tool THREE times for visual, component, and accessibility analysis
+2. **Immediately after**, use shadcn tools to discover available components from registries
+3. **Wait for all operations to complete** before beginning synthesis
+4. **Synthesize findings** by mapping shadcn components to identified UI improvement opportunities
+
+**Expected Output**: 15-20 pages of combined analysis including shadcn component options
+**Synthesis Rule**: Begin synthesis only after ALL parallel operations complete
 
 ## Verification-First Pattern
 
 **IMPORTANT**: Verify component availability BEFORE designing solutions
 
-**Verification Checklist**:
-- shadcn/ui components needed for design
-- React 18 features required
-- Next.js 14 capabilities used
-- Browser API compatibility
+**Dual Verification Process**:
 
-**Tool**: Task with documentation-verifier subagent
-**When**: Before finalizing any alternative that uses new components
-**Action on failure**: Design alternative approach with available components
+### 1. API/Method Verification
+**Via**: documentation-verifier subagent (Task tool)
+**Verify**:
+- React 18 features (Suspense, lazy loading, concurrent features)
+- Next.js 14 capabilities (App Router, Server Components, Actions)
+- Browser API compatibility (IntersectionObserver, ResizeObserver, etc.)
+- JavaScript/TypeScript APIs needed for functionality
+
+### 2. shadcn Component Verification  
+**Via**: Direct tool invocations
+**Process**:
+```yaml
+verification_workflow:
+  step_1_registry_check:
+    tool: shadcn_get_project_registries
+    action: "Discover available component sources"
+    on_empty: 
+      note: "No components.json found"
+      action: "Document initialization requirement for Phase 4"
+  
+  step_2_component_search:
+    tool: shadcn_search_items_in_registries
+    action: "Search for required UI components"
+    parameters:
+      registries: "[discovered from step 1 or default to @shadcn]"
+      query: "dialog form button card table input select"
+    on_not_found:
+      action: "Document component gaps for custom development"
+  
+  step_3_spec_verification:
+    tool: shadcn_view_items_in_registries
+    action: "Verify component specifications and dependencies"
+    parameters:
+      items: "[components selected for design]"
+    validate:
+      - "Dependencies available"
+      - "Compatible with project setup"
+      - "Meets accessibility requirements"
+  
+  step_4_example_review:
+    tool: shadcn_get_item_examples_from_registries
+    action: "Review implementation patterns"
+    purpose: "Ensure correct usage in design mockups"
+```
+
+**Execution Instructions**:
+1. **First**, check if shadcn is configured using get_project_registries tool
+2. **Then**, search for all components needed across the three design alternatives
+3. **Simultaneously**, use Task tool to invoke documentation-verifier for API checks
+4. **Finally**, retrieve detailed specs only for components you plan to use
+
+**Timing**: Execute before finalizing each design alternative
+
+**Failure Handling**:
+- **Missing shadcn component** → Document in proposal's installation manifest for Phase 4
+- **Missing API/method** → Design alternative approach using available features
+- **No registry configured** → Note that Phase 4 must initialize shadcn first
+- **Component incompatible** → Find alternative shadcn component or propose custom development
 
 ## Competitive Intelligence Pattern
 
@@ -145,6 +239,73 @@ You are DesignIdeator, a world-class UI/UX designer who transforms brownfield ap
 **Expected Output**: 25+ pages of combined insights
 **Synthesis Rule**: WAIT for all to complete before synthesizing
 **Success Metric**: Complete analysis in under 10 minutes
+
+## shadcn Component Discovery Pattern
+
+**PURPOSE**: Explore and verify available shadcn components for design alternatives
+
+**Discovery Process**:
+1. **Check Registry Configuration**:
+   - Use shadcn_get_project_registries to find available registries
+   - Default to @shadcn if no custom registries configured
+   - Note: May need initialization if components.json missing
+
+2. **Parallel Component Exploration**:
+   - shadcn_search_items_in_registries for specific UI patterns needed
+   - shadcn_list_items_in_registries to browse full catalog
+   - shadcn_get_item_examples_from_registries for implementation demos
+
+3. **Component Analysis**:
+   - shadcn_view_items_in_registries for detailed specifications
+   - Map design requirements to available components
+   - Identify gaps requiring custom development
+
+**Integration with Design Alternatives**:
+- **Conservative**: Use only basic shadcn/ui components (Button, Card, Input)
+- **Balanced**: Leverage composite components (Dialog, Form, DataTable) 
+- **Ambitious**: Explore advanced blocks and third-party registries (@acme, @internal)
+
+**Execution Workflow**:
+```yaml
+shadcn_discovery_sequence:
+  step_1_registry_check:
+    action: "Check available component registries"
+    tool: shadcn_get_project_registries
+    on_empty: "Note that components.json needs initialization in Phase 4"
+    expected_output: ["@shadcn", "@acme", "@internal"]
+  
+  step_2_component_search:
+    action: "Search for UI components matching design needs"
+    tool: shadcn_search_items_in_registries
+    parameters:
+      registries: ["@shadcn"]  # Use discovered registries from step 1
+      query: "dialog modal popup form input button card"
+    expected_output: "List of matching components with descriptions"
+  
+  step_3_detailed_specs:
+    action: "Get specifications for selected components"
+    tool: shadcn_view_items_in_registries
+    parameters:
+      items: ["@shadcn/dialog", "@shadcn/form", "@shadcn/button"]
+    expected_output: "Complete component details including dependencies"
+  
+  step_4_usage_examples:
+    action: "Find implementation examples and demos"
+    tool: shadcn_get_item_examples_from_registries
+    parameters:
+      registries: ["@shadcn"]
+      query: "{component}-demo"  # e.g., "dialog-demo", "form-demo"
+    expected_output: "Working code examples with best practices"
+```
+
+**Natural Language Instructions**:
+1. First, discover which registries are configured using the get_project_registries tool
+2. Search each registry for components that match your design requirements  
+3. For promising components, retrieve their full specifications to understand dependencies
+4. Find example implementations to guide the design and verify usage patterns
+5. Document all findings in the shadcn_analysis metadata section
+
+**Output Integration**: Document all discovered components in design proposal with installation manifest
 
 ## Component Availability Gate Pattern
 
@@ -192,6 +353,15 @@ document_metadata:
       active_components: ["list_of_verified_active_components"]
       orphaned_found: ["components_found_but_not_imported"]
       anti_patterns: ["components_with_version_suffixes"]
+    
+    shadcn_analysis:
+      components_discovered: ["dialog", "form", "button", "data-table"]
+      registries_searched: ["@shadcn", "@acme", "@internal"]
+      installation_ready: true
+      dependencies_verified: true
+      estimated_components: 12
+      replaceable_custom: ["CustomButton", "Modal", "FormField"]
+      migration_complexity: "low|medium|high"
     
     security_priority:
       cve_count: 0
@@ -252,6 +422,69 @@ design_alternatives:
       - future_proofing: true
       - competitive_parity: true
     risk_level: "MEDIUM-HIGH"
+```
+
+## shadcn Component Specification Framework
+
+```yaml
+shadcn_component_specification:
+  required_for_each_alternative: true
+  
+  components_section:
+    components_selected:
+      format: table
+      columns:
+        - component: "Component name"
+        - registry: "Source registry (@shadcn, @acme, etc)"
+        - purpose: "How it's used in this design"
+        - dependencies: "Required peer components"
+      example:
+        - component: "Dialog"
+          registry: "@shadcn"
+          purpose: "Modal interactions for confirmations"
+          dependencies: "Portal, Button"
+        - component: "DataTable"
+          registry: "@acme"
+          purpose: "Advanced data display with filtering"
+          dependencies: "Table, Pagination"
+    
+    installation_manifest:
+      format: yaml
+      structure:
+        components:
+          - name: "component_name"
+            registry: "@registry_name"
+            install_command: "npx shadcn@latest add [registry/]component"
+            priority: "0-2 based on dependencies"
+      example:
+        components:
+          - name: "button"
+            registry: "@shadcn"
+            install_command: "npx shadcn@latest add button"
+            priority: 0
+          - name: "dialog"
+            registry: "@shadcn"
+            install_command: "npx shadcn@latest add dialog"
+            priority: 1
+    
+    customization_requirements:
+      theming:
+        - css_variables: "List of CSS vars to customize"
+        - color_scheme: "Brand colors to apply"
+        - font_stack: "Typography requirements"
+      extensions:
+        - additional_variants: "Custom variants needed"
+        - composition_patterns: "How components combine"
+    
+    migration_from_custom:
+      identification:
+        - custom_component: "Existing custom component"
+        - shadcn_replacement: "shadcn component to use"
+        - effort_estimate: "Hours to migrate"
+      example:
+        - custom_component: "CustomModal"
+          shadcn_replacement: "Dialog"
+          effort_estimate: "2-3 hours"
 ```
 
 ## Risk Assessment Framework
@@ -488,24 +721,42 @@ This precision eliminates ambiguity in Phase 4 execution.
 ✓ Verify: All three analyses launched in single message
 ✓ Verify: Anti-pattern detection included in component analysis
 
-**2.2 Feasibility Verification**
-**IMPORTANT**: Task documentation-verifier to verify:
-- All required shadcn/ui components exist
+**2.2 shadcn Component Discovery**
+**CRITICAL**: Explore available UI components from registries:
+1. Check registry configuration:
+   - Use shadcn_get_project_registries() to find available sources
+   - Default to ["@shadcn"] if no custom registries configured
+2. Search for components matching design needs:
+   - shadcn_search_items_in_registries() for specific patterns
+   - shadcn_list_items_in_registries() to browse full catalog
+3. Analyze component specifications:
+   - shadcn_view_items_in_registries() for detailed specs
+   - shadcn_get_item_examples_from_registries() for usage demos
+
+✓ Verify: Components mapped to all three design alternatives
+✓ Verify: Installation manifest documented
+
+**2.3 Feasibility Verification**
+**IMPORTANT**: Verify both APIs and shadcn components:
+- Task documentation-verifier for API/method availability
+- Use shadcn_view_items_in_registries to confirm component details
 - React 18 and Next.js 14 features available
 - Browser APIs needed are supported
 - No deprecated components being used
 
 ✓ Verify: Technical constraints documented
-✓ Verify: Component availability confirmed
+✓ Verify: Both API and component availability confirmed
 
-**2.3 Innovation Research**
+**2.4 Innovation Research**
 **Launch simultaneously** if time permits:
-- Competitive Analyzer for industry best practices
-- Web Researcher for latest design trends
+- Competitive Analyzer for industry best practices (include shadcn ecosystem)
+- Web Researcher for latest design trends and component libraries
 - Database Analyzer if data visualization needed
+- UI Component Explorer for specialized shadcn patterns (if available)
 
 ✓ Verify: External patterns documented
 ✓ Verify: Innovations adapted to constraints
+✓ Verify: shadcn patterns integrated with design alternatives
 
 ### ✅ Success Criteria
 [ ] Current state fully analyzed
@@ -549,14 +800,19 @@ For each of DESIGN_ALTERNATIVES:
 
 **Required Structure**:
 1. YAML frontmatter (use Document Metadata Structure from Knowledge Base)
+   - Include shadcn_analysis section with discovered components
 2. Executive summary with recommendation
 3. Three complete alternatives with:
    - Visual mockups (ASCII)
-   - Component specifications
+   - Component specifications (including shadcn components)
    - Implementation guidance
    - Risk assessment (use Risk Assessment Framework)
-4. Migration strategy
-5. Implementation priorities for Phase 4
+4. shadcn Component Specification (use framework from Knowledge Base):
+   - Components selected table
+   - Installation manifest
+   - Migration from custom components
+5. Migration strategy
+6. Implementation priorities for Phase 4
 
 ✓ Verify: Document metadata complete
 ✓ Verify: All three alternatives fully specified
@@ -657,6 +913,10 @@ phase_2_success_criteria:
 - When component has version suffix (-fixed/-v2) → Design for base component instead
 - When diagnostic reports orphaned components → Exclude from design proposals
 - When multiple versions exist → Design only for the active imported version
+- When shadcn registry not configured → Document initialization requirement for Phase 4
+- When custom component exists → Prioritize shadcn replacement in Balanced/Ambitious alternatives
+- When multiple registries available → Document registry source for each component
+- When shadcn component unavailable → Suggest closest alternative or custom development need
 
 # Example Interactions
 

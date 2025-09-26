@@ -234,18 +234,33 @@
   }
 }
 
-/* SLB Corporate Logo Standards - Exact implementation from slb001.sharepoint.com */
+/* SLB Corporate Logo Standards - Enhanced for visibility */
 .quisitiveBrand {
-  min-width: 120px;
-  height: 60px;
-  overflow: hidden;
+  min-width: 280px;  /* Increased to prevent title wrapping */
+  min-height: 60px;  /* Changed from fixed height */
+  height: auto;      /* Allow height to expand */
+  overflow: visible; /* Show all content - fixed subtitle clipping */
   display: -ms-flexbox;
   display: flex;
   -ms-flex-align: center;
   align-items: center;
   padding: 0 24px;
-  -ms-flex: 1 1 0%;
-  flex: 1 1 0%;
+  -ms-flex: 1 1 auto; /* Allow natural sizing */
+  flex: 1 1 auto;
+  gap: 12px;         /* Space between logo and text */
+}
+
+/* Add responsive text handling */
+.quisitiveBrand h1 {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 1;
+}
+
+.quisitiveBrand p {
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .quisitiveBrand * {
@@ -277,4 +292,19 @@
   object-fit: scale-down;
   height: 100%;
   width: 100%;
+}
+
+/* Mobile responsiveness for header */
+@media (max-width: 768px) {
+  .quisitiveBrand {
+    min-width: 180px;
+  }
+  
+  .quisitiveBrand h1 {
+    font-size: 1rem;
+  }
+  
+  .quisitiveBrand p {
+    font-size: 0.75rem;
+  }
 }

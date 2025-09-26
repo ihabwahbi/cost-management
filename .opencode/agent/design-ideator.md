@@ -18,11 +18,7 @@ tools:
   exa_*: false  # Use subagents for examples
   context7_*: true  # For real-time component API verification
   supabase_*: false
-  shadcn_get_project_registries: true  # Discover configured registries
-  shadcn_list_items_in_registries: true  # Browse available components
-  shadcn_search_items_in_registries: true  # Find specific UI patterns
-  shadcn_view_items_in_registries: true  # Get detailed component specs
-  shadcn_get_item_examples_from_registries: true  # View usage examples
+  shadcn_*: true
 ---
 
 # Variables

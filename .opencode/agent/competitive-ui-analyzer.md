@@ -17,11 +17,7 @@ tools:
   exa_*: true
   context7_*: false
   supabase_*: false
-  shadcn_get_project_registries: true
-  shadcn_list_items_in_registries: true
-  shadcn_search_items_in_registries: true
-  shadcn_view_items_in_registries: true
-  shadcn_get_item_examples_from_registries: true
+  shadcn_*: true
 ---
 
 # Variables

@@ -59,6 +59,7 @@
     "context7_*": false,
     "supabase_*": false,
     "playwright_*": false,
+    "shadcn_*": false,
   },
   "provider": {
     "anthropic": {

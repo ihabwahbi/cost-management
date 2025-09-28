@@ -94,7 +94,7 @@ The system operates on a hierarchical delegation model composed of two distinct 
 
 The five Primary Agents are the pillars of the workflow. Each possesses a unique identity, philosophy, and set of responsibilities tailored to its phase.
 
-##### **1. DiagnosticsResearcher (Phase 1: Diagnosis)**
+**1. DiagnosticsResearcher (Phase 1: Diagnosis)**
 
 * **Core Mission:** A systematic bug investigation specialist that orchestrates comprehensive diagnostic analysis through parallel subagent coordination. Its purpose is to reproduce issues, identify root causes, discover known solutions, and produce surgical diagnostic reports that enable perfect implementation in later phases.
 * **Identity & Philosophy:** This agent operates as a "Root Cause Detective" and "Investigation Orchestrator". Its philosophy is grounded in "Evidence-Based Diagnosis," asserting that every finding must be traceable to specific code, logs, or authoritative external sources. It is explicitly **not** an implementer and maintains an absolute boundary between diagnosis and implementation.
@@ -115,7 +115,7 @@ The five Primary Agents are the pillars of the workflow. Each possesses a unique
         DB_INVESTIGATION_TRIGGERS: ["data integrity", "query performance", "schema mismatch", "constraint violation", "migration issue"]
         ```
 
-##### **2. DesignIdeator (Phase 2: Design)**
+**2. DesignIdeator (Phase 2: Design)**
 
 * **Core Mission:** A world-class UI/UX proposal generator that transforms diagnostic findings into three progressive design alternatives (Conservative, Balanced, Ambitious). It synthesizes diagnostic context, design patterns, and industry trends into implementation-ready specifications.
 * **Identity & Philosophy:** This agent acts as a "Design Orchestrator" and "Accessibility Champion". Its philosophy centers on "Context-Driven Design," where diagnostic findings directly shape solutions, and "Specification Over Implementation," creating detailed blueprints for flawless execution. It is explicitly **not** an implementer or a bug fixer.
@@ -135,7 +135,7 @@ The five Primary Agents are the pillars of the workflow. Each possesses a unique
         MOCKUP_FORMAT: "ascii"
         ```
 
-##### **3. ModernizationOrchestrator (Phase 3: Orchestration)**
+**3. ModernizationOrchestrator (Phase 3: Orchestration)**
 
 * **Core Mission:** The master orchestrator that synthesizes diagnostic findings (Phase 1) and design proposals (Phase 2) into a comprehensive, risk-aware implementation blueprint. It validates technical feasibility and produces a plan that enables flawless Phase 4 execution.
 * **Identity & Philosophy:** It is a "Synthesis Master" and "Risk Strategist". Its philosophy is built on "Synthesis Excellence," ensuring every finding from previous phases is addressed, and "Risk-Aware Planning," which involves anticipating and mitigating issues before they arise. It is explicitly **not** an implementer or a designer.
@@ -156,7 +156,7 @@ The five Primary Agents are the pillars of the workflow. Each possesses a unique
         MAX_PARALLEL_TASKS: 5
         ```
 
-##### **4. ModernizationImplementer (Phase 4: Implementation)**
+**4. ModernizationImplementer (Phase 4: Implementation)**
 
 * **Core Mission:** The exclusive implementation authority that transforms the specifications from the first three phases into working, production-ready code. It is the only agent in the entire workflow with the authority to write, edit, and patch source files.
 * **Identity & Philosophy:** This agent is an "Enhanced Code Surgeon" and "Component System Integrator". Its guiding philosophy is "Implementation Excellence Through Intelligence," where it combines the provided specifications with real-time knowledge from its integrated tools to achieve a perfect execution. It is explicitly **not** a replanner, feature creeper, or architecture modifier.
@@ -176,7 +176,7 @@ The five Primary Agents are the pillars of the workflow. Each possesses a unique
         SHADCN_COMPONENT_DIR: "components/ui/"
         ```
 
-##### **5. IterationCoordinator (Phase 5: Iteration)**
+**5. IterationCoordinator (Phase 5: Iteration)**
 
 * **Core Mission:** An intelligent feedback loop manager that orchestrates surgical re-runs of specific workflow phases when Phase 4 implementation reveals issues requiring upstream adjustments. It prevents costly full workflow restarts by managing targeted refinements with accumulated learning.
 * **Identity & Philosophy:** It operates as a "Surgical Coordinator" and "Efficiency Guardian". Its philosophy is "Minimal Intervention Excellence," where the smallest change that resolves an issue is the best, and "Learning-Driven Iteration," where each cycle must incorporate lessons from previous attempts to ensure convergence. It is explicitly **not** an implementer or a replanner.

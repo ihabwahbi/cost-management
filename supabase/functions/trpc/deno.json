@@ -1,0 +1,9 @@
+{
+  "imports": {
+    "@trpc/server": "npm:@trpc/server@^10.45.2",
+    "zod": "npm:zod@^3.23.8"
+  },
+  "compilerOptions": {
+    "lib": ["deno.ns", "dom"]
+  }
+}

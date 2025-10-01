@@ -1,0 +1,84 @@
+{
+  "id": "kpi-card-v2",
+  "version": "1.0.0",
+  "description": "Smart KPI card displaying budget metrics with variance indicators. Self-fetches data via tRPC.",
+  
+  "dataContract": {
+    "source": "trpc.dashboard.getKPIMetrics",
+    "inputSchema": {
+      "projectId": "string (uuid)"
+    },
+    "outputSchema": {
+      "budgetTotal": "number",
+      "committed": "number",
+      "variance": "number",
+      "variancePercent": "number"
+    }
+  },
+  
+  "behavioralAssertions": [
+    {
+      "id": "BA-001",
+      "requirement": "Cell MUST fetch project metrics via trpc.dashboard.getKPIMetrics with projectId",
+      "validation": "Unit test: tRPC query called with correct projectId parameter",
+      "criticality": "high"
+    },
+    {
+      "id": "BA-002",
+      "requirement": "Budget total MUST display with currency formatting ($X,XXX.XX)",
+      "validation": "Unit test: budgetTotal=150000 renders as '$150,000.00'",
+      "criticality": "high"
+    },
+    {
+      "id": "BA-003",
+      "requirement": "Committed amount MUST display with calculated variance (budgetTotal - committed)",
+      "validation": "Unit test: variance calculation is correct (budgetTotal - committed)",
+      "criticality": "high"
+    },
+    {
+      "id": "BA-004",
+      "requirement": "Variance indicator MUST show green when under budget (variance > 0), red when over budget (variance < 0)",
+      "validation": "Unit test: variance > 0 renders green color, variance < 0 renders red color",
+      "criticality": "medium"
+    },
+    {
+      "id": "BA-005",
+      "requirement": "Loading state MUST show Skeleton component while data is fetching",
+      "validation": "Unit test: isLoading=true renders Skeleton from shadcn/ui",
+      "criticality": "high"
+    },
+    {
+      "id": "BA-006",
+      "requirement": "Error state MUST show Alert component on fetch failure",
+      "validation": "Unit test: error present renders Alert with error message",
+      "criticality": "high"
+    }
+  ],
+  
+  "dependencies": {
+    "ui": [
+      "@/components/ui/card",
+      "@/components/ui/badge",
+      "@/components/ui/skeleton",
+      "@/components/ui/alert"
+    ],
+    "state": ["./state"],
+    "api": ["trpc.dashboard.getKPIMetrics"]
+  },
+  
+  "accessibility": {
+    "wcag": "AA",
+    "requirements": [
+      "Card MUST have aria-label describing purpose",
+      "Variance indicator MUST not rely on color alone (use icons + text)",
+      "All text MUST have sufficient contrast ratio (4.5:1 minimum)"
+    ]
+  },
+  
+  "metadata": {
+    "createdBy": "iter_20251001_160000_createKPICardV2",
+    "createdAt": "2025-10-01T16:00:00Z",
+    "lastModified": "2025-10-01T16:00:00Z",
+    "relatedCells": []
+  }
+}

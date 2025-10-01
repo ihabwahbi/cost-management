@@ -2,6 +2,7 @@ import type React from "react"
 import type { Metadata } from "next"
 import { Suspense } from "react"
 import { Toaster } from "@/components/ui/toaster"
+import { Providers } from "./providers"
 import "./globals.css"
 
 export const metadata: Metadata = {
@@ -18,8 +19,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="font-sans antialiased">
-        <Suspense fallback={<div>Loading...</div>}>{children}</Suspense>
-        <Toaster />
+        <Providers>
+          <Suspense fallback={<div>Loading...</div>}>{children}</Suspense>
+          <Toaster />
+        </Providers>
       </body>
     </html>
   )

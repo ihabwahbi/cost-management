@@ -18,6 +18,8 @@ import { SpendCategoryChart } from '@/components/dashboard/spend-category-chart'
 import { CostBreakdownTable } from '@/components/dashboard/cost-breakdown-table'
 import { DashboardFilterPanel } from '@/components/dashboard/dashboard-filters'
 import { DashboardSkeleton } from '@/components/dashboard/dashboard-skeleton'
+// Living Blueprint Architecture - Smart Cell (Pilot)
+import { KPICardV2 } from '@/components/cells/kpi-card-v2/component'
 import { calculateProjectMetrics, getTimelineData, getCategoryBreakdown, getHierarchicalBreakdown } from '@/lib/dashboard-metrics'
 import { getProjectPLMetrics, getPLImpactByMonth, getOpenPOsByPromiseDate } from '@/lib/pl-tracking-service'
 import { useToast } from '@/hooks/use-toast'
@@ -370,6 +372,18 @@ export default function ProjectDashboard({ params }: ProjectDashboardProps) {
             timelineData={timelineData}
             subcategoryData={subcategoryData}
           />
+        )}
+
+        {/* Living Blueprint Architecture Pilot - KPICardV2 Smart Cell */}
+        {process.env.NEXT_PUBLIC_FEATURE_KPI_CARD_V2 === 'enabled' && (
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded">
+                PILOT: Living Blueprint Architecture - Smart Cell
+              </span>
+            </div>
+            <KPICardV2 projectId={projectId} />
+          </div>
         )}
 
         {/* P&L Command Center - Replace KPI Cards */}

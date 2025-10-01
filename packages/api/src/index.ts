@@ -1,5 +1,6 @@
 import { router } from './trpc';
 import { testRouter } from './routers/test';
+import { dashboardRouter } from './routers/dashboard';
 import { db } from '@cost-mgmt/db';
 import type { Context } from './trpc';
 
@@ -10,6 +11,7 @@ import type { Context } from './trpc';
  */
 export const appRouter = router({
   test: testRouter,
+  dashboard: dashboardRouter,
   // Future routers will be added here:
   // projects: projectsRouter,
   // costBreakdown: costBreakdownRouter,

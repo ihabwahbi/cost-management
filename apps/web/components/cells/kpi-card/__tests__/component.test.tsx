@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { KPICardV2 } from '../component';
+import { KPICard } from '../component';
 import { trpc } from '@/lib/trpc';
 
 // Mock the tRPC client
@@ -14,7 +14,7 @@ vi.mock('@/lib/trpc', () => ({
   },
 }));
 
-describe('KPICardV2 - Smart KPI Card Cell', () => {
+describe('KPICard - Smart KPI Card Cell', () => {
   const mockProjectId = '550e8400-e29b-41d4-a716-446655440000';
   
   beforeEach(() => {
@@ -30,7 +30,7 @@ describe('KPICardV2 - Smart KPI Card Cell', () => {
         error: null,
       } as any);
 
-      render(<KPICardV2 projectId={mockProjectId} />);
+      render(<KPICard projectId={mockProjectId} />);
 
       // Verify tRPC query was called with correct projectId
       expect(trpc.dashboard.getKPIMetrics.useQuery).toHaveBeenCalledWith({
@@ -52,7 +52,7 @@ describe('KPICardV2 - Smart KPI Card Cell', () => {
         error: null,
       } as any);
 
-      render(<KPICardV2 projectId={mockProjectId} />);
+      render(<KPICard projectId={mockProjectId} />);
 
       // Wait for data to render
       await waitFor(() => {
@@ -73,7 +73,7 @@ describe('KPICardV2 - Smart KPI Card Cell', () => {
         error: null,
       } as any);
 
-      render(<KPICardV2 projectId={mockProjectId} />);
+      render(<KPICard projectId={mockProjectId} />);
 
       await waitFor(() => {
         const budgetElement = screen.getByTestId('budget-total');
@@ -99,7 +99,7 @@ describe('KPICardV2 - Smart KPI Card Cell', () => {
         error: null,
       } as any);
 
-      render(<KPICardV2 projectId={mockProjectId} />);
+      render(<KPICard projectId={mockProjectId} />);
 
       await waitFor(() => {
         // Check committed amount is displayed
@@ -126,7 +126,7 @@ describe('KPICardV2 - Smart KPI Card Cell', () => {
         error: null,
       } as any);
 
-      render(<KPICardV2 projectId={mockProjectId} />);
+      render(<KPICard projectId={mockProjectId} />);
 
       await waitFor(() => {
         const varianceElement = screen.getByTestId('variance-indicator');
@@ -150,7 +150,7 @@ describe('KPICardV2 - Smart KPI Card Cell', () => {
         error: null,
       } as any);
 
-      render(<KPICardV2 projectId={mockProjectId} />);
+      render(<KPICard projectId={mockProjectId} />);
 
       await waitFor(() => {
         const varianceElement = screen.getByTestId('variance-indicator');
@@ -174,7 +174,7 @@ describe('KPICardV2 - Smart KPI Card Cell', () => {
         error: null,
       } as any);
 
-      render(<KPICardV2 projectId={mockProjectId} />);
+      render(<KPICard projectId={mockProjectId} />);
 
       await waitFor(() => {
         const varianceElement = screen.getByTestId('variance-indicator');
@@ -192,7 +192,7 @@ describe('KPICardV2 - Smart KPI Card Cell', () => {
         error: null,
       } as any);
 
-      render(<KPICardV2 projectId={mockProjectId} />);
+      render(<KPICard projectId={mockProjectId} />);
 
       // Check for Card with loading aria-label
       expect(screen.getByLabelText('Budget KPI Card Loading')).toBeInTheDocument();
@@ -217,7 +217,7 @@ describe('KPICardV2 - Smart KPI Card Cell', () => {
         } as any,
       } as any);
 
-      render(<KPICardV2 projectId={mockProjectId} />);
+      render(<KPICard projectId={mockProjectId} />);
 
       // Check for Alert with error content
       expect(screen.getByLabelText('Budget KPI Card Error')).toBeInTheDocument();
@@ -234,7 +234,7 @@ describe('KPICardV2 - Smart KPI Card Cell', () => {
         } as any,
       } as any);
 
-      render(<KPICardV2 projectId={mockProjectId} />);
+      render(<KPICard projectId={mockProjectId} />);
 
       expect(screen.getByText(/Unable to fetch budget data/)).toBeInTheDocument();
     });
@@ -253,7 +253,7 @@ describe('KPICardV2 - Smart KPI Card Cell', () => {
         error: null,
       } as any);
 
-      render(<KPICardV2 projectId={mockProjectId} />);
+      render(<KPICard projectId={mockProjectId} />);
 
       await waitFor(() => {
         // Check main card has aria-label
@@ -278,7 +278,7 @@ describe('KPICardV2 - Smart KPI Card Cell', () => {
         error: null,
       } as any);
 
-      render(<KPICardV2 projectId={mockProjectId} />);
+      render(<KPICard projectId={mockProjectId} />);
 
       await waitFor(() => {
         expect(screen.getByTestId('budget-total')).toHaveTextContent('$0.00');
@@ -297,7 +297,7 @@ describe('KPICardV2 - Smart KPI Card Cell', () => {
         error: null,
       } as any);
 
-      render(<KPICardV2 projectId={mockProjectId} />);
+      render(<KPICard projectId={mockProjectId} />);
 
       await waitFor(() => {
         expect(screen.getByTestId('budget-total')).toHaveTextContent('$1,234,567,890.12');

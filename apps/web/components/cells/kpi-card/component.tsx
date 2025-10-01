@@ -1,11 +1,10 @@
 /**
- * KPICardV2 - Smart KPI Card Cell
+ * KPICard - Smart KPI Card Cell
  * 
  * A self-contained Cell that fetches budget metrics via tRPC
  * and displays them with variance indicators.
  * 
- * This is a SMART component (fetches its own data) unlike the original
- * KPICard which is a presentation component.
+ * This is a SMART component (fetches its own data).
  */
 'use client';
 
@@ -16,7 +15,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { DollarSign, TrendingUp, TrendingDown, AlertCircle } from 'lucide-react';
 
-interface KPICardV2Props {
+interface KPICardProps {
   projectId: string;
 }
 
@@ -67,7 +66,7 @@ function getVarianceStyle(variance: number) {
   }
 }
 
-export function KPICardV2({ projectId }: KPICardV2Props) {
+export function KPICard({ projectId }: KPICardProps) {
   // BA-001: Fetch project metrics via tRPC
   const { data, isLoading, error } = trpc.dashboard.getKPIMetrics.useQuery({
     projectId,

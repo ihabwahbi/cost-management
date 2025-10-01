@@ -1,5 +1,5 @@
 {
-  "id": "kpi-card-v2",
+  "id": "kpi-card",
   "version": "1.0.0",
   "description": "Smart KPI card displaying budget metrics with variance indicators. Self-fetches data via tRPC.",
   
@@ -78,7 +78,8 @@
   "metadata": {
     "createdBy": "iter_20251001_160000_createKPICardV2",
     "createdAt": "2025-10-01T16:00:00Z",
-    "lastModified": "2025-10-01T16:00:00Z",
+    "lastModified": "2025-10-01T23:20:00Z",
+    "cleanupBy": "iter_20251001_232000_cleanupKPICard",
     "relatedCells": []
   }
 }

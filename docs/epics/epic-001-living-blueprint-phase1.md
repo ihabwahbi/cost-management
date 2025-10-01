@@ -11,7 +11,7 @@
 
 ## Epic Goal
 
-Establish the Living Blueprint Architecture foundation (monorepo, type-safe data layer, ledger) and validate the approach with two pilot Component Cells, providing empirical data for go/no-go decision on full migration.
+Establish the Living Blueprint Architecture foundation (monorepo, type-safe data layer, ledger) and validate the approach with pilot Component Cells, setting the pattern for 100% architecture adoption across the entire codebase. This is the first step toward complete refactor - not gradual addition, but full replacement.
 
 ## Epic Description
 
@@ -33,8 +33,8 @@ Establish the Living Blueprint Architecture foundation (monorepo, type-safe data
 
 **Integration points:**
 - Existing Supabase database remains unchanged
-- Current app continues functioning during migration
-- Feature flags control old vs new implementation
+- Each story completely replaces old implementation with new Cell
+- Git commits provide rollback capability if needed
 
 ### Enhancement Details
 
@@ -46,17 +46,18 @@ Establish the Living Blueprint Architecture foundation (monorepo, type-safe data
 5. **Two pilot Cells** to validate architecture
 
 **How it integrates:**
-- Parallel implementation behind feature flags
+- Complete replacement, one Cell at a time
 - Drizzle schema generated from existing Supabase tables
 - tRPC endpoints deployed as Supabase Edge Functions
-- Gradual component migration, one Cell at a time
+- Each story deletes old component after new Cell validated
 
 **Success criteria:**
-- ✅ Both pilot Cells operational with <150% estimated effort
+- ✅ Pilot Cells operational with <150% estimated effort
 - ✅ Agent successfully uses ledger for navigation
 - ✅ Pipeline validation functioning
-- ✅ Zero impact on existing functionality
-- ✅ Team confidence score ≥7/10
+- ✅ Old components deleted (lean codebase validated)
+- ✅ Pattern established for 100% adoption in future epics
+- ✅ Zero parallel implementations remain
 
 ## Stories
 
@@ -86,20 +87,53 @@ Establish the Living Blueprint Architecture foundation (monorepo, type-safe data
 
 **Tasks:**
 2.1. Create tRPC procedure `dashboard.getKPIMetrics`
-2.2. Create Cell structure at `components/cells/kpi-card-v2/`
+2.2. Create Cell structure at `components/cells/kpi-card/`
 2.3. Write `manifest.json` with behavioral assertions
 2.4. Write `pipeline.yaml` with validation gates  
 2.5. Implement Cell using tRPC query hook
-2.6. Add feature flag `NEXT_PUBLIC_USE_V2_KPI_CARD`
-2.7. Validate pipeline passes
-2.8. Create ledger entry
+2.6. Update all imports to use new Cell
+2.7. Delete old KPICard component
+2.8. Validate all tests pass
+2.9. Create ledger entry and commit
 
 **Acceptance Criteria:**
 - Cell passes all pipeline gates
 - Behavioral assertions have tests
-- Feature flag switches implementations
+- Old component deleted from codebase
 - Ledger entry queryable
 - Performance parity with original
+
+**Status:** Done (requires cleanup - see Story 2.1)
+
+---
+
+### Story 2.1: KPICard Cleanup (Week 2 - Alignment Story)
+**Align Story 1.2 implementation with architecture principles**
+
+**Context:** Story 1.2 was implemented before architecture finalization and used OLD approach (v2 suffix, feature flags, parallel implementations). This cleanup story aligns it with our AI-optimized principles.
+
+**Tasks:**
+2.1.1. Rename directory: `kpi-card-v2/` → `kpi-card/`
+2.1.2. Update manifest: `"id": "kpi-card-v2"` → `"id": "kpi-card"`
+2.1.3. Remove feature flag logic from dashboard page
+2.1.4. Update all imports to point to new location
+2.1.5. Delete old component: `components/dashboard/kpi-card.tsx`
+2.1.6. Remove feature flag environment variables
+2.1.7. Update ledger entries with correct Cell ID and cleanup record
+2.1.8. Verify no v2 or feature flag references remain (grep)
+2.1.9. Run all tests and commit clean state
+
+**Acceptance Criteria:**
+- Directory has no version suffix
+- Manifest ID has no version suffix
+- No feature flag code exists
+- Old component deleted
+- Only one implementation exists (lean codebase)
+- All tests pass
+- Ledger documents cleanup
+- Codebase ready for Story 2.2 (next pilot)
+
+**Estimated Duration:** 2-3 hours
 
 ---
 
@@ -108,19 +142,20 @@ Establish the Living Blueprint Architecture foundation (monorepo, type-safe data
 
 **Tasks:**
 3.1. Create tRPC procedures for P&L metrics
-3.2. Create Cell structure at `components/cells/pl-command-center-v2/`
+3.2. Create Cell structure at `components/cells/pl-command-center/`
 3.3. Write comprehensive manifest for complex data
 3.4. Write pipeline with performance tests
 3.5. Implement Cell with multiple tRPC queries
-3.6. Add feature flag `NEXT_PUBLIC_USE_V2_PL_COMMAND`
-3.7. Validate complex data flows
-3.8. Create ledger entry with relationships
+3.6. Update all imports to use new Cell
+3.7. Delete old PLCommandCenter component
+3.8. Validate complex data flows and all tests pass
+3.9. Create ledger entry and commit
 
 **Acceptance Criteria:**
 - Complex data aggregations work correctly
 - All P&L calculations match original
 - Pipeline validates data contracts
-- Agent can query relationships
+- Old component deleted from codebase
 - No performance degradation
 
 ## Compatibility Requirements
@@ -130,7 +165,7 @@ Establish the Living Blueprint Architecture foundation (monorepo, type-safe data
 - [x] UI changes follow existing shadcn patterns
 - [x] Performance impact is minimal (<10% degradation)
 - [x] All existing features continue working
-- [x] Rollback possible via feature flags
+- [x] Rollback possible via git revert
 
 ## Risk Mitigation
 
@@ -149,9 +184,9 @@ Establish the Living Blueprint Architecture foundation (monorepo, type-safe data
 - **Validation:** Agent successfully completes test workflow
 
 **Rollback Plan:**
-- Feature flags enable instant rollback
+- Git revert entire story commit if needed
 - No database migrations (schema unchanged)
-- Old code remains untouched
+- Each commit is atomic and revertible
 - Remove new packages if complete rollback needed
 
 ## Decision Gate Criteria (End of Week 3)
@@ -188,15 +223,15 @@ Establish the Living Blueprint Architecture foundation (monorepo, type-safe data
 ### Technical Validation
 - [x] TypeScript compilation: zero errors
 - [x] All tests passing (existing + new)
-- [x] Feature flags tested both ways
+- [x] Codebase contains only new Cells (no parallel implementations)
 - [x] Ledger queries functioning
 - [x] Pipeline automation working
 
 ### Process Validation
 - [x] Agent workflow documented
-- [x] Team training materials created
-- [x] Rollback procedure tested
-- [x] Monitoring in place
+- [x] Cleanup workflow validated
+- [x] Git revert procedure documented
+- [x] Ledger tracking functional
 
 ## Resource Requirements
 
@@ -209,8 +244,8 @@ Establish the Living Blueprint Architecture foundation (monorepo, type-safe data
 
 **Infrastructure:**
 - Development Supabase project for testing
-- GitHub Actions for pipeline automation
-- Feature flag service (environment variables initially)
+- GitHub Actions for pipeline automation (future)
+- Git version control for rollback capability
 
 ## Success Metrics Tracking
 
@@ -297,13 +332,13 @@ Establish the Living Blueprint Architecture foundation (monorepo, type-safe data
 └── pipeline.yaml           # Validation gates
 ```
 
-### Feature Flag Implementation
+### Cell Replacement Pattern
 ```typescript
-// Environment variable based initially
-const USE_V2_CELL = process.env.NEXT_PUBLIC_USE_V2_{CELL} === 'true'
+// Old component deleted after new Cell validated
+// Before story: import { KPICard } from '@/components/dashboard/kpi-card'
+// After story: import { KPICard } from '@/components/cells/kpi-card/component'
 
-// Usage
-return USE_V2_CELL ? <CellV2 /> : <CellV1 />
+// No feature flags - direct replacement only
 ```
 
 ---
@@ -314,15 +349,16 @@ return USE_V2_CELL ? <CellV2 /> : <CellV1 />
 
 "Please begin Phase 1 implementation of the Living Blueprint Architecture. Key considerations:
 
-- This is a parallel implementation to the existing Next.js 14/Supabase system
-- All work behind feature flags - zero production impact required
+- This is a complete refactor - each story replaces old implementation with new Cell
+- No feature flags or parallel implementations - maintain lean codebase
+- Delete old components in same story after validation
+- Use git commits for rollback capability
 - Focus on foundation setup (Week 1) before pilot Cells
 - Document all learnings for decision gate
-- Pair programming encouraged for knowledge transfer
 
 Start with Story 1.1: Turborepo setup. Reference the Living Blueprint Architecture document for detailed technical specifications.
 
-The goal is to validate the architecture with empirical data, not to achieve perfection. Focus on learning and measurement over optimization."
+**Critical**: Each story must end with cleanup. Codebase should contain ONLY new Cell implementations - optimal for AI agent development."
 
 ---
 

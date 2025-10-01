@@ -10,7 +10,9 @@
 
 ## Executive Summary
 
-This document defines the **Living Blueprint Architecture**, a comprehensive refactoring plan to transform the Cost Management Hub into an AI-optimized codebase. The architecture addresses critical failure modes experienced during AI-driven development: component drift, data-UI desynchronization, implicit requirement regression, and context degradation.
+This document defines the **Living Blueprint Architecture**, a comprehensive refactoring plan to transform the Cost Management Hub into an AI-optimized codebase through **100% adoption** of the new architecture. The architecture addresses critical failure modes experienced during AI-driven development: component drift, data-UI desynchronization, implicit requirement regression, and context degradation.
+
+**Ultimate Goal:** Complete codebase refactor where every component becomes a Cell with manifest, every API call goes through tRPC, and the codebase maintains absolute leanness - optimized specifically for AI agent development, not human convenience.
 
 ### The Core Problem
 
@@ -27,16 +29,16 @@ A hybrid architecture that merges modern type-safety with radical explicitness:
 
 1. **Type-Safe Data Layer** - Unbreakable contracts from database to UI via tRPC + Drizzle
 2. **Smart Component Cells** - Self-documenting, self-validating UI units with explicit manifests
-3. **Architectural Ledger** - Permanent, queryable memory of all development decisions
-4. **Formal Iteration Loop** - Structured debugging that prevents context degradation
+3. **Architectural Ledger** - Permanent, queryable memory of all development decisions and failures
 
 ### Key Outcomes
 
-- **70% reduction** in component drift incidents
-- **End-to-end type safety** from PostgreSQL → tRPC → React
-- **Zero implicit requirements** - all behaviors are machine-readable
+- **100% architecture adoption** - every component migrated to Cell architecture
+- **Zero parallel implementations** - lean, single-source-of-truth codebase
+- **End-to-end type safety** - from PostgreSQL → tRPC → React (100% coverage)
+- **Zero implicit requirements** - all behaviors machine-readable in manifests
 - **Instant feature location** - agents query ledger instead of searching
-- **Predictable iterations** - formal debugging cycles replace conversational chaos
+- **AI-optimized clarity** - no version suffixes, no feature flags, no dead code
 
 ---
 
@@ -58,7 +60,7 @@ The Living Blueprint Architecture is built on four unwavering principles, each d
 ```json
 // components/cells/waterfall-plot/manifest.json
 {
-  "id": "waterfall-plot-v1",
+  "id": "waterfall-plot",
   "dataContractId": "trpc.budget.getWaterfallData",
   "behavioralAssertions": [
     "The plot MUST show per-item granularity",
@@ -103,32 +105,21 @@ The Living Blueprint Architecture is built on four unwavering principles, each d
   "timestamp": "2025-10-01T14:00:00Z",
   "humanPrompt": "Create waterfall plot for budget variance",
   "artifacts": {
-    "created": [{"type": "cell", "id": "budget-waterfall-v1"}],
+    "created": [{"type": "cell", "id": "waterfall-plot"}],
     "modified": ["trpc.budget.getWaterfallData"]
   },
   "schemaChanges": []
 }
 ```
 
-#### Principle 4: Formalized Iteration
-**Problem Solved:** Long debugging conversations degrade context and lose focus.
+#### Principle 4: Immutable History
+**Problem Solved:** Agents lack context about past failures and decisions.
 
 **Implementation:**
-- Failures trigger formal diagnostic cycles, not conversations
-- Each iteration is a clean session with a focused failure report
-- Prevents "iteration hell" where agents spin without progress
-- Maximum 3 iterations before human intervention
-
-**Iteration Workflow:**
-```mermaid
-graph LR
-    A[Implement] -->|Failure| B[Generate Report]
-    B --> C[New Clean Session]
-    C --> D[Diagnose Agent]
-    D --> E[Corrected Plan]
-    E --> A
-    A -->|Success| F[Done]
-```
+- All implementation attempts recorded in ledger (success and failure)
+- Failure reports stored with root cause analysis
+- Agents can query past failures to avoid repeating mistakes
+- Complete audit trail enables learning from history
 
 ---
 
@@ -141,11 +132,11 @@ graph LR
 | **Ambiguous Instructions** | Manifests encode requirements in machine-readable format |
 | **Poor Code Navigation** | Ledger maps features to exact Cell IDs |
 | **Regression Risk** | Pipeline validation gates catch behavioral changes |
-| **Context Degradation** | Formal iteration loops replace long conversations |
+| **Past Failures Forgotten** | Ledger records failure reports with root cause analysis |
 
 ---
 
-## Part 2: The Four Pillars
+## Part 2: The Three Pillars
 
 ### 2.1 Pillar 1: Type-Safe Data Layer
 
@@ -287,7 +278,7 @@ Current components lack explicit contracts:
 ```json
 // components/cells/budget-waterfall/manifest.json
 {
-  "id": "budget-waterfall-v1",
+  "id": "budget-waterfall",
   "version": "1.0.0",
   "description": "Waterfall chart showing budget variance by category",
   
@@ -430,9 +421,9 @@ Agents lack persistent memory:
 
 {"iterationId":"iter_20251001_100000_setupMonorepo","timestamp":"2025-10-01T10:00:00Z","humanPrompt":"Set up Turborepo with tRPC and Drizzle","artifacts":{"created":[{"type":"package","id":"api"},{"type":"package","id":"db"}],"modified":[]},"schemaChanges":[]}
 
-{"iterationId":"iter_20251001_140000_addWaterfallPlot","timestamp":"2025-10-01T14:00:00Z","humanPrompt":"Create a waterfall plot to show budget changes","artifacts":{"created":[{"type":"cell","id":"budget-waterfall-v1","path":"components/cells/budget-waterfall"}],"modified":["trpc.budget.getWaterfallData"]},"schemaChanges":[]}
+{"iterationId":"iter_20251001_140000_addWaterfallPlot","timestamp":"2025-10-01T14:00:00Z","humanPrompt":"Create a waterfall plot to show budget changes","artifacts":{"created":[{"type":"cell","id":"budget-waterfall","path":"components/cells/budget-waterfall"}],"modified":["trpc.budget.getWaterfallData"]},"schemaChanges":[]}
 
-{"iterationId":"iter_20251002_093000_addFiltersToWaterfall","timestamp":"2025-10-02T09:30:00Z","humanPrompt":"Add date range filters to the waterfall plot","artifacts":{"created":[],"modified":[{"type":"cell","id":"budget-waterfall-v1","changes":["Added dateRange prop","Added filter UI","Updated manifest.json"]}]},"schemaChanges":[]}
+{"iterationId":"iter_20251002_093000_addFiltersToWaterfall","timestamp":"2025-10-02T09:30:00Z","humanPrompt":"Add date range filters to the waterfall plot","artifacts":{"created":[],"modified":[{"type":"cell","id":"budget-waterfall","changes":["Added dateRange prop","Added filter UI","Updated manifest.json"]}]},"schemaChanges":[]}
 ```
 
 **Ledger Entry Schema:**
@@ -476,7 +467,7 @@ const results = await queryLedger({
   search: "waterfall plot",
   artifactType: "cell"
 })
-// Returns: { id: "budget-waterfall-v1", path: "components/cells/budget-waterfall" }
+// Returns: { id: "budget-waterfall", path: "components/cells/budget-waterfall" }
 
 // Agent now knows exactly where to work - no searching needed
 ```
@@ -486,7 +477,7 @@ const results = await queryLedger({
 // User: "Why does the waterfall plot use these specific colors?"
 
 // Agent queries ledger:
-const history = await getLedgerHistory("budget-waterfall-v1")
+const history = await getLedgerHistory("budget-waterfall")
 // Returns timeline:
 // - iter_20251001_140000: Created with requirement "positive=green, negative=red"
 // - iter_20251001_153000: Colors changed to match brand guidelines
@@ -501,7 +492,7 @@ const history = await getLedgerHistory("budget-waterfall-v1")
 
 // Agent queries ledger:
 const dependents = await findDependents("trpc.budget.getWaterfallData")
-// Returns: ["budget-waterfall-v1", "budget-timeline-v2", "pl-command-center-v1"]
+// Returns: ["budget-waterfall", "budget-timeline", "pl-command-center"]
 
 // Agent knows: "This change will impact 3 Cells that must be validated"
 ```
@@ -545,156 +536,6 @@ export class LedgerQuery {
 - **Impact Analysis**: Know what will be affected by changes
 - **Persistent Memory**: Context survives between sessions
 - **Audit Trail**: Complete history of system evolution
-
----
-
-### 2.4 Pillar 4: Formal Iteration Loop
-
-#### Problem Statement
-Current debugging is conversational chaos:
-```
-User: "The waterfall plot doesn't show all categories"
-Agent: [tries fix 1] "I updated the query"
-User: "Still broken"
-Agent: [tries fix 2] "I changed the filter"
-User: "Still broken"
-Agent: [tries fix 3] "Let me try a different approach"
-[... 15 messages later, agent has lost track of original problem]
-```
-
-**Problems:**
-- Context degrades with each failed attempt
-- Agent loses focus on original issue
-- No structured problem diagnosis
-- Endless "try this, try that" cycles
-
-#### Solution: Formal Diagnostic Cycles
-
-**Iteration Workflow:**
-
-```mermaid
-graph TD
-    A[User Request] --> B[Plan Agent: Create Implementation Plan]
-    B --> C[Implement Agent: Execute Plan]
-    C --> D{Pipeline Validation}
-    D -->|Pass| E[Success ✅]
-    D -->|Fail| F[Generate Failure Report]
-    F --> G[NEW CLEAN SESSION]
-    G --> H[Diagnose Agent: Analyze Failure Report]
-    H --> I[Plan Agent: Create Corrected Plan]
-    I --> C
-    
-    style F fill:#ffcccc
-    style G fill:#ffffcc
-    style E fill:#ccffcc
-```
-
-**Key Innovation: Clean Sessions**
-- Failed implementation → Generate formal failure report
-- **Terminate current session**
-- Start new session with fresh context
-- New session receives only:
-  1. Original requirements
-  2. Failure report
-  3. Relevant Cell manifests
-- No accumulated conversation history
-
-**Failure Report Schema:**
-```typescript
-interface FailureReport {
-  iterationId: string
-  failedAttempt: number        // 1, 2, or 3
-  
-  originalRequirement: {
-    humanPrompt: string
-    targetCellId: string
-    expectedBehavior: string[]
-  }
-  
-  implementationAttempt: {
-    changesMade: string[]
-    filesModified: string[]
-    approach: string
-  }
-  
-  failureDetails: {
-    failedGate: string          // Which pipeline step failed
-    errorMessage: string
-    failedAssertion?: string    // Which behavioral assertion failed
-    reproductionSteps: string[]
-  }
-  
-  diagnosticFindings: {
-    rootCause: string           // Best guess at actual problem
-    evidenceForRootCause: string[]
-    alternativeHypotheses: string[]
-  }
-  
-  learnings: {
-    whatWorked: string[]
-    whatDidNotWork: string[]
-    constraints: string[]       // Discovered constraints
-  }
-}
-```
-
-**Example Iteration:**
-
-**Attempt 1:**
-```typescript
-// User: "Waterfall plot should show categories in alphabetical order"
-
-// Plan Agent creates plan
-{
-  approach: "Sort data by category name in tRPC query",
-  changes: ["Modify trpc.budget.getWaterfallData", "Add .sort() to query"]
-}
-
-// Implement Agent executes
-// Pipeline fails: "BA-002 failed - tooltip shows incorrect order"
-
-// Failure Report Generated:
-{
-  failedGate: "Behavioral Assertions Validation",
-  failedAssertion: "BA-002",
-  rootCause: "Sorting in backend, but frontend re-sorts by value",
-  learnings: {
-    whatDidNotWork: ["Backend sorting alone"],
-    constraints: ["Frontend component also sorts data before rendering"]
-  }
-}
-```
-
-**Attempt 2 (New Clean Session):**
-```typescript
-// Diagnose Agent receives Failure Report
-// Analyzes: Frontend sorting overrides backend sorting
-
-// Plan Agent creates corrected plan:
-{
-  approach: "Remove frontend sorting, rely on backend sort only",
-  changes: [
-    "Modify budget-waterfall/component.tsx: remove .sort()",
-    "Ensure backend sorting is correct",
-    "Update manifest.json: add sort order assertion"
-  ]
-}
-
-// Implement Agent executes
-// Pipeline passes ✅
-```
-
-**Iteration Limits:**
-- **Maximum 3 iterations** before human intervention required
-- After 3 failures → Escalate to human for requirement clarification
-- Prevents infinite agent loops
-
-**Benefits:**
-1. **Prevents Context Degradation**: Each attempt starts fresh
-2. **Structured Diagnosis**: Formal root cause analysis, not guessing
-3. **Learning Accumulation**: Each attempt builds on previous learnings
-4. **Clear Failure Tracking**: Exact point of failure documented
-5. **Conversation Efficiency**: No "let me try again" back-and-forth
 
 ---
 
@@ -777,24 +618,92 @@ const { data } = await supabase.from('cost_breakdown').select('*')
 
 | Risk | Severity | Mitigation |
 |------|----------|------------|
-| Breaking changes during migration | High | Feature flags + parallel implementation |
+| Breaking changes during migration | High | Branch isolation + human validation gate per story |
 | Data type mismatches | Medium | Drizzle schema validation before cutover |
-| Lost functionality during refactor | High | Comprehensive manifest creation before changes |
-| Team velocity during transition | Medium | Phased rollout, one feature at a time |
+| Lost functionality during refactor | High | Comprehensive manifest creation + testing before cleanup |
+| Context pollution during migration | High | Immediate cleanup after validation (no parallel implementations) |
+| Team velocity during transition | Medium | Phased rollout, one Cell at a time with clean commits |
 
 ---
 
 ## Part 4: Migration Strategy
 
-### 4.1 Migration Principles
+### 4.1 Migration Principles (AI-Optimized Development)
 
-1. **Zero Downtime**: Features continue working throughout migration
-2. **Feature Flags**: New architecture behind flags, switchable per feature
-3. **Incremental**: Migrate one feature at a time, validate before next
-4. **Parallel Implementation**: New stack runs alongside old until validated
-5. **Rollback Ready**: Can revert any feature to old implementation
+**Context:** Solo development with AI agents. Each story completely replaces old implementation with new Cell. Git commits provide safety.
 
-### 4.2 Target Monorepo Structure
+1. **Complete Replacement**: Each story creates new Cell and deletes old component
+2. **No Parallel Implementations**: Never keep v1/v2 or old/new versions
+3. **Story-Commit Cadence**: Each completed story = one git commit with only new Cell
+4. **Immediate Cleanup**: Delete old implementation in same story, before commit
+5. **Single Source of Truth**: Codebase contains only ONE implementation per feature
+6. **Lean Codebase**: Optimize for AI agent clarity - no dead code, no feature flags
+7. **Git-Based Safety**: Can revert entire commit if issues found
+
+**Key Principle:** Maintain absolute leanness through 100% architecture adoption. AI agents work best with single, clean implementations - not parallel versions, not conditional logic, not versioned components. Every story must end with cleanup. The goal is complete refactor, not gradual hybrid coexistence.
+
+### 4.2 Cell Migration Story Workflow
+
+**Standard workflow for every Cell migration story:**
+
+```yaml
+Phase 1: Implementation
+  - Agent creates new Cell (e.g., kpi-card)
+  - Agent writes manifest.json with behavioral assertions
+  - Agent writes pipeline.yaml with validation gates
+  - Agent implements component with comprehensive tests
+  - Agent runs automated pipeline validation
+  - All gates must pass
+
+Phase 2: Integration & Testing
+  - Agent updates all imports to use new Cell
+  - Agent runs all tests (unit + integration + e2e)
+  - Agent verifies build succeeds
+  - Agent tests manually in browser (npm run dev)
+  - All functionality must work correctly with new Cell
+
+Phase 3: Cleanup (Immediately after validation)
+  - Agent deletes old component file(s)
+  - Agent verifies no references remain: grep -r "old-component-name"
+  - Agent runs all tests again to confirm nothing broke
+  - Agent updates ledger to document replacement
+
+Phase 4: Commit
+  - Agent commits with message: "Story X.Y: [Component] migrated to Cell architecture"
+  - Ledger entry appended to file
+  - Codebase contains ONLY new Cell (lean and clean)
+
+Phase 5: Verification
+  - Agent confirms old component deleted
+  - Agent confirms no references to old implementation exist
+  - Agent confirms all tests pass
+  - Story marked complete
+```
+
+**Critical Rules for Agents:**
+- ALWAYS delete old implementation in same story
+- NEVER leave parallel implementations (v1, v2, etc.)
+- Each commit MUST contain only new Cell (no old code)
+- Use git commits for safety (can revert entire commit if needed)
+- Codebase must be LEAN - one implementation per feature
+
+**Ledger Entry Pattern for Replacements:**
+```json
+{
+  "artifacts": {
+    "created": [{"type": "cell", "id": "kpi-card", "path": "components/cells/kpi-card"}],
+    "replaced": [{
+      "type": "component",
+      "id": "kpi-card-old",
+      "path": "components/dashboard/kpi-card.tsx",
+      "deletedAt": "2025-10-01T16:00:00Z",
+      "reason": "Migrated to Cell architecture"
+    }]
+  }
+}
+```
+
+### 4.4 Target Monorepo Structure
 
 ```
 cost-management-hub/
@@ -856,71 +765,85 @@ cost-management-hub/
 └── turbo.json                         # Turborepo configuration
 ```
 
-### 4.3 Migration Epics
+### 4.5 Migration Epics
 
-#### Epic 1: Foundation Setup
-**Goal:** Establish new architecture without touching existing features
+#### Epic 1: Living Blueprint Phase 1 Foundation & Validation
+**Epic ID:** EPIC-001  
+**Goal:** Establish the Living Blueprint Architecture foundation and validate with pilot Cells
 
 **Stories:**
-1. **Story 1.1**: Set up Turborepo monorepo
-2. **Story 1.2**: Create `packages/db` with Drizzle ORM
-3. **Story 1.3**: Generate Drizzle schema from existing Supabase tables
-4. **Story 1.4**: Create `packages/api` with tRPC setup
-5. **Story 1.5**: Deploy "hello world" tRPC endpoint to Supabase Edge Function
-6. **Story 1.6**: Create `tools/cell-validator` CLI
-7. **Story 1.7**: Initialize `ledger.jsonl` with existing features
+
+**Story 1.1: Foundation Setup**
+- Set up Turborepo monorepo structure
+- Create `packages/db` with Drizzle ORM and schema generation
+- Create `packages/api` with tRPC setup
+- Deploy tRPC endpoint to Supabase Edge Function
+- Create `tools/cell-validator` CLI
+- Initialize `ledger.jsonl` with existing features
 
 **Success Criteria:**
-- ✅ Turborepo builds successfully
-- ✅ Drizzle schema matches production database
-- ✅ tRPC endpoint responds from Supabase Edge Function
-- ✅ Cell validator CLI runs successfully
-- ✅ Existing app still works unchanged
+- Turborepo builds successfully
+- Drizzle schema matches production database
+- tRPC endpoint responds from Edge Function
+- Cell validator CLI runs
+- Existing app unchanged
 
-**Estimated Duration:** 1 week
+**Story 1.2: KPICard Pilot Cell**
+- Create tRPC procedure `dashboard.getKPIMetrics`
+- Create Cell structure at `components/cells/kpi-card/`
+- Write `manifest.json` with behavioral assertions
+- Write `pipeline.yaml` with validation gates
+- Implement Cell using tRPC query hook
+- Write comprehensive tests
+- Update all imports to use new Cell
+- Delete old KPICard component
+- Validate all tests pass
+- Create ledger entry and commit
+
+**Success Criteria:**
+- Cell passes all pipeline gates
+- Behavioral assertions have tests
+- Old component deleted from codebase
+- Ledger entry queryable
+- Performance parity with original
+
+**Story 1.2.1: KPICard Cleanup (Alignment Story)**
+- **Context:** Story 1.2 was implemented with OLD approach (v2 suffix, feature flags, parallel implementations)
+- Rename `components/cells/kpi-card-v2/` to `components/cells/kpi-card/`
+- Update manifest.json: change `"id": "kpi-card-v2"` to `"id": "kpi-card"`
+- Remove feature flag `NEXT_PUBLIC_FEATURE_KPI_CARD_V2` from all files
+- Update dashboard page to use Cell directly (no conditional rendering)
+- Delete old component at `components/dashboard/kpi-card.tsx`
+- Update ledger entries to reflect correct Cell ID
+- Verify no references to v2 or feature flags remain
+- Run all tests and commit clean state
+
+**Success Criteria:**
+- No version suffixes in Cell names
+- No feature flags in codebase
+- Old component deleted
+- Only one implementation exists
+- All tests pass
+- Ledger updated with cleanup entry
+
+**Story 1.3: PLCommandCenter Pilot Cell (Optional)**
+- Create tRPC procedures for P&L metrics
+- Create Cell structure at `components/cells/pl-command-center/`
+- Write comprehensive manifest for complex data
+- Implement Cell with multiple tRPC queries
+- Validate complex data flows work correctly
+
+**Success Criteria:**
+- Complex data aggregations correct
+- All P&L calculations match original
+- Pipeline validates data contracts
+- No performance degradation
+
+**Estimated Duration:** 3 weeks
 
 ---
 
-#### Epic 2: First Cell Migration (Pilot)
-**Goal:** Migrate one simple component to validate architecture
-
-**Target:** `KPICard` component (simple, self-contained)
-
-**Stories:**
-1. **Story 2.1**: Create tRPC procedure `dashboard.getKPIMetrics`
-2. **Story 2.2**: Create Cell structure for `kpi-card-v2`
-3. **Story 2.3**: Write `manifest.json` with behavioral assertions
-4. **Story 2.4**: Write `pipeline.yaml` with validation gates
-5. **Story 2.5**: Implement Cell using tRPC query hook
-6. **Story 2.6**: Add feature flag to switch between old/new
-7. **Story 2.7**: Validate pipeline passes
-8. **Story 2.8**: Create ledger entry
-
-**Validation:**
-```typescript
-// Feature flag usage
-const USE_V2_KPI_CARD = process.env.NEXT_PUBLIC_USE_V2_KPI_CARD === 'true'
-
-return USE_V2_KPI_CARD ? <KPICardV2 /> : <KPICard />
-```
-
-**Success Criteria:**
-- ✅ New Cell passes all pipeline gates
-- ✅ Behavioral assertions have corresponding tests
-- ✅ Feature flag successfully switches between implementations
-- ✅ Ledger entry created with all artifacts
-- ✅ Agent can query ledger to find Cell
-
-**Estimated Duration:** 1 week
-
-**Learnings Captured:**
-- Document any unexpected challenges
-- Refine Cell template based on experience
-- Update migration playbook
-
----
-
-#### Epic 3: PO Mapping Feature Migration
+#### Epic 2: PO Mapping Feature Migration
 **Goal:** Migrate complete feature to validate multi-Cell architecture
 
 **Stories:**
@@ -971,23 +894,36 @@ po-mapping (page) [orchestrator]
 - Behavior: "Batch save creates individual mappings"
 - Pipeline validates batch logic
 
-**3.4 Integration**
-**Story 3.4.1**: Create feature-flagged PO Mapping page using Cells
-**Story 3.4.2**: Parallel testing (old vs new implementation)
-**Story 3.4.3**: Cutover to new implementation
+**3.4 Integration & Cleanup**
+**Story 3.4.1**: Integrate all PO Mapping Cells into page orchestrator
+**Story 3.4.2**: Human validation of complete PO Mapping feature
+**Story 3.4.3**: Delete old PO Mapping components + commit clean state
+
+**Story 3.4.3 Cleanup Workflow:**
+```yaml
+1. All 4 Cells implemented and tested
+2. Page integrates Cells successfully
+3. Human validates complete feature functionality
+4. Agent deletes old PO Mapping component files
+5. Agent removes old component imports
+6. Agent verifies no references remain (grep)
+7. Agent updates ledger with replacements
+8. Agent commits: "Epic 2 complete: PO Mapping migrated + cleanup"
+```
 
 **Success Criteria:**
 - ✅ All Cells pass pipeline validation
-- ✅ Feature parity with old implementation
+- ✅ Feature parity with old implementation verified by human
 - ✅ No regressions in functionality
+- ✅ Old PO Mapping components deleted
 - ✅ All Cells documented in ledger
-- ✅ Agent can locate any Cell by querying ledger
+- ✅ Commit contains only new Cell-based implementation
 
 **Estimated Duration:** 3 weeks
 
 ---
 
-#### Epic 4: Project Dashboard Migration
+#### Epic 3: Project Dashboard Migration
 **Goal:** Migrate most complex feature to prove architecture scales
 
 **Stories:**
@@ -1027,11 +963,11 @@ project-dashboard (page) [orchestrator]
 
 **4.3 Cell Creation** (12 stories, one per Cell)
 
-**Example Story 4.3.1: Create `pl-command-center-cell`**
+**Example Story 4.3.1: Create `pl-command-center`**
 ```json
 // Manifest excerpt
 {
-  "id": "pl-command-center-v1",
+  "id": "pl-command-center",
   "dataContract": {
     "source": "trpc.dashboard.getPLMetrics",
     "refresh": "every 5 minutes"
@@ -1053,57 +989,103 @@ project-dashboard (page) [orchestrator]
 }
 ```
 
-**4.4 Integration & Cutover** (2 weeks)
+**4.4 Integration & Cleanup** (2 weeks)
+
+**Story 4.4.1**: Integrate all 12 Dashboard Cells into page orchestrator
+**Story 4.4.2**: Human validation of complete Dashboard feature
+**Story 4.4.3**: Delete old Dashboard components + commit clean state
+
+**Story 4.4.3 Cleanup Workflow:**
+```yaml
+1. All 12 Cells implemented and tested
+2. Dashboard page integrates Cells successfully
+3. Performance validation (meets or exceeds old implementation)
+4. Human validates complete dashboard functionality
+5. Agent deletes old dashboard component files
+6. Agent deletes lib/dashboard-metrics.ts (old business logic)
+7. Agent removes old component imports
+8. Agent verifies no references remain (grep)
+9. Agent updates ledger with replacements
+10. Agent commits: "Epic 3 complete: Dashboard migrated + cleanup"
+```
 
 **Success Criteria:**
 - ✅ All 12 Cells pass pipeline validation
-- ✅ Dashboard renders with feature flag
+- ✅ Dashboard functionality verified by human
 - ✅ Performance meets or exceeds old implementation
 - ✅ All data calculations verified against old system
+- ✅ Old dashboard components deleted
 - ✅ Ledger contains complete dashboard architecture
+- ✅ Commit contains only new Cell-based implementation
 
 **Estimated Duration:** 5 weeks
 
 ---
 
-#### Epic 5: Complete Migration & Old Code Removal
-**Goal:** Remove old architecture, finalize Living Blueprint
+#### Epic 4: Final Cleanup & Branch Merge
+**Goal:** Final housekeeping and merge to main branch
+
+**Note:** Most cleanup already completed during individual Cell migrations (Epics 1-3). Each story deleted old implementations. This epic is final verification.
 
 **Stories:**
-1. **Story 5.1**: Remove all feature flags
-2. **Story 5.2**: Delete `lib/dashboard-metrics.ts` (old data layer)
-3. **Story 5.3**: Delete `lib/pl-tracking-service.ts`
-4. **Story 5.4**: Remove direct Supabase client usage
-5. **Story 5.5**: Update documentation
-6. **Story 5.6**: Final ledger review and cleanup
-7. **Story 5.7**: Create migration retrospective entry
+1. **Story 5.1**: Verify no old component files remain (grep audit)
+2. **Story 5.2**: Remove any remaining direct Supabase client usage
+3. **Story 5.3**: Update project documentation to reflect new architecture
+4. **Story 5.4**: Final ledger review and consistency check
+5. **Story 5.5**: Create migration retrospective ledger entry
+6. **Story 5.6**: Merge `codebase-modernization` branch to `main`
+
+**Story 5.6 Merge Workflow:**
+```yaml
+1. Final verification in codebase-modernization branch:
+   - Run all tests across entire monorepo
+   - Run full type check (tsc)
+   - Verify all Cells have manifests and pipelines
+   - Confirm ledger is complete
+   
+2. Create merge commit:
+   - git checkout main
+   - git merge codebase-modernization
+   - Commit message: "Complete Living Blueprint Architecture migration"
+   
+3. Post-merge verification:
+   - Run npm run dev
+   - Human validates all features work
+   - Run production build
+   - Verify no regressions
+   
+4. Tag release:
+   - git tag living-blueprint-complete
+   - Document: Main branch now contains only new architecture
+```
 
 **Success Criteria:**
-- ✅ Zero feature flags remaining
+- ✅ Zero old component files in codebase (verified via grep)
 - ✅ All data flows through tRPC
 - ✅ All components are Cells with manifests
 - ✅ Ledger is complete and queryable
-- ✅ CI/CD validates all Cell pipelines
+- ✅ Branch successfully merged to main
+- ✅ Post-merge validation passes
+- ✅ Main branch contains clean, refactored architecture
 
 **Estimated Duration:** 1 week
 
 ---
 
-### 4.4 Migration Timeline
+### 4.6 Migration Timeline
 
 ```
-Week 1-2:   Epic 1 - Foundation Setup
-Week 3:     Epic 2 - First Cell Migration (Pilot)
-Week 4-6:   Epic 3 - PO Mapping Feature
-Week 7-11:  Epic 4 - Project Dashboard
-Week 12-13: Epic 5 - Complete Migration
+Week 1-3:   Epic 1 - Foundation & Pilot Cells Validation
+Week 4-6:   Epic 2 - PO Mapping Feature
+Week 7-11:  Epic 3 - Project Dashboard
+Week 12-13: Epic 4 - Complete Migration
 ```
 
 **Total Duration:** 13 weeks (~3 months)
 
 **Milestones:**
-- ✅ Week 2: New stack proven viable
-- ✅ Week 3: First Cell validated
+- ✅ Week 1: New stack proven viable
+- ✅ Week 2-3: Pilot Cells validated
 - ✅ Week 6: First complete feature migrated
 - ✅ Week 11: All features migrated
 - ✅ Week 13: Old architecture removed
@@ -1165,15 +1147,15 @@ Week 12-13: Epic 5 - Complete Migration
 ```typescript
 // Find a Cell by feature description
 ledger.findCell("waterfall plot") 
-→ { id: "budget-waterfall-v1", path: "components/cells/budget-waterfall" }
+→ { id: "budget-waterfall", path: "components/cells/budget-waterfall" }
 
 // Get history of a Cell
-ledger.getHistory("budget-waterfall-v1")
+ledger.getHistory("budget-waterfall")
 → [iter_1, iter_2, iter_3...] // All changes to this Cell
 
 // Find dependent Cells
 ledger.findDependents("trpc.budget.getWaterfallData")
-→ ["budget-waterfall-v1", "budget-summary-v1"]
+→ ["budget-waterfall", "budget-summary"]
 
 // Get recent changes
 ledger.getRecentChanges({ since: new Date("2025-10-01") })
@@ -1183,22 +1165,22 @@ ledger.getRecentChanges({ since: new Date("2025-10-01") })
 **Manifest Operations:**
 ```typescript
 // Read Cell manifest
-manifest.read("budget-waterfall-v1")
+manifest.read("budget-waterfall")
 → { dataContract, behavioralAssertions, dependencies, ... }
 
 // Validate manifest
-manifest.validate("budget-waterfall-v1")
+manifest.validate("budget-waterfall")
 → { valid: true, errors: [] }
 
 // Check if assertion has test
-manifest.checkAssertion("budget-waterfall-v1", "BA-002")
+manifest.checkAssertion("budget-waterfall", "BA-002")
 → { hasPendingTest: true, testFile: "budget-waterfall.test.tsx" }
 ```
 
 **Pipeline Execution:**
 ```typescript
 // Run Cell pipeline
-pipeline.run("budget-waterfall-v1")
+pipeline.run("budget-waterfall")
 → {
     passed: false,
     failedGate: "Behavioral Assertions Validation",
@@ -1206,7 +1188,7 @@ pipeline.run("budget-waterfall-v1")
   }
 
 // Run specific gate
-pipeline.runGate("budget-waterfall-v1", "Type Check")
+pipeline.runGate("budget-waterfall", "Type Check")
 → { passed: true }
 ```
 
@@ -1217,7 +1199,7 @@ pipeline.runGate("budget-waterfall-v1", "Type Check")
 ```typescript
 // 1. Generate Failure Report
 const report = generateFailureReport({
-  cellId: "budget-waterfall-v1",
+  cellId: "budget-waterfall",
   failedGate: "Behavioral Assertions Validation",
   attempt: 1,
   changes: ["Modified chart sorting logic"],
@@ -1226,14 +1208,14 @@ const report = generateFailureReport({
 
 // 2. Save report
 saveFailureReport(report) 
-→ "thoughts/failures/budget-waterfall-v1-attempt-1.json"
+→ "thoughts/failures/budget-waterfall-attempt-1.json"
 
 // 3. Terminate session
 // 4. New session starts with:
 {
   originalPrompt: "Sort waterfall chart alphabetically",
   failureReport: report,
-  manifest: manifest.read("budget-waterfall-v1"),
+  manifest: manifest.read("budget-waterfall"),
   maxAttempts: 3,
   currentAttempt: 2
 }
@@ -1297,7 +1279,7 @@ if (attempt > 3) {
 | **Pipeline Validation Coverage** | 0% | 100% | Percentage of Cells with passing pipelines |
 
 **Qualitative Goals:**
-- **Agent Prompting**: Move from "Find the dashboard KPI component and modify it" to "Update budget-waterfall-v1"
+- **Agent Prompting**: Move from "Find the dashboard KPI component and modify it" to "Update budget-waterfall"
 - **Requirement Clarity**: No more "I think it should..." → "Manifest specifies..."
 - **Debugging Efficiency**: Replace 20-message debugging threads with 2-iteration cycles
 - **Code Confidence**: Agent knows when work is complete (pipeline passes)
@@ -1313,15 +1295,17 @@ if (attempt > 3) {
 **Probability:** Medium  
 
 **Mitigation:**
-- Feature flags enable instant rollback
-- Parallel implementation - old and new run side-by-side
-- Comprehensive testing before cutover
-- Gradual rollout per feature, not big bang
+- Branch isolation keeps main branch stable
+- Human validation gate before each cleanup
+- Comprehensive testing (pipeline gates) before cleanup
+- Git history provides complete rollback capability
+- Gradual rollout: one Cell at a time, not big bang
 
 **Contingency:**
-- Keep old implementation for 2 weeks after cutover
-- Maintain rollback procedure documentation
-- Have rollback drills before production cutover
+- Git revert to any previous commit in branch
+- Branch can be abandoned without affecting main
+- Each commit is independently reviewable
+- Human validation catches issues before cleanup
 
 ---
 
@@ -1489,18 +1473,21 @@ if (attempt > 3) {
 
 ### 10.1 Summary
 
-The **Living Blueprint Architecture** transforms the Cost Management Hub into an AI-optimized codebase by addressing the fundamental cognitive limitations of AI agents:
+The **Living Blueprint Architecture** transforms the Cost Management Hub into an AI-optimized codebase through **100% architecture adoption**, addressing the fundamental cognitive limitations of AI agents:
 
 1. **Type-Safe Data Layer** - Eliminates data-UI desynchronization
-2. **Smart Component Cells** - Makes requirements explicit and verifiable
+2. **Smart Component Cells** - Makes requirements explicit and verifiable  
 3. **Architectural Ledger** - Provides persistent memory and feature discovery
-4. **Formal Iteration Loop** - Prevents context degradation during debugging
 
-This architecture is specifically designed for **AI-agentic development**, where:
-- ✅ Agents can instantly locate features via ledger queries
+This architecture is specifically designed for **AI-agentic development** with complete refactor as the goal:
+- ✅ 100% Cell adoption - every component migrated, no exceptions
+- ✅ Zero parallel implementations - absolute leanness maintained
+- ✅ No versioning complexity - clean names only (kpi-card, not kpi-card-v2)
+- ✅ No feature flags - direct replacement with git-based rollback
+- ✅ Agents instantly locate features via ledger queries
 - ✅ Agents understand requirements by reading manifests
 - ✅ Agents know when work is complete via pipeline validation
-- ✅ Agents maintain focus through formal iteration protocols
+- ✅ Codebase optimized for AI clarity, not human convenience
 
 ### 10.2 Decision Gate
 
@@ -1600,7 +1587,7 @@ Return the Cell ID and path.
 Example:
 Input: "waterfall plot showing budget variance"
 Output: {
-  cellId: "budget-waterfall-v1",
+  cellId: "budget-waterfall",
   path: "components/cells/budget-waterfall"
 }
 ```
@@ -1636,8 +1623,137 @@ Your task:
 Do not repeat the same approach.
 ```
 
+### B.4 Cell Migration Story Template
+```
+## Story X.Y: Migrate [ComponentName] to Cell
+
+**Context:** Working in `codebase-modernization` branch
+
+**Tasks:**
+
+Phase 1 - Implementation:
+1. Create Cell structure in components/cells/[component-name]/
+2. Write manifest.json with behavioral assertions
+3. Write pipeline.yaml with validation gates
+4. Implement component.tsx with tRPC integration
+5. Write comprehensive tests (80%+ coverage)
+6. Run pipeline validation → all gates must pass
+
+Phase 2 - Human Validation Gate:
+7. Request human validation: "Implementation complete. Please validate:"
+   - Run: npm run dev
+   - Test: [specific scenarios to verify]
+8. Wait for human decision: "Validated - proceed with cleanup" or "Fix issues"
+
+Phase 3 - Cleanup (Only after human approval):
+9. Delete old component file: [path/to/old-component.tsx]
+10. Update imports in all consuming files
+11. Remove any feature flag code (if present)
+12. Verify no references: grep -r "[old-component-name]" apps/web/
+13. Run all tests again to ensure nothing broke
+
+Phase 4 - Commit:
+14. Update ledger.jsonl with replacement entry
+15. Commit: "Story X.Y: [ComponentName] Cell migration + cleanup"
+16. Verify: Read codebase to confirm old component deleted
+
+**Acceptance Criteria:**
+- ✅ New Cell passes all pipeline gates
+- ✅ Behavioral assertions have corresponding tests
+- ✅ Human validation confirms correct behavior
+- ✅ Old component deleted from codebase
+- ✅ No references to old component (verified via grep)
+- ✅ Ledger documents replacement
+- ✅ All tests pass after cleanup
+- ✅ Commit contains only new Cell (clean state)
+
+**Agent Instructions:**
+- STOP after Phase 1 and request human validation
+- NEVER proceed to Phase 3 without explicit approval
+- ALWAYS verify deletion completeness before committing
+- Each commit must represent clean state (no parallel implementations)
+```
+
 ---
 
 **End of Document**
 
 This architecture document is now ready for review and approval.
+
+---
+
+## Part 11: 100% Adoption Strategy
+
+### 11.1 The Ultimate Goal
+
+**Vision:** A codebase where AI agents operate at peak efficiency because:
+- Every UI component is a Cell with manifest
+- Every API call goes through tRPC
+- Every data query uses Drizzle
+- Every feature is documented in the ledger
+- Zero legacy code remains
+
+**This is not gradual addition - it is complete replacement.**
+
+### 11.2 Adoption Metrics
+
+**Current State (Pre-Migration):**
+- Cell adoption: 0%
+- tRPC adoption: 0%
+- Type safety: ~40%
+- Parallel implementations: N/A (no migration started)
+
+**Target State (Post-Migration):**
+- Cell adoption: 100%
+- tRPC adoption: 100%
+- Type safety: 100%
+- Parallel implementations: 0% (all old code deleted)
+
+**Tracking:**
+- After each epic, calculate: (Cells / Total Components) × 100
+- After each story, verify: Old component deleted? (Yes/No)
+- Final validation: grep -r "components/dashboard" → should return 0 results
+
+### 11.3 Non-Negotiable Rules
+
+1. **No Hybrid Architecture**: Never acceptable to have some Cells and some old components long-term
+2. **No Versioning**: Cell names never include v1, v2, etc.
+3. **No Feature Flags**: Only acceptable during single story implementation, deleted before commit
+4. **No Parallel Implementations**: Old code deleted in same story as new Cell creation
+5. **No Exceptions**: Every component must migrate - no "too complex" or "too risky" excuses
+
+### 11.4 Validation Gates
+
+**Per Story:**
+- [ ] Old component deleted?
+- [ ] Grep returns zero references to old component?
+- [ ] No version suffixes in Cell names?
+- [ ] No feature flags committed?
+
+**Per Epic:**
+- [ ] All stories in epic follow deletion pattern?
+- [ ] Cell adoption percentage increased?
+- [ ] No regressions in test suite?
+
+**Final (Pre-Main Merge):**
+- [ ] 100% Cell adoption achieved?
+- [ ] Zero old component files remain?
+- [ ] Zero direct Supabase queries in components?
+- [ ] All data flows through tRPC?
+- [ ] Ledger contains all Cells?
+
+### 11.5 Success Definition
+
+**The migration is complete when:**
+1. `/components/dashboard` directory is empty (deleted)
+2. `/components/cells` directory contains all UI components
+3. All tRPC routers handle all data fetching
+4. All components have manifests and pipelines
+5. Ledger contains complete history
+6. grep -r "supabase.from" apps/web/components → returns 0 results
+7. grep -r "v1\|v2\|v3" apps/web/components/cells → returns 0 results
+8. AI agents can develop new features 3x faster than on old codebase
+
+**Anything less than 100% is considered incomplete.**
+
+---

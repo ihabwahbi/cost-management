@@ -1,5 +1,5 @@
 /**
- * KPICardV2 State Management
+ * KPICard State Management
  * 
  * Minimal local UI state using Zustand
  * For this simple component, we don't need complex state management

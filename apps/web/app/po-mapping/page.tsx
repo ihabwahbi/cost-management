@@ -5,7 +5,7 @@ import { AppShell } from "@/components/app-shell"
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable"
 import { FilterSidebar } from "@/components/filter-sidebar"
 import { POTable } from "@/components/po-table"
-import { DetailsPanel } from "@/components/details-panel"
+import { DetailsPanel } from "@/components/cells/details-panel/component"
 import { BatchActionBar } from "@/components/batch-action-bar"
 import { createClient } from "@/lib/supabase/client"
 
@@ -284,9 +284,10 @@ export default function POMapping() {
 
           <ResizablePanel defaultSize={30} minSize={25} maxSize={40}>
             <DetailsPanel
-              selectedPO={selectedPO}
-              costBreakdowns={costBreakdowns}
-              onSaveMapping={handleSaveMapping}
+              selectedPO={selectedPO ? {
+                id: selectedPO.id,
+                poNumber: selectedPO.po_number
+              } : null}
               onMappingChange={handleMappingChange}
             />
           </ResizablePanel>

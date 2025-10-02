@@ -359,6 +359,92 @@ const dashboardRouter = router({
 });
 
 // ============================================================================
+// PO Mapping Router - Phase A: Read Operations (Procedures 1-3)
+// ============================================================================
+
+const poMappingRouter = router({
+  /**
+   * Procedure 1: Get all projects for dropdown
+   */
+  getProjects: publicProcedure
+    .input(z.void())
+    .query(async ({ ctx }) => {
+      try {
+        const result = await ctx.sql`
+          SELECT id, name, sub_business_line as "subBusinessLine"
+          FROM projects
+          ORDER BY name
+        `;
+        
+        return result;
+      } catch (error) {
+        console.error('Failed to fetch projects:', error);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Failed to fetch projects. Please try again.',
+          cause: error,
+        });
+      }
+    }),
+
+  /**
+   * Procedure 2: Get unique spend types for a project
+   */
+  getSpendTypes: publicProcedure
+    .input(z.object({
+      projectId: z.string().uuid()
+    }))
+    .query(async ({ ctx, input }) => {
+      try {
+        const result = await ctx.sql`
+          SELECT DISTINCT spend_type as "spendType"
+          FROM cost_breakdown
+          WHERE project_id = ${input.projectId}
+          ORDER BY spend_type
+        `;
+        
+        return result.map((r: any) => r.spendType);
+      } catch (error) {
+        console.error('Failed to fetch spend types:', error);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Failed to fetch spend types. Please try again.',
+          cause: error,
+        });
+      }
+    }),
+
+  /**
+   * Procedure 3: Get unique spend subcategories for project + spend type
+   */
+  getSpendSubCategories: publicProcedure
+    .input(z.object({
+      projectId: z.string().uuid(),
+      spendType: z.string()
+    }))
+    .query(async ({ ctx, input }) => {
+      try {
+        const result = await ctx.sql`
+          SELECT DISTINCT spend_sub_category as "spendSubCategory"
+          FROM cost_breakdown
+          WHERE project_id = ${input.projectId}
+            AND spend_type = ${input.spendType}
+          ORDER BY spend_sub_category
+        `;
+        
+        return result.map((r: any) => r.spendSubCategory);
+      } catch (error) {
+        console.error('Failed to fetch spend subcategories:', error);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Failed to fetch spend subcategories. Please try again.',
+          cause: error,
+        });
+      }
+    }),
+});
+
+// ============================================================================
 // Test Router
 // ============================================================================
 
@@ -399,6 +485,7 @@ const testRouter = router({
 const appRouter = router({
   test: testRouter,
   dashboard: dashboardRouter,
+  poMapping: poMappingRouter,
 });
 
 export type AppRouter = typeof appRouter;

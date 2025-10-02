@@ -1,0 +1,32 @@
+gates:
+  - name: types
+    command: pnpm type-check
+    requirement: "TypeScript compiles with zero errors"
+    
+  - name: tests
+    command: pnpm test -- components/cells/details-panel-selector
+    requirement: "80%+ coverage, all 3 behavioral assertions verified"
+    test_focus:
+      - "BA-004: Spend type disabled until project"
+      - "BA-005: Subcategory disabled until spend type"
+      - "BA-006: Cascading reset logic"
+    
+  - name: build
+    command: pnpm build
+    requirement: "Production build succeeds"
+    
+  - name: performance
+    requirement: "Load time ≤110% baseline"
+    measurement: "React DevTools Profiler"
+    baseline: "3 cascading queries"
+    
+  - name: accessibility
+    requirement: "WCAG AA compliance"
+    focus_areas:
+      - "Dropdown keyboard navigation"
+      - "Form labels properly associated"
+      - "Disabled states announced"
+
+phase: "A.1"
+status: "partial"
+notes: "Will be updated with procedure 4 in Phase A.2"

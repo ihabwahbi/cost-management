@@ -520,6 +520,91 @@ const poMappingRouter = router({
         });
       }
     }),
+
+  /**
+   * Procedure 6: Create new PO mappings for all line items
+   * Phase B: Mutation Operations
+   */
+  createMapping: publicProcedure
+    .input(z.object({
+      poId: z.string().uuid(),
+      costBreakdownId: z.string().uuid(),
+      mappingNotes: z.string().optional()
+    }))
+    .mutation(async ({ ctx, input }) => {
+      try {
+        // Get line items
+        const lineItems = await ctx.sql`
+          SELECT id, line_value as "lineValue"
+          FROM po_line_items
+          WHERE po_id = ${input.poId}
+        `;
+        
+        // Insert mappings
+        for (const item of lineItems) {
+          await ctx.sql`
+            INSERT INTO po_mappings (
+              po_line_item_id,
+              cost_breakdown_id,
+              mapped_amount,
+              mapping_notes,
+              mapped_by,
+              mapped_at
+            ) VALUES (
+              ${item.id},
+              ${input.costBreakdownId},
+              ${item.lineValue || '0'},
+              ${input.mappingNotes || null},
+              'system',
+              NOW()
+            )
+          `;
+        }
+        
+        return { success: true, count: lineItems.length };
+      } catch (error) {
+        console.error('Failed to create mappings:', error);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Failed to create mappings. Please try again.',
+          cause: error,
+        });
+      }
+    }),
+
+  /**
+   * Procedure 7: Update existing mappings
+   * Phase B: Mutation Operations
+   */
+  updateMapping: publicProcedure
+    .input(z.object({
+      mappingIds: z.array(z.string().uuid()),
+      costBreakdownId: z.string().uuid(),
+      mappingNotes: z.string().optional()
+    }))
+    .mutation(async ({ ctx, input }) => {
+      try {
+        for (const mappingId of input.mappingIds) {
+          await ctx.sql`
+            UPDATE po_mappings
+            SET 
+              cost_breakdown_id = ${input.costBreakdownId},
+              mapping_notes = ${input.mappingNotes || null},
+              updated_at = NOW()
+            WHERE id = ${mappingId}
+          `;
+        }
+        
+        return { success: true, count: input.mappingIds.length };
+      } catch (error) {
+        console.error('Failed to update mappings:', error);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Failed to update mappings. Please try again.',
+          cause: error,
+        });
+      }
+    }),
 });
 
 // ============================================================================

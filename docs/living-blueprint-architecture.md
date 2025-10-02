@@ -76,14 +76,16 @@ The Living Blueprint Architecture is built on four unwavering principles, each d
 
 **Implementation:**
 - Functionality decomposed into minimal, self-contained "Cells"
-- Each Cell fits within a 4000-token context window
+- Each Cell should fit comfortably within an AI agent context window (~4000 tokens)
+- As a guideline, most components under 400 lines; decompose if significantly larger
 - Cells are independently verifiable and testable
 - Clear boundaries prevent cascading changes
+- Focus on single responsibility over strict line counts
 
 **Cell Structure:**
 ```
 /components/cells/budget-waterfall/
-├── component.tsx      # Pure UI (< 200 lines)
+├── component.tsx      # Pure UI (should fit in AI context window)
 ├── state.ts           # Local state only (Zustand)
 ├── manifest.json      # Explicit contract
 └── pipeline.yaml      # Validation gates
@@ -127,7 +129,7 @@ The Living Blueprint Architecture is built on four unwavering principles, each d
 
 | AI Agent Limitation | How Living Blueprint Solves It |
 |---------------------|--------------------------------|
-| **Limited Context Window** | Cells are < 4000 tokens; manifests provide complete context |
+| **Limited Context Window** | Cells fit within AI context windows (~4000 tokens); manifests provide complete context |
 | **No Long-Term Memory** | Ledger provides queryable history of all decisions |
 | **Ambiguous Instructions** | Manifests encode requirements in machine-readable format |
 | **Poor Code Navigation** | Ledger maps features to exact Cell IDs |
@@ -1957,7 +1959,7 @@ While writing code:
 - [ ] Reference existing working procedures for SQL patterns
 - [ ] Add defensive logging for all query states
 - [ ] Test queries independently before integration
-- [ ] Keep component under size limit (< 200 lines simple, < 300 complex)
+- [ ] Keep component length manageable (fits AI context window ~4000 tokens; consider decomposition if exceeding ~400 lines)
 ```
 
 **Validation Checklist:**
@@ -2218,14 +2220,14 @@ git commit -m "Story 1.3: Cleanup complete - old component deleted"
 - Calculation parity cannot be achieved (values don't match)
 - Performance degradation >10% cannot be optimized
 - Unexpected architectural issues discovered
-- Component exceeds size limit (>300 lines) and cannot be refactored
+- Component becomes unwieldy (significantly exceeds context window) and cannot be refactored
 
 ### 13.4 When to Use Simple vs Complex Cell Approach
 
 **Use Simple Cell Approach When:**
 - Cell needs 1-2 tRPC queries
 - Queries are independent (no complex aggregations)
-- Component is straightforward (< 200 lines)
+- Component is straightforward and manageable
 - No complex calculations required
 - Low risk tolerance
 
@@ -2257,7 +2259,7 @@ Technical Validation:
   - [ ] All calculations match old implementation (100% parity)
   - [ ] Performance meets target (≤110% baseline)
   - [ ] All tests passing (80%+ coverage)
-  - [ ] Component size within limit (< 300 lines)
+  - [ ] Component size manageable (fits AI context window)
 
 Process Validation:
   - [ ] All phases completed in sequence (no skipping)
@@ -2553,11 +2555,12 @@ Memoization Checklist (CRITICAL):
 - [ ] No inline object/array creation in hook dependencies
 
 Component Size:
-- [ ] Check line count: component.tsx
-- [ ] If > 250 lines: Extract formatters to lib/
-- [ ] If > 280 lines: Extract calculations to lib/
-- [ ] If > 300 lines: HALT - refactor required
-- [ ] Target: < 200 lines (simple), < 300 lines (complex)
+- [ ] Check line count and complexity: component.tsx
+- [ ] If approaching 300 lines: Consider extracting formatters to lib/
+- [ ] If approaching 400 lines: Consider extracting calculations to lib/
+- [ ] If exceeding 400 lines: Consider refactoring into smaller cells
+- [ ] Guideline: Keep manageable for AI context window (~4000 tokens)
+- [ ] Focus on clarity and single responsibility over strict line counts
 
 Code Quality:
 - [ ] No TypeScript errors

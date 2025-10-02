@@ -1,432 +1,1130 @@
 # **AI Native Development Architecture**
 
-## **AI-Native Evolutionary Development Architecture**
+## **Autonomous ANDA Migration Workflow**
+### **Self-Discovering Architecture Transformation System**
 
-### **1. Introduction & Core Philosophy**
+---
 
-#### **1.1. Executive Summary**
+## **1. Introduction & Core Philosophy**
 
-This document outlines the architecture of an AI-Native Evolutionary Development system, a 5-phase sequential workflow designed to manage software development from initial concept to production-ready application. The system is composed of five primary agents that orchestrate sixteen specialized subagents, each performing a distinct task within the workflow. The architecture's core is a linear cascade process: Diagnosis, Design, Orchestration, and Implementation, followed by an optional Iteration phase to handle refinements. It uniformly addresses all development scenarios—from building new applications based on non-functional mockups to modernizing complex existing systems—by treating every task as a continuous evolution of a system's current state. This process is enhanced by a suite of integrated, real-time tools for API verification (`Context7`), database analysis (`Supabase`), UI component discovery (`shadcn`), and web research (`Tavily`, `Exa`), ensuring that all outputs are current, feasible, and based on industry best practices. The system's output is a series of detailed artifacts—diagnostic reports, design proposals, and implementation plans—that serve as precise blueprints, maintaining a strict separation between specification and the final implementation phase.
+### **1.1. Executive Summary**
 
-#### **1.2. The Unifying Principle: "Continuous Evolution"**
+This document outlines the **Autonomous ANDA Migration Workflow** - a revolutionary 5-phase system specifically designed to transform existing codebases into the Agent-Navigable Dataflow Architecture (Living Blueprint). Unlike traditional development workflows that require comprehensive upfront planning, this system operates on an **autonomous discovery model** where each invocation independently explores the codebase, selects the optimal migration target, and executes a complete feature transformation.
 
-The foundational philosophy of this architecture is the principle of "Continuous Evolution," which posits that all software development is a form of system modernization. The system fundamentally reframes the development process by treating a non-functional mockup as a system with issues to diagnose, identical in principle to a legacy application requiring an upgrade. This unifying view is based on a critical insight:
+The architecture is built on the principle of **single-feature autonomy**: every workflow execution is self-contained, discovering what needs to be done, planning only for that specific migration, implementing it completely, and updating the Architectural Ledger before exiting. This mirrors the original DiagnosticsResearcher model - focused, autonomous, and complete.
 
-* A button that doesn't work is a bug to be diagnosed.
-* An empty dashboard represents a data flow problem to be investigated.
-* A missing feature is a functional gap requiring a diagnostic and design cycle.
+### **1.2. The Autonomous Discovery Principle**
 
-By applying this lens, the architecture eliminates the traditional, often inefficient, distinction between greenfield and brownfield development. Every project, regardless of its starting point, is considered the "current state" of a system. The 5-phase workflow is the engine that evolves this current state to a desired future state. This approach allows for the consistent application of a robust, diagnostic-led methodology across the entire software lifecycle. The `DiagnosticsResearcher` agent embodies this by investigating all "system issues," whether they originate from a user's bug report or a blank canvas. The subsequent phases then methodically transform these diagnostic findings into tangible, production-ready code.
+The foundational philosophy is **"Discover, Decide, Execute, Repeat"**:
 
-#### **1.3. System Goals & Principles**
+```yaml
+Invocation N:
+  1. DISCOVER: Explore database schema & codebase state
+  2. DECIDE: Autonomously select next migration target
+  3. PLAN: Create migration plan for that ONE feature
+  4. EXECUTE: Implement complete replacement
+  5. LEARN: Update ledger and exit
 
-The architecture is engineered to achieve specific goals through a set of unwavering operational principles.
+Invocation N+1:
+  Starts fresh, discovers new state, selects different target...
+```
+
+**Key Insight:** No master roadmap exists. The system learns from the ledger, scores candidates based on impact factors, and autonomously chooses what to migrate next. Each run delivers a complete, production-ready migration.
+
+### **1.3. Target Architecture: ANDA (Living Blueprint)**
+
+The workflow systematically migrates codebases to adopt three pillars:
+
+1. **Type-Safe Data Layer**: PostgreSQL → Drizzle ORM → tRPC → React (end-to-end types)
+2. **Smart Component Cells**: Self-contained components with manifests, pipelines, and behavioral assertions
+3. **Architectural Ledger**: Immutable history of all changes for AI agent context
+
+**Ultimate Goal:** 100% ANDA adoption where every component is a Cell, every data query flows through tRPC, and the codebase maintains absolute leanness optimized for AI agent development.
+
+### **1.4. System Goals & Principles**
 
 **Primary Goals:**
 
-* **Quality & Reliability:** The system is designed to produce high-quality, reliable software through exhaustive validation. It employs specialized agents for workflow validation (`workflow-validator`), documentation verification (`documentation-verifier`), security monitoring (`library-update-monitor`), and test coverage analysis (`test-coverage-analyzer`). An entire phase is dedicated to iterative refinement (`IterationCoordinator`) to ensure solutions converge on optimal quality.
-* **Velocity & Efficiency:** The architecture heavily leverages parallel processing, with primary agents like `DesignIdeator` and `ModernizationOrchestrator` orchestrating multiple subagents simultaneously to complete complex analysis in minutes. The integration of UI component systems like `shadcn` is explicitly intended to "accelerate development".
-* **Risk Mitigation:** Proactive risk management is a core function. The `ModernizationOrchestrator` acts as a "Risk Strategist," and the `library-update-monitor` is designed to be "Security-first". The workflow itself is designed to "prevent cascading failures" by catching issues at phase boundaries.
+* **Autonomous Operation**: Zero human intervention required for migration decisions
+* **Incremental Value**: Each invocation delivers a complete, working migration
+* **Complete Replacement**: No parallel versions, no feature flags, no "TODO later"
+* **AI Agent Optimization**: Transform codebases into navigable, explicit systems
+* **100% Adoption**: Systematic progression toward full ANDA architecture
 
 **Guiding Principles:**
 
-* **Specification Over Implementation:** A strict boundary is maintained between the planning (Phases 1-3) and execution (Phase 4) stages. The first three primary agents are explicitly forbidden from writing or editing implementation code; their sole output is precise specifications. The `ModernizationImplementer` is designated as the "EXCLUSIVE implementation authority".
-* **Evidence-Based Diagnosis:** Every finding must be supported by evidence. The `DiagnosticsResearcher`'s philosophy dictates that all conclusions must be "traceable to specific code, logs, or authoritative external sources," a principle upheld by the use of research and analysis subagents.
-* **Security as Priority 0:** Security is non-negotiable and precedes all other work. The `library-update-monitor` scans for CVEs, and the `ModernizationOrchestrator`'s planning framework mandates that any discovered security vulnerabilities must be addressed before any bug fixes or feature development can begin.
-* **Verification Before Action:** Assumptions are minimized by verifying information with real-time tools. The `ModernizationImplementer` must verify APIs with `Context7` before use, and the `documentation-verifier` exists to confirm the availability of components and methods specified in designs.
-* **Parallel Investigation for Comprehensive Insight:** To achieve both speed and depth, primary agents orchestrate multiple specialized subagents in parallel, synthesizing their findings to form a complete, multi-faceted understanding of the system.
-* **Anti-Pattern Prevention:** The system is hardwired to detect and prevent common anti-patterns, particularly the proliferation of versioned components (e.g., `-fixed`, `-v2`) and work on orphaned (unimported) code. Multiple agents are tasked with identifying these issues so that only active, base components are targeted for implementation.
+* **Atomic Completeness**: Each migration is one commit - new Cell created, old component deleted
+* **Zero Tolerance for Drift**: Immediate cleanup, no temporary implementations
+* **Ledger-First Development**: Every action documented for AI agent long-term memory
+* **Evidence-Based Selection**: Autonomous decisions based on measurable criteria
+* **Learning-Driven Evolution**: Each invocation learns from past successes and failures
 
-### **2. The 5-Phase Modernization Workflow**
+---
 
-The system's architecture is built upon a linear cascade model, a sequential 5-phase workflow where the output of each phase serves as the primary input for the next. This structure ensures that context is progressively enriched and validated at each stage, transforming an initial problem statement into a production-ready solution. Each phase is governed by a distinct primary agent responsible for a specific value-adding transformation, from diagnosis to final implementation. The `workflow-validator` subagent is designed to enforce this structure, ensuring each phase meets its success criteria before allowing progression.
+## **2. The 5-Phase Autonomous Migration Workflow**
 
-#### **2.2. Phase 1: Diagnosis (DiagnosticsResearcher)**
+### **2.1. Phase Overview**
 
-* **Primary Agent:** `DiagnosticsResearcher`.
-* **Purpose:** This initial phase is dedicated to the deep investigation and root cause analysis of system issues. Its mission is to systematically reproduce problems, trace them to their fundamental causes, research known solutions, and synthesize these findings into a comprehensive report. This phase establishes the factual, evidence-based foundation for all subsequent work.
-* **Inputs:** An initial problem statement, which can range from a user-reported bug with logs and screenshots to a non-functional UI mockup or a legacy system targeted for modernization.
-* **Process:** The `DiagnosticsResearcher` orchestrates a parallel investigation by delegating tasks to specialized subagents such as the `codebase-analyzer`, `web-search-researcher`, and `database-schema-analyzer`. It then synthesizes the findings from these multiple streams into a unified understanding.
-* **Output:** A surgical **Diagnostic Report**. This artifact, stored in `thoughts/shared/diagnostics/`, contains a precise description of all issues, their root causes with exact file and line references, validated solutions from authoritative sources, and a component activity verification (active vs. orphaned). This report is the mandatory input for Phase 2.
-
-#### **2.3. Phase 2: Design (DesignIdeator)**
-
-* **Primary Agent:** `DesignIdeator`.
-* **Purpose:** Phase 2 translates the problems identified in the diagnostic report into tangible, world-class UI/UX solutions. It is responsible for creating a complete design vision that is both innovative and technically feasible. A key function is to produce three progressive design alternatives—**Conservative**, **Balanced**, and **Ambitious**—allowing stakeholders to make informed decisions based on clear trade-offs in timeline and risk.
-* **Inputs:** The primary input is the **Diagnostic Report** from Phase 1.
-* **Process:** The `DesignIdeator` orchestrates its own parallel research using subagents like `visual-design-scanner`, `component-pattern-analyzer`, `accessibility-auditor`, and `competitive-ui-analyzer`. It heavily utilizes the integrated `shadcn` toolkit to discover, verify, and select production-ready UI components from various registries, comparing them against competitor patterns and project requirements.
-* **Output:** A detailed **Design Proposal**. This document, stored in `thoughts/shared/proposals/`, serves as the blueprint for implementation. It includes visual mockups, accessibility specifications, a component manifest with exact installation commands for `shadcn` components, and a risk assessment for each of the three design alternatives.
-
-#### **2.4. Phase 3: Orchestration (ModernizationOrchestrator)**
-
-* **Primary Agent:** `ModernizationOrchestrator`.
-* **Purpose:** Acting as the central planner, this phase synthesizes the "what's wrong" from Phase 1 and the "what it should look like" from Phase 2 into a "how to build it" blueprint. It validates the technical feasibility of the chosen design, resolves all dependencies, and creates a risk-aware, prioritized implementation plan.
-* **Inputs:** The **Diagnostic Report** (Phase 1), the **Design Proposal** (Phase 2), and the user's selected design alternative.
-* **Process:** The `ModernizationOrchestrator` orchestrates a five-subagent parallel feasibility assessment, which includes the critical `library-update-monitor` to scan for security vulnerabilities (CVEs). It applies a strict priority framework where security patches are always Priority 0, followed by bug fixes, core design implementation, and technical enhancements.
-* **Output:** A surgical **Implementation Plan**. Stored in `thoughts/shared/plans/`, this plan is the "definitive contract" for the implementation phase. It contains a prioritized task list, precise technical specifications, dependency management instructions, quality gates, and success criteria.
-
-#### **2.5. Phase 4: Implementation (ModernizationImplementer)**
-
-* **Primary Agent:** `ModernizationImplementer`.
-* **Purpose:** This is the exclusive execution phase where the specifications from the preceding three phases are transformed into working, production-ready code. This agent is the only one in the entire workflow with the authority to write, edit, and patch source files.
-* **Inputs:** The complete set of specifications: the **Diagnostic Report** (Phase 1), the **Design Proposal** (Phase 2), and the **Implementation Plan** (Phase 3).
-* **Process:** The `ModernizationImplementer` executes the implementation plan task by task, adhering strictly to the established priority order. It leverages its full suite of real-time tools to enhance execution: `Context7` is used to verify APIs and handle deprecations, `shadcn` tools are used to install and integrate UI components, `Supabase` tools are used for database migrations and validation, and `Tavily`/`Exa` are used for real-time troubleshooting of implementation errors.
-* **Output:** The primary output is the modified source code. A secondary artifact is the **Implementation Report**, stored in `thoughts/shared/implementations/`, which documents all changes made, tools used, and the final validation results (e.g., test coverage, build status).
-
-#### **2.6. Phase 5: Iteration (IterationCoordinator)**
-
-* **Primary Agent:** `IterationCoordinator`.
-* **Purpose:** Phase 5 acts as an intelligent feedback loop and quality control mechanism. It is triggered only when the implementation phase (Phase 4) is blocked or fails to meet its success criteria. Its purpose is to prevent costly full-workflow restarts by orchestrating surgical, targeted re-runs of the specific upstream phase that caused the issue.
-* **Inputs:** The **Implementation Report** from Phase 4, specifically any documented blockers, failures, or unmet quality gates.
-* **Triggers:** The process is initiated by specific failure conditions, including "Implementation Blocked," "Design Infeasible," "Requirements Changed," or "Performance Inadequate".
-* **Process:** The agent traces the implementation failure back to its root cause in a prior phase's decision-making (e.g., an infeasible design from Phase 2, an incorrect diagnosis from Phase 1). It then uses the `context-distiller` subagent to create a highly focused brief containing the accumulated learnings and coordinates a re-run of only the necessary phase. It monitors these cycles for convergence to ensure they are productive and not oscillating.
-* **Output:** A refined set of specifications from the re-executed phase, which is then handed back to Phase 4 for another implementation attempt. The primary artifact is an **Iteration Directive** context package for the targeted agent.
-
-Excellent. As recommended, I will now produce the updated version of **Section 3**, integrating the detailed technical specifications from the old document into the superior narrative structure of the new one. This creates a single, comprehensive section that details both the strategic roles and the precise operational parameters of each agent.
-
------
-
-### **3. Agent Architecture & Delegation Model**
-
-The system operates on a hierarchical delegation model composed of two distinct tiers of AI agents: five **Primary Agents** and sixteen **Specialized Subagents**. The Primary Agents act as orchestrators, each governing one of the five workflow phases. They are responsible for high-level strategy, decision-making, and the synthesis of complex information. To execute their directives, they delegate focused, tactical tasks to the Specialized Subagents, who possess deep expertise in a single domain, such as security scanning, code analysis, or UI component discovery. This model ensures a clear separation of concerns, allowing for both strategic oversight and deep, efficient execution.
-
-#### **3.1. Primary Agents**
-
-The five Primary Agents are the pillars of the workflow. Each possesses a unique identity, philosophy, and set of responsibilities tailored to its phase.
-
-**1. DiagnosticsResearcher (Phase 1: Diagnosis)**
-
-* **Core Mission:** A systematic bug investigation specialist that orchestrates comprehensive diagnostic analysis through parallel subagent coordination. Its purpose is to reproduce issues, identify root causes, discover known solutions, and produce surgical diagnostic reports that enable perfect implementation in later phases.
-* **Identity & Philosophy:** This agent operates as a "Root Cause Detective" and "Investigation Orchestrator". Its philosophy is grounded in "Evidence-Based Diagnosis," asserting that every finding must be traceable to specific code, logs, or authoritative external sources. It is explicitly **not** an implementer and maintains an absolute boundary between diagnosis and implementation.
-* **Key Responsibilities:**
-  * Assessing the severity and scope of system issues.
-  * Orchestrating parallel investigations using subagents like `codebase-analyzer` and `web-search-researcher`.
-  * Synthesizing findings into a comprehensive, structured Diagnostic Report.
-* **Technical Specifications & Configuration:**
-  * **Tool Access Permissions:** `bash`, `write` (reports only), `read`, `grep`, `glob`, `list`, `todowrite`, `todoread`, `webfetch`, `tavily_*`, `exa_*`, `context7_*`, `supabase_*`. **CRITICAL:** `edit: false`, `patch: false` (Cannot modify source code).
-  * **Operational Parameters:**
-
-        ```yaml
-        DIAGNOSTICS_DIR: "thoughts/shared/diagnostics/"
-        MAX_PARALLEL_TASKS: 3
-        SEARCH_DEPTH: "comprehensive"
-        REPORT_FORMAT: "diagnostic-v2"
-        SEVERITY_LEVELS: ["Critical", "High", "Medium", "Low"]
-        DB_INVESTIGATION_TRIGGERS: ["data integrity", "query performance", "schema mismatch", "constraint violation", "migration issue"]
-        ```
-
-**2. DesignIdeator (Phase 2: Design)**
-
-* **Core Mission:** A world-class UI/UX proposal generator that transforms diagnostic findings into three progressive design alternatives (Conservative, Balanced, Ambitious). It synthesizes diagnostic context, design patterns, and industry trends into implementation-ready specifications.
-* **Identity & Philosophy:** This agent acts as a "Design Orchestrator" and "Accessibility Champion". Its philosophy centers on "Context-Driven Design," where diagnostic findings directly shape solutions, and "Specification Over Implementation," creating detailed blueprints for flawless execution. It is explicitly **not** an implementer or a bug fixer.
-* **Key Responsibilities:**
-  * Orchestrating parallel design research across visual, component, and accessibility subagents.
-  * Discovering and verifying available UI components using `shadcn` tools.
-  * Producing a detailed Design Proposal with mockups, component specifications, and an installation manifest.
-* **Technical Specifications & Configuration:**
-  * **Tool Access Permissions:** `bash`, `write` (proposals only), `read`, `grep`, `glob`, `list`, `todowrite`, `todoread`, `webfetch`, `context7_*`, `shadcn_*` (all MCP tools). **CRITICAL:** `edit: false`, `patch: false`.
-  * **Operational Parameters:**
-
-        ```yaml
-        PROPOSALS_DIR: "thoughts/shared/proposals/"
-        DESIGN_ALTERNATIVES: 3
-        TIME_ESTIMATES: ["1-2 days", "3-5 days", "1-2 weeks"]
-        DESIGN_APPROACHES: ["Conservative", "Balanced", "Ambitious"]
-        MOCKUP_FORMAT: "ascii"
-        ```
-
-**3. ModernizationOrchestrator (Phase 3: Orchestration)**
-
-* **Core Mission:** The master orchestrator that synthesizes diagnostic findings (Phase 1) and design proposals (Phase 2) into a comprehensive, risk-aware implementation blueprint. It validates technical feasibility and produces a plan that enables flawless Phase 4 execution.
-* **Identity & Philosophy:** It is a "Synthesis Master" and "Risk Strategist". Its philosophy is built on "Synthesis Excellence," ensuring every finding from previous phases is addressed, and "Risk-Aware Planning," which involves anticipating and mitigating issues before they arise. It is explicitly **not** an implementer or a designer.
-* **Key Responsibilities:**
-  * Orchestrating a five-subagent parallel feasibility assessment to validate the design.
-  * Applying a strict priority framework, with security patches always taking precedence (Priority 0).
-  * Generating a detailed Implementation Plan with technical specifications, dependency management, and validation strategies.
-* **Technical Specifications & Configuration:**
-  * **Tool Access Permissions:** `bash`, `write` (plans only), `read`, `grep`, `glob`, `list`, `todowrite`, `todoread`, `webfetch`, `tavily_*`, `context7_*`, `supabase_*`. **CRITICAL:** `edit: false`, `patch: false`.
-  * **Operational Parameters:**
-
-        ```yaml
-        PLANS_DIR: "thoughts/shared/plans/"
-        SYNTHESIS_DEPTH: "comprehensive"
-        RISK_LEVELS: ["Critical", "High", "Medium", "Low"]
-        IMPLEMENTATION_PHASES: ["Security", "Bug Fixes", "Core Design", "Enhancements", "Validation"]
-        CONFIDENCE_THRESHOLD: 0.8
-        MAX_PARALLEL_TASKS: 5
-        ```
-
-**4. ModernizationImplementer (Phase 4: Implementation)**
-
-* **Core Mission:** The exclusive implementation authority that transforms the specifications from the first three phases into working, production-ready code. It is the only agent in the entire workflow with the authority to write, edit, and patch source files.
-* **Identity & Philosophy:** This agent is an "Enhanced Code Surgeon" and "Component System Integrator". Its guiding philosophy is "Implementation Excellence Through Intelligence," where it combines the provided specifications with real-time knowledge from its integrated tools to achieve a perfect execution. It is explicitly **not** a replanner, feature creeper, or architecture modifier.
-* **Key Responsibilities:**
-  * Executing the Implementation Plan in the strict priority order established in Phase 3.
-  * Using `Context7` to verify APIs, `Tavily`/`Exa` for troubleshooting, and `shadcn` tools to install and integrate UI components.
-  * Performing incremental validation after each step to ensure system stability.
-* **Technical Specifications & Configuration:**
-  * **Tool Access Permissions:** `bash`, `write`, `read`, `grep`, `glob`, `list`, `todowrite`, `todoread`, `webfetch`, `tavily_*`, `exa_*`, `context7_*`, `supabase_*`, `shadcn_*` (with exclusive installation rights). **EXCLUSIVE:** `edit: true`, `patch: true`.
-  * **Operational Parameters:**
-
-        ```yaml
-        IMPLEMENTATIONS_DIR: "thoughts/shared/implementations/"
-        VALIDATION_CHECKPOINTS: ["syntax", "types", "tests", "build", "integration"]
-        ROLLBACK_THRESHOLD: 3
-        CONFIDENCE_LEVELS: ["Verified", "Tested", "Assumed", "Unknown"]
-        SHADCN_COMPONENT_DIR: "components/ui/"
-        ```
-
-**5. IterationCoordinator (Phase 5: Iteration)**
-
-* **Core Mission:** An intelligent feedback loop manager that orchestrates surgical re-runs of specific workflow phases when Phase 4 implementation reveals issues requiring upstream adjustments. It prevents costly full workflow restarts by managing targeted refinements with accumulated learning.
-* **Identity & Philosophy:** It operates as a "Surgical Coordinator" and "Efficiency Guardian". Its philosophy is "Minimal Intervention Excellence," where the smallest change that resolves an issue is the best, and "Learning-Driven Iteration," where each cycle must incorporate lessons from previous attempts to ensure convergence. It is explicitly **not** an implementer or a replanner.
-* **Key Responsibilities:**
-  * Analyzing implementation reports to trace blockers back to their originating phase (1, 2, or 3).
-  * Using the `context-distiller` subagent to create a focused brief for the targeted phase re-run.
-  * Monitoring iteration cycles for convergence to ensure they are productive and not diverging.
-* **Technical Specifications & Configuration:**
-  * **Tool Access Permissions:** `bash`, `write` (reports only), `read`, `grep`, `glob`, `list`, `todowrite`, `todoread`. **CRITICAL:** `edit: false`, `patch: false`.
-  * **Operational Parameters:**
-
-        ```yaml
-        ITERATIONS_DIR: "thoughts/shared/iterations/"
-        MAX_ITERATIONS: 3
-        ITERATION_TRIGGERS: ["Implementation Blocked", "Design Infeasible", "Requirements Changed", "Performance Inadequate"]
-        CONVERGENCE_THRESHOLDS:
-          improvement_rate: 0.2
-          confidence_target: 0.8
-          oscillation_limit: 2
-        ```
-
-#### **3.2. Specialized Subagents**
-
-The sixteen subagents are the tactical executors, providing specialized analysis and data to the Primary Agents. They operate on a read-only basis (with the exception of their own output generation) and are orchestrated to provide the deep, focused intelligence required for each phase of the workflow.
-
-| Subagent Name | Description | Primary Tools | Orchestrated By (Primary Agents) |
-| :--- | :--- | :--- | :--- |
-| **accessibility-auditor** | WCAG compliance specialist that audits for accessibility issues and provides remediation guidance. | `read`, `grep`, `glob` | `DesignIdeator`, `ModernizationOrchestrator` |
-| **codebase-analyzer** | Deep code comprehension specialist for tracing execution flows, analyzing legacy implementations, and quantifying technical debt. | `read`, `grep`, `glob`, `supabase` | `DiagnosticsResearcher`, `ModernizationOrchestrator` |
-| **codebase-locator** | Lightning-fast file discovery specialist with a critical focus on identifying active vs. orphaned components and anti-pattern files. | `read`, `grep`, `glob` | `DiagnosticsResearcher` |
-| **codebase-pattern-finder** | Extracts working code patterns, serving error handling patterns to `DiagnosticsResearcher` and reusable architectures to `ModernizationOrchestrator`. | `read`, `grep`, `glob` | `DiagnosticsResearcher`, `ModernizationOrchestrator` |
-| **competitive-ui-analyzer**| Elite competitive intelligence specialist for UI/UX patterns that maps competitor features to available `shadcn` components. | `read`, `grep`, `glob`, `tavily`, `exa`, `shadcn` | `DesignIdeator` |
-| **component-pattern-analyzer**| Component architecture specialist that analyzes patterns, detects version suffixes (`-fixed`, `-v2`), and recommends `shadcn` consolidation opportunities.| `read`, `grep`, `glob`, `shadcn` | `DesignIdeator`, `ModernizationOrchestrator` |
-| **context-distiller** | Context compression specialist that synthesizes multiple phase documents into focused briefs for the `IterationCoordinator`. | `read`, `grep`, `glob` | `IterationCoordinator` |
-| **database-schema-analyzer**| Supabase database specialist that analyzes schema structure, identifies mismatches with code, and suggests optimizations. | `read`, `grep`, `glob`, `supabase` | `DiagnosticsResearcher`, `ModernizationOrchestrator` |
-| **documentation-verifier**| Component and API verification specialist that confirms availability and compatibility using `shadcn` registries and `Context7`. | `read`, `grep`, `glob`, `context7`, `shadcn`| `DesignIdeator`, `ModernizationOrchestrator` |
-| **library-update-monitor**| Security-first dependency monitor that tracks npm packages and `shadcn` components for CVEs and breaking changes. | `read`, `grep`, `glob`, `context7`, `shadcn` | `ModernizationOrchestrator` |
-| **performance-profiler**| Performance bottleneck detective that identifies slow queries, render issues, and memory leaks. | `read`, `grep`, `glob`, `supabase` | `DiagnosticsResearcher`, `ModernizationOrchestrator` |
-| **test-coverage-analyzer**| Testing strategy specialist that analyzes current test coverage, identifies gaps, and recommends test scenarios. | `read`, `grep`, `glob` | `ModernizationOrchestrator` |
-| **ui-component-explorer**| Elite UI component discovery specialist leveraging `shadcn` registries to find production-ready components. | `read`, `grep`, `glob`, `shadcn` | `DesignIdeator` |
-| **visual-design-scanner**| Visual design evaluation specialist that analyzes UI for consistency, hierarchy, spacing, and color usage. | `read`, `grep`, `glob` | `DesignIdeator` |
-| **web-search-researcher**| Elite web research specialist using `Context7`, `Tavily`, and `Exa` to find bug solutions, documentation, and best practices. | `read`, `grep`, `glob`, `tavily`, `exa`, `context7`| `DiagnosticsResearcher`, `DesignIdeator`, `ModernizationOrchestrator` |
-| **workflow-validator** | Quality gate enforcer that validates phase outputs against defined success criteria before allowing workflow progression. | `read`, `grep`, `glob` | System-wide Quality Gate |
-
-### **4. Cognitive & Orchestration Patterns**
-
-The system's effectiveness stems from a collection of standardized patterns that govern how agents analyze problems, orchestrate tasks, and ensure quality. These protocols are embedded within the agents' core logic and represent the system's "best practices" for AI-driven development.
-
-#### **4.1. The Cognitive Model (`ULTRATHINK`)**
-
-`ULTRATHINK` is the system's mechanism for invoking a state of enhanced cognition and deep analysis. It's not a separate agent but a directive that, when provided by the user or triggered by high complexity, modifies an agent's standard operating parameters. It allows the system to "think harder" about particularly complex or ambiguous problems.
-
-* **Triggers:** An agent will either request `ULTRATHINK` or benefit from it when encountering specific complex scenarios. Common triggers include:
-  * Synthesizing findings from multiple, conflicting sources.
-  * Determining the priority order for a complex implementation plan.
-  * Resolving dependency conflicts or planning a difficult database migration.
-  * Analyzing the impact of an API deprecation discovered in real-time.
-  * Deciding if a failed implementation requires a workflow iteration.
-* **Effects:** When `ULTRATHINK` is active, an agent's analytical depth and operational parameters are increased. This includes:
-  * Expanding search queries to include more results and iterations.
-  * Applying stricter validation, requiring a higher number of corroborating sources before reaching a conclusion.
-  * Performing deeper analysis, such as comparative trade-off matrices for design decisions or comprehensive impact assessments for dependency changes.
-* **Delegation:** Primary Agents can delegate tasks with this enhanced cognitive state to their subagents, ensuring that deep analysis is performed at the tactical level where it's needed most (e.g., `Task(prompt="ultrathink: Analyze root cause...", subagent_type="codebase-analyzer")`).
-
-#### **4.2. Investigation & Analysis Patterns**
-
-To ensure efficiency and comprehensiveness, agents utilize several key orchestration patterns for investigation and analysis.
-
-* **Parallel Feasibility Assessment:** This is a cornerstone pattern used by `DesignIdeator` and `ModernizationOrchestrator` to gain a holistic understanding of a design's feasibility in approximately five minutes. The orchestrating agent launches multiple, distinct subagents simultaneously, each analyzing the problem from a different perspective:
-  * `documentation-verifier` checks for component and API availability.
-  * `library-update-monitor` scans for security vulnerabilities (CVEs) and dependency issues.
-  * `performance-profiler` assesses potential performance impacts.
-  * `component-pattern-analyzer` looks for reusable patterns and anti-patterns.
-  * `test-coverage-analyzer` discovers the current testing baseline.
-    The findings are then synthesized by the primary agent to make a go/no-go decision.
-* **Database Investigation & Validation:** When an issue involves data, agents follow a structured database-first debugging pattern. They use `Supabase` tools to query the database directly to determine if an issue lies in data storage or data transformation. This involves discovering the actual schema, comparing it to code expectations, analyzing query performance for bottlenecks, and validating data integrity.
-* **`shadcn` Component Discovery & Integration:** When implementing UI, the system follows a registry-first approach. Agents like `DesignIdeator` and `ModernizationImplementer` use the `shadcn` toolkit to search available registries (`@shadcn`, `@acme`, custom) for production-ready components that match design requirements. This pattern includes dependency analysis, comparison of alternatives, and the generation of exact installation commands, significantly accelerating development by replacing custom implementation with battle-tested components.
-* **Error Resolution Pattern:** When the `ModernizationImplementer` encounters an error, it follows a systematic, tool-driven resolution workflow. It first categorizes the error as either data-related or code-related. Data errors trigger a database investigation with `Supabase`. Code errors trigger a multi-platform web search using `Tavily` and `Exa` to find solutions on Stack Overflow and GitHub, with `Context7` as a fallback for official documentation.
-
-#### **4.3. Component Anti-Pattern & Verification Protocol**
-
-This is a critical, system-wide quality gate that prevents development effort from being wasted on dead, outdated, or problematic code. It is a mandatory first step in any analysis involving code files.
-
-1. **Anti-Pattern Suffix Detection:** The system first scans for files with versioning suffixes that indicate repeated, failed fix attempts (e.g., `-fixed`, `-v2`, `-worldclass`, `-new`). The presence of these files is flagged as a critical warning and a sign of underlying technical debt.
-2. **Orphan Detection:** For every component, the system uses `grep` to verify it is actively imported somewhere in the codebase. Components with zero imports are classified as "orphaned" and represent dead code.
-3. **Redirection:** All analysis and implementation work is automatically redirected from any detected anti-pattern or orphaned files to the active, base version of the component. Agents are explicitly forbidden from modifying these problematic files.
-
-#### **4.4. Security Priority 0 Protocol**
-
-This protocol represents the architecture's immutable, security-first stance.
-
-* **The Rule:** During the feasibility assessment in Phase 3, the `library-update-monitor` scans all runtime dependencies and UI components for known security vulnerabilities (CVEs) and risks like XSS.
-* **The Effect:** Any discovered critical or high-severity vulnerability is immediately assigned **Priority 0**. This priority level supersedes all other tasks in the implementation plan, including bug fixes and feature development. The `ModernizationImplementer` is required to resolve all Priority 0 security issues before any other implementation work can begin. This protocol ensures that security is not an afterthought but the most critical gate in the development workflow.
-
-### **5. Toolchain & Integrations**
-
-The system's agents are equipped with a sophisticated suite of external tools that provide real-time data, documentation, and operational capabilities. This toolchain is critical for grounding the agents' analyses and implementations in the current reality of the web and the target codebase, rather than relying on potentially outdated training data. Each tool serves a distinct strategic purpose within the workflow.
-
-#### **5.1. Context7**
-
-* **Description:** A real-time API documentation and best practices retrieval tool. It allows agents to query for up-to-the-minute information on library and framework APIs, including method signatures, deprecation notices, and version-specific usage patterns.
-* **Strategic Role in the Workflow:** Context7 is the system's primary mechanism for **Verification Before Action**.
-  * The `ModernizationImplementer` uses it *before* writing any library-dependent code to verify that the planned implementation uses current, non-deprecated APIs. This prevents bugs and technical debt caused by API changes.
-  * The `documentation-verifier` subagent relies on it to confirm the feasibility of a design, ensuring that components and methods specified in a `DesignIdeator` proposal actually exist and are compatible with the project's stack.
-  * The `library-update-monitor` uses it to research the impact of breaking changes when recommending dependency updates.
-
-#### **5.2. Tavily & Exa**
-
-* **Description:** A duo of advanced web search APIs. Tavily excels at optimized data extraction, news, and searching community forums like Stack Overflow. Exa provides powerful semantic search capabilities, making it ideal for finding conceptual patterns and production-ready code examples on platforms like GitHub.
-* **Strategic Role in the Workflow:** These tools form the system's problem-solving and research backbone.
-  * **Error Resolution:** When the `ModernizationImplementer` encounters an implementation error, its first step is to query Tavily for known solutions, prioritizing authoritative community sources.
-  * **Pattern Discovery:** For `DesignIdeator` and `ModernizationImplementer`, Exa is used to find real-world, production-grade implementation patterns for features or components, moving beyond basic documentation to see how they are used in practice.
-  * **Competitive Intelligence:** The `competitive-ui-analyzer` subagent leverages both tools to research industry best practices and analyze how competitors solve common UI/UX challenges.
-
-#### **5.3. Supabase Toolkit**
-
-* **Description:** A suite of tools for direct interaction with a project's Supabase (PostgreSQL) database. This allows agents to introspect the schema, query data, and analyze performance without going through an application's API layer.
-* **Strategic Role in the Workflow:** Supabase tools are the "ground truth" for all data-related issues, enabling a **Database-First Debugging** pattern.
-  * **Diagnostics:** The `DiagnosticsResearcher` and `database-schema-analyzer` use the toolkit to determine if the root cause of a bug lies in the database (e.g., incorrect data, schema mismatch) or in the application code that transforms it.
-  * **Schema Validation:** The `ModernizationImplementer` uses it to validate that the actual database schema matches the expectations of the code, preventing runtime errors from schema drift.
-  * **Migration Planning:** The `ModernizationOrchestrator` uses it to analyze the current schema and plan safe, dependency-aware migration paths.
-
-#### **5.4. shadcn/ui Toolkit**
-
-* **Description:** A set of tools for discovering, installing, and managing UI components from `shadcn/ui` compatible registries. It provides a direct interface to a rich ecosystem of production-ready, accessible components.
-* **Strategic Role in the Workflow:** The `shadcn` toolkit is the primary enabler for **Accelerating UI Development** and promoting consistency.
-  * **Design Phase:** The `DesignIdeator` and its subagents (`ui-component-explorer`, `competitive-ui-analyzer`) use the tools to search and explore available components. This ensures that designs are based on what is actually available and installable, dramatically reducing the need for custom component development.
-  * **Implementation Phase:** The `ModernizationImplementer` is the exclusive agent with the authority to use the `shadcn` tools to **install and integrate** these components directly into the codebase, managing dependencies and registry configurations as specified in the Phase 3 plan.
-  * **Quality Assurance:** The `library-update-monitor` uses it to track component versions and scan for deprecations or security issues within the UI layer.
-
-### **6. Artifact Flow & Data Model**
-
-The system's workflow is not only defined by its agents but also by the structured artifacts they produce. These documents serve as the data model, acting as formal, stateful handoffs between phases. Each artifact is a self-contained package of specifications and context, building upon the output of the previous phase to ensure a complete and traceable line of reasoning from initial diagnosis to final implementation.
-
-#### **6.1. Primary Artifacts**
-
-The workflow progresses through the creation and consumption of five key documents:
-
-1. **Diagnostic Report (Output of Phase 1)**
-
-      * **Agent:** `DiagnosticsResearcher`
-      * **Location:** `thoughts/shared/diagnostics/`
-      * **Description:** This is the foundational document that provides an evidence-based analysis of the system's current state. It contains a full accounting of all diagnosed issues, their root causes with precise file and line references, validated solutions from external research, a verification of which components are active versus orphaned, and specific implementation guidance for fixes. It serves as the primary input for the Design and Orchestration phases.
-
-2. **Design Proposal (Output of Phase 2)**
-
-      * **Agent:** `DesignIdeator`
-      * **Location:** `thoughts/shared/proposals/`
-      * **Description:** This artifact translates the problems from the Diagnostic Report into a tangible design solution. It presents three distinct, progressive design alternatives (Conservative, Balanced, Ambitious) and includes visual mockups, accessibility requirements, and a risk assessment for each. Critically, it contains a detailed **`shadcn` Component Specification**, which includes an **Installation Manifest** with exact, copy-pasteable commands for installing all required UI components.
-
-3. **Implementation Plan (Output of Phase 3)**
-
-      * **Agent:** `ModernizationOrchestrator`
-      * **Location:** `thoughts/shared/plans/`
-      * **Description:** This is the "definitive contract" for the implementation phase. It synthesizes the findings from the first two phases into a single, comprehensive blueprint. The plan contains a strictly ordered **Implementation Priority** list (where security patches are always Priority 0), detailed technical specifications, a dependency management strategy, risk mitigation plans, and a complete validation strategy with success criteria.
-
-4. **Implementation Report (Output of Phase 4)**
-
-      * **Agent:** `ModernizationImplementer`
-      * **Location:** `thoughts/shared/implementations/`
-      * **Description:** This document serves as a complete audit trail of the implementation work. It provides a summary of all changes, including security patches applied, bugs fixed, and design specifications implemented. It also contains a `shadcn` Integration Report, a log of all tool assistance used during the process, and a record of any anti-patterns that were detected and handled. This report is the primary input for Phase 5 if any issues were encountered.
-
-5. **Iteration Directive (Output of Phase 5)**
-
-      * **Agent:** `IterationCoordinator`
-      * **Location:** `thoughts/shared/iterations/`
-      * **Description:** This is not a full-fledged report but a highly compressed, targeted brief. It is generated only when an implementation is blocked. The directive contains the specific focus for a phase re-run, a list of successful elements to preserve, a list of failed approaches to avoid, and the key learnings from the failed implementation attempt. It enables a surgical refinement of a specific upstream phase without restarting the entire workflow.
-
-#### **6.2. Artifact Flow Diagram**
-
-The following diagram illustrates the linear cascade of artifacts through the 5-phase workflow, including the feedback loop managed by the Iteration Coordinator.
+Each workflow invocation executes all 5 phases for ONE feature migration:
 
 ```mermaid
----
-config:
-  theme: mc
----
 graph TD
-    subgraph Workflow
-        A[User Input - Bug/Mockup] --> B("Phase 1: Diagnostics Researcher")
-        B -- Produces --> C[\Diagnostic Report/]
-        C -- Informs --> D("Phase 2: Design Ideator")
-        C -- Informs --> E("Phase 3: Modernization Orchestrator")
-        D -- Produces --> F[\Design Proposal/]
-        F -- Informs --> E
-        E -- Produces --> G[\Implementation Plan/]
-        G -- Informs --> H("Phase 4: Modernization Implementer")
-        H -- Produces --> I[Modified Source Code]
-        H -- Produces --> J[\Implementation Report/]
-        J -- Triggers if Blocked --> K("Phase 5: Iteration Coordinator")
-        K -- Produces --> L[\Iteration Directive/]
-        L -- Refines --> B
-        L -- Refines --> D
-        L -- Refines --> E
-        J -- If Successful --> M(("Production-Ready Application"))
-    end
-    style B fill:#ffcccc,stroke:#333,stroke-width:2px
-    style D fill:#cce5ff,stroke:#333,stroke-width:2px
-    style E fill:#d5ccff,stroke:#333,stroke-width:2px
-    style H fill:#ccffcc,stroke:#333,stroke-width:2px
-    style K fill:#ffebcc,stroke:#333,stroke-width:2px
-    style I fill:#e6ffe6,stroke:#333,stroke-width:1px
-    style M fill:#b3ffb3,stroke:#333,stroke-width:2px,stroke-dasharray: 5 5
-    classDef artifact fill:#f9f9f9,stroke:#555,stroke-width:1px
-    class C,F,G,J,L artifact
+    A[Workflow Start] --> B["Phase 1: Discovery & Selection"]
+    B --> C["Phase 2: Migration Analysis"]
+    C --> D["Phase 3: Migration Planning"]
+    D --> E["Phase 4: Migration Implementation"]
+    E --> F["Phase 5: Validation & Learning"]
+    F --> G{Success?}
+    G -->|Yes| H[Update Ledger & Exit]
+    G -->|No| I[Rollback & Document Failure]
+    I --> H
+    
+    H -.-> J[Next Invocation]
+    J -.-> A
+    
+    style B fill:#ffcccc
+    style C fill:#cce5ff
+    style D fill:#d5ccff
+    style E fill:#ccffcc
+    style F fill:#ffebcc
+    style H fill:#b3ffb3
 ```
 
-### **7. Use Cases & Applicability**
+### **2.2. Phase 1: Discovery & Selection (MigrationScout)**
 
-The 5-phase modernization workflow is a universal model designed to handle any software development task by treating it as a form of system evolution. Whether starting with a blank slate or modifying a decades-old application, the system applies the same rigorous, diagnostic-led process. The following use cases illustrate its applicability.
+**Primary Agent:** `MigrationScout`  
+**Mission:** Autonomously explore the current state and decide what to migrate next
 
-#### **7.1. Greenfield Development (from a Mockup)**
+**Discovery Protocol:**
 
-This scenario applies when the starting point is a new idea, a simple wireframe, or a non-functional UI mockup.
+```yaml
+Autonomous Exploration:
+  1. Query Ledger:
+     - What's already migrated?
+     - What failed previously?
+     - Learn from past attempts
+  
+  2. Scan Database Schema:
+     - Query Supabase for all tables
+     - Identify data relationships
+     - Find unmigrated data flows
+  
+  3. Analyze Codebase:
+     - Find components using direct Supabase calls
+     - Detect components without Cell structure
+     - Identify type-unsafe data flows
+     - Look for -v2/-fixed anti-patterns
+  
+  4. Measure Impact:
+     - Count component usage frequency
+     - Check if it's on critical path
+     - Assess migration complexity
+  
+  5. Autonomous Decision:
+     - Score all candidates
+     - Select highest-scoring target
+     - Document selection rationale
+```
 
-* **Philosophical Approach:** The system treats the mockup as a "system with bugs," where the primary "bug" is the complete lack of functionality. Each non-interactive element is a functional gap requiring a diagnostic and design cycle.
-* **Workflow Application:**
-  * **Phase 1 (Diagnosis):** `DiagnosticsResearcher` analyzes the mockup to understand the implied requirements needed to make it functional. Its **Diagnostic Report** serves as a foundational requirements analysis, documenting all the functional gaps.
-  * **Phase 2 (Design):** `DesignIdeator` takes this analysis and produces a technically feasible design, selecting appropriate `shadcn` components and defining the complete user experience.
-  * **Phase 3 (Orchestration):** `ModernizationOrchestrator` creates a comprehensive **Implementation Plan** that includes project scaffolding, dependency setup, and a prioritized epic/story structure for building the application from scratch.
-  * **Phase 4 (Implementation):** `ModernizationImplementer` executes the plan, building the new application feature by feature.
+**Selection Algorithm:**
 
-#### **7.2. Brownfield Modernization (Enhancing an Existing System)**
+```typescript
+interface MigrationCandidate {
+  component: string
+  path: string
+  score: number
+  factors: {
+    hasDirectDbCalls: boolean      // +30 points
+    hasTypeErrors: boolean          // +25 points
+    highUsage: boolean              // +20 points (>10 imports)
+    hasAntiPatterns: boolean        // +15 points (-v2, -fixed)
+    complexity: 'low'|'medium'|'high' // low: +10
+    isUserFacing: boolean           // +5 points
+  }
+  reason: string
+}
 
-This is the classic use case, involving an existing application that requires significant upgrades, performance improvements, or refactoring.
+// Autonomous selection - highest score wins
+const winner = candidates
+  .filter(c => !alreadyMigrated.includes(c.path))
+  .sort((a, b) => b.score - a.score)[0]
+```
 
-* **Philosophical Approach:** The legacy application is treated as the "current state" of the system, which the workflow will evolve to a desired "future state."
-* **Workflow Application:**
-  * **Phase 1 (Diagnosis):** `DiagnosticsResearcher` performs a deep analysis of the existing codebase, using subagents like `codebase-analyzer` and `database-schema-analyzer` to quantify technical debt, find root causes for performance issues, and identify architectural anti-patterns.
-  * **Phase 2 (Design):** `DesignIdeator` proposes designs that integrate seamlessly with the existing system, often recommending the replacement of bespoke legacy components with standardized `shadcn` equivalents.
-  * **Phase 3 (Orchestration):** The `ModernizationOrchestrator`'s plan focuses on risk mitigation, detailing safe database migration paths, dependency update sequences, and a step-by-step implementation that minimizes disruption.
-  * **Phase 4 (Implementation):** `ModernizationImplementer` carefully executes the plan, modifying the live codebase with precision.
+**Technical Specifications:**
 
-#### **7.3. Bug Investigation & Resolution**
+* **Tool Access:** `bash`, `read`, `grep`, `glob`, `list`, `supabase_*`, `ledger-query`
+* **Operational Parameters:**
 
-This use case applies when a specific defect is reported in an existing application.
+```yaml
+DISCOVERY_DIR: "thoughts/shared/discoveries/"
+MAX_CANDIDATES_EVALUATED: 50
+COMPLEXITY_THRESHOLD: "medium"
+MIN_SCORE_THRESHOLD: 40
+PRIORITIZE_QUICK_WINS: true
+```
 
-* **Philosophical Approach:** This is the most direct application of the "system with issues" philosophy. The bug is the issue to be diagnosed and resolved.
-* **Workflow Application:**
-  * **Phase 1 (Diagnosis):** This is the primary phase. `DiagnosticsResearcher` is expertly suited for this, using its parallel investigation patterns to rapidly identify the bug's root cause and a validated solution. The resulting **Diagnostic Report** is a highly detailed bug report.
-  * **Phase 2 (Design):** This phase is often minimal for simple code fixes. However, if the bug stems from a flawed user experience, `DesignIdeator` proposes a UI/UX change that not only fixes the bug but also improves overall usability.
-  * **Phase 3 & 4 (Orchestration & Implementation):** The fix is planned to ensure no regressions are introduced and then implemented precisely as specified.
+**Output:** Discovery Report
 
-#### **7.4. Feature Addition & Refactoring**
+```yaml
+discovery-report:
+  timestamp: "2025-10-02T14:30:00Z"
+  selected: "components/dashboard/BudgetOverview.tsx"
+  score: 75
+  reason: "High-usage component (15 imports) with direct Supabase calls and missing type safety"
+  factors:
+    hasDirectDbCalls: true
+    hasTypeErrors: true
+    highUsage: true
+    complexity: "medium"
+  dependencies:
+    database: ["cost_breakdown", "po_mappings"]
+    imports: ["recharts", "date-fns", "@/lib/supabase"]
+  estimatedImpact: "Affects 12 components, core dashboard feature"
+```
 
-This scenario covers adding new capabilities to an existing application or improving the internal structure of the code.
+### **2.3. Phase 2: Migration Analysis (MigrationAnalyst)**
 
-* **Philosophical Approach:** A missing feature is a "functional gap," and code needing refactoring is a "maintainability issue." Both are treated as problems to be diagnosed.
-* **Workflow Application:**
-  * **Phase 1 (Diagnosis):** For a new feature, `DiagnosticsResearcher` analyzes the best integration points and identifies potential conflicts. For refactoring, it analyzes and quantifies the existing technical debt to justify the effort.
-  * **Phase 2 (Design):** `DesignIdeator` creates the full UI/UX for the new feature. For refactoring, it ensures the external-facing behavior and design remain consistent and unchanged.
-  * **Phase 3 (Orchestration):** The work is broken down into a series of safe, incremental steps. For a new feature, this ensures it's built on a solid foundation; for refactoring, it ensures the changes can be made without breaking the system.
-  * **Phase 4 (Implementation):** The new feature is built or the refactoring is applied according to the risk-mitigated plan.
+**Primary Agent:** `MigrationAnalyst`  
+**Mission:** Deep dive into selected feature to understand everything needed for migration
+
+**Analysis Protocol:**
+
+```yaml
+For Selected Component:
+  1. Code Analysis:
+     - Read complete component code
+     - Trace all data flows
+     - Map state management patterns
+     - List all dependencies
+  
+  2. Database Analysis:
+     - Identify all queries used
+     - Map to required Drizzle schemas
+     - Plan tRPC procedures needed
+     - Analyze data transformations
+  
+  3. Behavioral Analysis:
+     - Extract implicit requirements
+     - Document current functionality
+     - Identify edge cases
+     - Note accessibility features
+  
+  4. Integration Analysis:
+     - Find all components that import this
+     - Check for shared state
+     - Identify potential breaking changes
+     - Map dependency graph
+```
+
+**Specialized Subagents:**
+
+* **codebase-analyzer**: Traces execution flows and data dependencies
+* **database-schema-analyzer**: Maps database queries to schema requirements
+* **component-pattern-analyzer**: Identifies reusable patterns and anti-patterns
+* **dependency-tracer**: Maps import chains and usage
+
+**Technical Specifications:**
+
+* **Tool Access:** `bash`, `read`, `grep`, `glob`, `list`, `supabase_*`, `ast-parser`
+* **Operational Parameters:**
+
+```yaml
+ANALYSIS_DIR: "thoughts/shared/analysis/"
+ANALYSIS_DEPTH: "comprehensive"
+TRACE_DEPTH: 3
+INCLUDE_USAGE_PATTERNS: true
+EXTRACT_BEHAVIORAL_ASSERTIONS: true
+```
+
+**Output:** Analysis Report
+
+```yaml
+analysis-report:
+  component: "BudgetOverview.tsx"
+  currentImplementation:
+    lineCount: 350
+    queries:
+      - "SELECT * FROM cost_breakdown WHERE project_id = ?"
+      - "SELECT * FROM po_mappings WHERE cost_breakdown_id IN (?)"
+    stateManagement: "local useState, no persistence"
+    dependencies:
+      ui: ["recharts"]
+      data: ["@supabase/supabase-js"]
+      utils: ["date-fns"]
+  
+  requiredChanges:
+    drizzleSchemas:
+      - name: "costBreakdown"
+        fields: ["id", "projectId", "subBusinessLine", "costLine", "budgetCost"]
+      - name: "poMappings"
+        fields: ["id", "costBreakdownId", "poNumber", "actualCost"]
+    
+    trpcProcedures:
+      - name: "budget.getOverview"
+        input: { projectId: "uuid", dateRange: { from: "Date", to: "Date" }}
+        output: "CostOverview[]"
+      - name: "budget.getBreakdown"
+        input: { projectId: "uuid" }
+        output: "CostBreakdownItem[]"
+    
+    cellStructure:
+      location: "components/cells/budget-overview/"
+      manifest: "5 behavioral assertions required"
+      pipeline: "Standard validation gates + performance benchmarks"
+      complexity: "medium"
+  
+  dependencies:
+    importedBy: 12
+    criticalPath: true
+    testCoverage: 0
+```
+
+### **2.4. Phase 3: Migration Planning (MigrationArchitect)**
+
+**Primary Agent:** `MigrationArchitect`  
+**Mission:** Create detailed implementation plan for this ONE feature migration
+
+**Planning Protocol:**
+
+```yaml
+Create Surgical Plan:
+  1. Data Layer Plan:
+     - Define exact tRPC procedure signatures
+     - Specify Zod input/output schemas
+     - Plan error handling strategy
+     - Design data transformation logic
+  
+  2. Cell Structure Plan:
+     - Design manifest.json structure
+     - Define behavioral assertions
+     - Specify pipeline validation gates
+     - Plan test coverage strategy
+  
+  3. Migration Sequence:
+     - Order implementation steps
+     - Define validation checkpoints
+     - Identify rollback points
+     - Plan atomic commit strategy
+  
+  4. Validation Plan:
+     - Define success criteria
+     - Set performance benchmarks
+     - Create test scenarios
+     - Plan integration verification
+```
+
+**Critical Patterns:**
+
+* **Complete Replacement**: Plan includes deletion of old component
+* **Ledger Integration**: Every step documented for future reference
+* **Pipeline-Driven**: Success = all validation gates pass
+* **Type-Safety First**: Ensure end-to-end type flow before UI work
+
+**Technical Specifications:**
+
+* **Tool Access:** `bash`, `write` (plans only), `read`, `grep`, `glob`, `list`
+* **Operational Parameters:**
+
+```yaml
+PLANS_DIR: "thoughts/shared/plans/"
+PLAN_FORMAT: "migration-v2"
+VALIDATION_GATES: ["types", "tests", "build", "performance", "accessibility"]
+REQUIRE_ROLLBACK_STRATEGY: true
+ATOMIC_COMMIT_REQUIRED: true
+```
+
+**Output:** Migration Plan
+
+```yaml
+migration-plan:
+  target: "BudgetOverview"
+  migrationId: "mig_20251002_143000_budgetOverview"
+  
+  steps:
+    1:
+      phase: "Data Layer"
+      action: "Create Drizzle schemas"
+      files:
+        - "packages/db/src/schema/cost-breakdown.ts"
+        - "packages/db/src/schema/po-mappings.ts"
+      validation: "Schema compiles, matches DB"
+    
+    2:
+      phase: "Data Layer"
+      action: "Create tRPC procedures"
+      files:
+        - "packages/api/src/routers/budget.ts"
+      procedures:
+        - "budget.getOverview"
+        - "budget.getBreakdown"
+      validation: "Test with curl, verify types"
+    
+    3:
+      phase: "Cell Creation"
+      action: "Create Cell structure"
+      location: "components/cells/budget-overview/"
+      files:
+        - "component.tsx"
+        - "manifest.json"
+        - "pipeline.yaml"
+        - "state.ts"
+      validation: "Manifest schema valid"
+    
+    4:
+      phase: "Implementation"
+      action: "Implement component with tRPC"
+      validation: "All tests pass, coverage ≥80%"
+    
+    5:
+      phase: "Integration"
+      action: "Update imports & delete old"
+      files:
+        - "Update 12 importing components"
+        - "DELETE components/dashboard/BudgetOverview.tsx"
+      validation: "Build succeeds, no broken imports"
+    
+    6:
+      phase: "Validation"
+      action: "Full validation suite"
+      validation: "Types pass, tests pass, performance ≤110% baseline"
+    
+    7:
+      phase: "Completion"
+      action: "Update ledger and commit"
+      commit: "Migrate BudgetOverview to Cell architecture"
+      ledgerEntry: true
+  
+  rollbackStrategy:
+    trigger: "Any step fails validation"
+    action: "git revert migration commit"
+    documentation: "Update ledger with failure details"
+  
+  successCriteria:
+    - "All validation gates pass"
+    - "Old component deleted"
+    - "Zero direct Supabase calls"
+    - "End-to-end type safety verified"
+    - "Ledger updated"
+```
+
+### **2.5. Phase 4: Migration Implementation (MigrationExecutor)**
+
+**Primary Agent:** `MigrationExecutor`  
+**Mission:** Execute the plan with zero deviation, complete replacement only
+
+**Implementation Protocol:**
+
+```yaml
+Execute Plan (Zero Deviation):
+  1. Create tRPC Infrastructure:
+     - Write Drizzle schemas
+     - Implement tRPC procedures
+     - Test endpoints with curl
+     - Verify type flow
+  
+  2. Build Cell Structure:
+     - Create directory
+     - Write component.tsx
+     - Create manifest.json with assertions
+     - Setup pipeline.yaml
+     - Write state.ts if needed
+  
+  3. Implement Component:
+     - Use tRPC queries (no direct DB)
+     - Memoize all objects/arrays
+     - Use z.string().transform() for dates
+     - Add comprehensive tests
+     - Document behavioral assertions
+  
+  4. Complete Replacement:
+     - Update ALL imports atomically
+     - DELETE old component
+     - Verify no references remain
+     - Run full test suite
+  
+  5. Atomic Commit:
+     - Single commit with all changes
+     - Clear commit message
+     - Ledger entry included
+```
+
+**Critical Rules:**
+
+* **NO partial implementations** - Complete or rollback
+* **NO keeping old code** "just in case"
+* **NO feature flags** or conditional logic
+* **Complete replacement** is the only acceptable outcome
+
+**Implementation Patterns:**
+
+```typescript
+// ✅ CORRECT: Memoized date range
+const dateRange = useMemo(() => {
+  const now = new Date()
+  const from = new Date(now)
+  from.setMonth(from.getMonth() - 6)
+  from.setHours(0, 0, 0, 0)
+  
+  const to = new Date(now)
+  to.setMonth(to.getMonth() + 6)
+  to.setHours(23, 59, 59, 999)
+  
+  return { from, to }
+}, [])
+
+// ✅ CORRECT: tRPC with typed response
+const { data } = trpc.budget.getOverview.useQuery({
+  projectId,
+  dateRange
+})
+
+// ✅ CORRECT: Date handling in tRPC
+.input(z.object({
+  dateRange: z.object({
+    from: z.string().transform(val => new Date(val)),
+    to: z.string().transform(val => new Date(val))
+  })
+}))
+```
+
+**Technical Specifications:**
+
+* **Tool Access:** `bash`, `write`, `edit`, `read`, `grep`, `glob`, `list`, `tavily_*`, `exa_*`, `context7_*`, `supabase_*`, `shadcn_*`
+* **EXCLUSIVE:** `edit: true` (only agent that can modify source code)
+* **Operational Parameters:**
+
+```yaml
+IMPLEMENTATIONS_DIR: "thoughts/shared/implementations/"
+VALIDATION_CHECKPOINTS: ["syntax", "types", "tests", "build", "integration"]
+ROLLBACK_ON_FAILURE: true
+REQUIRE_ATOMIC_COMMIT: true
+CELL_STRUCTURE_REQUIRED: true
+DELETE_OLD_COMPONENT: true
+```
+
+**Output:** Implementation Report + Modified Source Code
+
+```yaml
+implementation-report:
+  migrationId: "mig_20251002_143000_budgetOverview"
+  timestamp: "2025-10-02T14:45:00Z"
+  
+  filesCreated:
+    - "packages/db/src/schema/cost-breakdown.ts"
+    - "packages/api/src/routers/budget.ts"
+    - "components/cells/budget-overview/component.tsx"
+    - "components/cells/budget-overview/manifest.json"
+    - "components/cells/budget-overview/pipeline.yaml"
+  
+  filesModified:
+    - "app/dashboard/page.tsx"
+    - "components/ProjectView.tsx"
+    # ... 10 more importing components
+  
+  filesDeleted:
+    - "components/dashboard/BudgetOverview.tsx"
+  
+  validation:
+    typeCheck: "✓ Pass"
+    tests: "✓ Pass (87% coverage)"
+    build: "✓ Success"
+    performance: "✓ 105% of baseline (acceptable)"
+  
+  commit:
+    sha: "abc123def"
+    message: "Migrate BudgetOverview to Cell architecture"
+  
+  ledgerUpdated: true
+```
+
+### **2.6. Phase 5: Validation & Learning (MigrationValidator)**
+
+**Primary Agent:** `MigrationValidator`  
+**Mission:** Ensure migration succeeded and capture learnings for next run
+
+**Validation Protocol:**
+
+```yaml
+Comprehensive Verification:
+  1. Technical Validation:
+     - TypeScript compiles with zero errors
+     - All tests pass
+     - Build succeeds
+     - No console errors
+     - No `any` types introduced
+  
+  2. Functional Validation:
+     - Feature works identically to before
+     - Performance within acceptable range (≤110%)
+     - No visual regressions
+     - Accessibility maintained/improved
+  
+  3. Integration Validation:
+     - All importers still work
+     - No broken dependencies
+     - API contracts maintained
+     - Database queries optimized
+  
+  4. Architectural Validation:
+     - Cell structure complete
+     - Manifest defines all assertions
+     - Pipeline gates configured
+     - Old component deleted
+     - Ledger updated
+  
+  5. Learning Capture:
+     - Document any issues encountered
+     - Note patterns that worked well
+     - Update success metrics
+     - Prepare insights for next run
+```
+
+**Failure Recovery:**
+
+```yaml
+If ANY Validation Fails:
+  1. Immediately halt
+  2. git revert migration commit
+  3. Generate detailed failure report
+  4. Update ledger with failure details
+  5. Exit workflow
+  
+Next Invocation:
+  - Learns from failure report
+  - May retry with different approach
+  - Or selects different migration target
+```
+
+**Technical Specifications:**
+
+* **Tool Access:** `bash`, `write` (reports only), `read`, `grep`, `glob`, `list`, `test-runner`, `lighthouse`
+* **Operational Parameters:**
+
+```yaml
+VALIDATIONS_DIR: "thoughts/shared/validations/"
+PERFORMANCE_THRESHOLD: 1.10
+COVERAGE_THRESHOLD: 0.80
+ACCESSIBILITY_STANDARD: "WCAG_AA"
+REQUIRE_ZERO_REGRESSIONS: true
+```
+
+**Output:** Validation Report + Ledger Entry
+
+```yaml
+validation-report:
+  migrationId: "mig_20251002_143000_budgetOverview"
+  status: "SUCCESS"
+  
+  validations:
+    technical:
+      typescript: "✓ Zero errors"
+      tests: "✓ 87% coverage (target: 80%)"
+      build: "✓ Production build successful"
+      linting: "✓ Zero warnings"
+    
+    functional:
+      featureParity: "✓ Identical behavior verified"
+      performance: "✓ 105% of baseline (target: ≤110%)"
+      visualRegression: "✓ No regressions detected"
+    
+    architectural:
+      cellStructure: "✓ Complete"
+      manifest: "✓ 5 behavioral assertions defined"
+      pipeline: "✓ All gates configured"
+      oldComponentDeleted: "✓ Confirmed"
+      ledgerUpdated: "✓ Entry created"
+  
+  learnings:
+    - "Date memoization prevented infinite render loops"
+    - "tRPC types eliminated 3 potential runtime errors"
+    - "Cell manifest made implicit requirements explicit"
+  
+  metrics:
+    duration: "15 minutes"
+    filesChanged: 18
+    linesAdded: 450
+    linesRemoved: 320
+    netImprovement: "+130 lines of typed, tested code"
+
+# Ledger Entry Created:
+ledger-entry:
+  iterationId: "mig_20251002_143000_budgetOverview"
+  timestamp: "2025-10-02T14:45:00Z"
+  humanPrompt: "Run ANDA migration workflow"
+  
+  artifacts:
+    created:
+      - type: "cell"
+        id: "budget-overview"
+        path: "components/cells/budget-overview"
+      - type: "trpc-procedure"
+        id: "budget.getOverview"
+        path: "packages/api/src/routers/budget.ts"
+    
+    modified:
+      - "app/dashboard/page.tsx"
+      - "components/ProjectView.tsx"
+    
+    replaced:
+      - type: "component"
+        id: "BudgetOverview"
+        path: "components/dashboard/BudgetOverview.tsx"
+        deletedAt: "2025-10-02T14:45:00Z"
+        reason: "Migrated to Cell architecture"
+  
+  schemaChanges: []
+  
+  metadata:
+    agent: "MigrationExecutor"
+    duration: 900000
+    validationStatus: "SUCCESS"
+    adoptionProgress: "18/250 components migrated (7.2%)"
+```
+
+---
+
+## **3. Agent Architecture & Specialized Subagents**
+
+### **3.1. Primary Migration Agents**
+
+| Agent | Phase | Core Mission | Key Tools |
+|-------|-------|--------------|-----------|
+| **MigrationScout** | 1 | Autonomous feature discovery and selection | `ledger-query`, `grep`, `glob`, `supabase` |
+| **MigrationAnalyst** | 2 | Deep component and data flow analysis | `codebase-analyzer`, `database-schema-analyzer` |
+| **MigrationArchitect** | 3 | Surgical migration plan creation | `write`, `read`, `pattern-analyzer` |
+| **MigrationExecutor** | 4 | Exclusive implementation authority | `edit`, `write`, `tRPC`, `drizzle` |
+| **MigrationValidator** | 5 | Validation and learning capture | `test-runner`, `lighthouse`, `ledger-write` |
+
+### **3.2. Specialized Subagents**
+
+| Subagent | Purpose | Used By |
+|----------|---------|---------|
+| **anti-pattern-detector** | Finds `-v2`, `-fixed` components and direct DB calls | MigrationScout |
+| **type-coverage-analyzer** | Calculates percentage of typed vs `any` code | MigrationScout |
+| **codebase-analyzer** | Deep code comprehension and execution flow tracing | MigrationAnalyst |
+| **database-schema-analyzer** | Supabase schema analysis and query mapping | MigrationAnalyst |
+| **dependency-tracer** | Maps component usage and import chains | MigrationAnalyst |
+| **manifest-generator** | Creates manifest.json from component analysis | MigrationArchitect |
+| **pipeline-builder** | Generates pipeline.yaml with validation gates | MigrationArchitect |
+| **behavioral-validator** | Verifies behavioral assertions are met | MigrationValidator |
+| **performance-benchmarker** | Compares before/after performance metrics | MigrationValidator |
+| **ledger-historian** | Queries and updates architectural ledger | All Agents |
+
+---
+
+## **4. Autonomous Decision Engine**
+
+### **4.1. Scoring Algorithm**
+
+The system uses a weighted scoring algorithm that runs fresh each invocation:
+
+```typescript
+class MigrationDecisionEngine {
+  async selectNextMigration(): Promise<MigrationTarget> {
+    // 1. Query ledger for history
+    const history = await ledger.getAllMigrations()
+    const completed = history.filter(e => e.status === 'SUCCESS')
+    const failed = history.filter(e => e.status === 'FAILED')
+    
+    // 2. Discover candidates
+    const candidates = await this.discoverCandidates()
+    
+    // 3. Filter out already migrated
+    const available = candidates.filter(c => 
+      !completed.some(m => m.component === c.path)
+    )
+    
+    // 4. Score each candidate
+    const scored = available.map(c => ({
+      ...c,
+      score: this.calculateScore(c, failed)
+    }))
+    
+    // 5. Select highest score
+    const winner = scored.sort((a, b) => b.score - a.score)[0]
+    
+    if (!winner || winner.score < MIN_SCORE_THRESHOLD) {
+      return null // No suitable candidates
+    }
+    
+    return winner
+  }
+  
+  calculateScore(component: Component, failedAttempts: Migration[]): number {
+    let score = 0
+    
+    // Critical factors (high impact)
+    if (component.hasDirectDbCalls) score += 30
+    if (component.hasTypeErrors) score += 25
+    if (component.usageCount > 10) score += 20
+    if (component.hasAntiPatterns) score += 15
+    
+    // Preference factors
+    if (component.complexity === 'low') score += 10
+    if (component.complexity === 'medium') score += 5
+    if (component.isUserFacing) score += 5
+    if (component.hasTests) score += 5
+    
+    // Learning adjustments
+    const previousFailure = failedAttempts.find(f => f.component === component.path)
+    if (previousFailure) {
+      score -= 20 // Deprioritize previously failed migrations
+    }
+    
+    return score
+  }
+  
+  async discoverCandidates(): Promise<Component[]> {
+    const candidates = []
+    
+    // Find components with direct Supabase calls
+    const directDbComponents = await grep('supabase.from\\(', {
+      include: '*.tsx',
+      exclude: 'node_modules'
+    })
+    
+    // Find components without Cell structure
+    const nonCellComponents = await glob('components/**/*.tsx')
+      .filter(f => !f.includes('/cells/'))
+      .filter(f => !f.includes('/ui/'))
+    
+    // Find components with anti-patterns
+    const antiPatternComponents = await glob('**/*-{v2,fixed,new,worldclass}.tsx')
+    
+    // Analyze each candidate
+    for (const path of [...new Set([...directDbComponents, ...nonCellComponents])]) {
+      const analysis = await this.analyzeComponent(path)
+      candidates.push(analysis)
+    }
+    
+    return candidates
+  }
+}
+```
+
+### **4.2. Learning from History**
+
+Each invocation queries the ledger to learn:
+
+```typescript
+interface LedgerLearning {
+  completed: string[]          // Already migrated components
+  failed: Migration[]           // Previous failures to avoid
+  patterns: SuccessPattern[]    // What worked well
+  velocity: number              // Average migration time
+  adoptionRate: number          // Percentage complete
+}
+
+// Example query
+const learning = await ledger.query({
+  getCompleted: true,
+  getFailures: true,
+  extractPatterns: true,
+  calculateMetrics: true
+})
+
+// Use learning to inform decision
+if (learning.failed.includes(candidate.path)) {
+  candidate.score -= 20 // Deprioritize
+}
+
+if (learning.patterns.includes('low-complexity-success')) {
+  if (candidate.complexity === 'low') {
+    candidate.score += 10 // Prefer quick wins
+  }
+}
+```
+
+---
+
+## **5. Migration Patterns & Anti-Patterns**
+
+### **5.1. Critical Migration Patterns**
+
+**Pattern 1: Complete Replacement**
+
+```yaml
+✓ DO:
+  1. Create new Cell with full functionality
+  2. Test exhaustively (≥80% coverage)
+  3. Update ALL imports in single operation
+  4. DELETE old component immediately
+  5. Commit as atomic unit
+
+✗ DON'T:
+  - Keep both versions "temporarily"
+  - Use feature flags for migration
+  - Add TODO comments
+  - Create transition periods
+```
+
+**Pattern 2: Type-Safety First**
+
+```yaml
+✓ DO:
+  1. Create Drizzle schemas first
+  2. Implement tRPC procedures
+  3. Test type flow with curl
+  4. THEN build UI component
+  
+✗ DON'T:
+  - Build UI before data layer ready
+  - Use 'any' types
+  - Skip Zod validation
+```
+
+**Pattern 3: Memoization for React Query**
+
+```typescript
+// ✓ CORRECT: Memoized, stable reference
+const dateRange = useMemo(() => ({
+  from: new Date(startDate),
+  to: new Date(endDate)
+}), [startDate, endDate])
+
+const { data } = trpc.query.useQuery({ dateRange })
+
+// ✗ WRONG: New object every render = infinite loop
+const { data } = trpc.query.useQuery({
+  dateRange: { from: new Date(), to: new Date() }
+})
+```
+
+### **5.2. Anti-Patterns to Eliminate**
+
+| Anti-Pattern | Detection Command | Resolution |
+|--------------|-------------------|------------|
+| **Version Suffixes** | `find . -name "*-v2.tsx" -o -name "*-fixed.tsx"` | Delete and consolidate |
+| **Direct DB Access** | `grep -r "supabase.from" --include="*.tsx"` | Replace with tRPC |
+| **Missing Types** | `grep -r ": any" --include="*.ts"` | Add proper types |
+| **Orphaned Components** | `grep -L "import.*ComponentName"` | Delete immediately |
+| **Parallel Implementations** | Manual review | Choose best, delete rest |
+
+---
+
+## **6. Development Pitfalls & Prevention**
+
+### **6.1. Pitfall #1: Infinite Render Loops**
+
+**Severity:** CRITICAL
+
+**Symptom:** Component stuck loading, React Query shows `pending` forever
+
+**Root Cause:** Unmemoized objects passed to hooks create new references every render
+
+**Prevention:**
+```typescript
+// ✓ ALWAYS memoize complex objects
+const queryInput = useMemo(() => ({
+  projectId,
+  filters: { status: 'active' }
+}), [projectId])
+```
+
+### **6.2. Pitfall #2: Date Serialization Over HTTP**
+
+**Severity:** HIGH
+
+**Root Cause:** Date objects can't be serialized to JSON
+
+**Prevention:**
+```typescript
+// ✓ CORRECT: tRPC input schema
+.input(z.object({
+  date: z.string().transform(val => new Date(val))
+}))
+
+// ✗ WRONG: Expecting Date object
+.input(z.object({
+  date: z.date() // Will fail over HTTP
+}))
+```
+
+### **6.3. Pitfall #3: SQL Syntax Confusion**
+
+**Severity:** MEDIUM
+
+**Prevention:**
+```typescript
+// ✓ CORRECT: Use Drizzle helpers
+import { inArray, eq } from 'drizzle-orm'
+const data = await db.select()
+  .from(table)
+  .where(inArray(table.id, ids))
+
+// ✗ WRONG: Mixing raw SQL
+.where(sql`${table.id} = ANY(${ids})`)
+```
+
+---
+
+## **7. Single Invocation Example**
+
+```yaml
+User Command: "Run ANDA migration workflow"
+
+═══════════════════════════════════════════════════════════
+PHASE 1: DISCOVERY & SELECTION (2 min)
+═══════════════════════════════════════════════════════════
+
+MigrationScout:
+  → Query ledger: 5 components already migrated
+  → Scan codebase: 23 candidates found
+  → Detect anti-patterns: 3 versioned files, 8 direct DB calls
+  → Calculate scores:
+      BudgetOverview.tsx: 75 points
+      PLTimeline.tsx: 68 points
+      FilterPanel.tsx: 55 points
+  → SELECTED: BudgetOverview.tsx
+  → REASON: "High usage (15 imports), direct Supabase, type errors"
+
+═══════════════════════════════════════════════════════════
+PHASE 2: MIGRATION ANALYSIS (1 min)
+═══════════════════════════════════════════════════════════
+
+MigrationAnalyst:
+  → Analyze component: 350 lines, 3 Supabase queries
+  → Trace dependencies: Used by 12 components
+  → Map data flows: cost_breakdown + po_mappings tables
+  → Identify requirements: 5 behavioral assertions extracted
+  → RESULT: Comprehensive analysis report generated
+
+═══════════════════════════════════════════════════════════
+PHASE 3: MIGRATION PLANNING (1 min)
+═══════════════════════════════════════════════════════════
+
+MigrationArchitect:
+  → Design data layer: 2 tRPC procedures required
+  → Plan Cell structure: manifest + pipeline + component
+  → Create migration sequence: 7 steps with checkpoints
+  → Define success criteria: Types, tests, performance
+  → RESULT: Detailed migration plan created
+
+═══════════════════════════════════════════════════════════
+PHASE 4: MIGRATION IMPLEMENTATION (15 min)
+═══════════════════════════════════════════════════════════
+
+MigrationExecutor:
+  ✓ Create Drizzle schemas (2 min)
+  ✓ Implement tRPC procedures (3 min)
+  ✓ Test endpoints with curl (1 min)
+  ✓ Create Cell structure (2 min)
+  ✓ Implement component (5 min)
+  ✓ Write tests (2 min)
+  ✓ Update 12 imports (1 min)
+  ✓ DELETE old component (1 min)
+  ✓ Commit changes (1 min)
+
+  Files Created: 6
+  Files Modified: 14
+  Files Deleted: 1
+  Commit: abc123def "Migrate BudgetOverview to Cell architecture"
+
+═══════════════════════════════════════════════════════════
+PHASE 5: VALIDATION & LEARNING (2 min)
+═══════════════════════════════════════════════════════════
+
+MigrationValidator:
+  ✓ TypeScript: Zero errors
+  ✓ Tests: 87% coverage (target: 80%)
+  ✓ Build: Production build successful
+  ✓ Performance: 105% of baseline (target: ≤110%)
+  ✓ Ledger: Entry created
+
+  STATUS: ✓ SUCCESS
+  ADOPTION: 6/250 components migrated (2.4% → 2.8%)
+
+═══════════════════════════════════════════════════════════
+WORKFLOW COMPLETE
+═══════════════════════════════════════════════════════════
+
+Result: BudgetOverview successfully migrated to Cell architecture
+Next: Run workflow again to migrate next component
+```
+
+**Next Invocation:** Discovers PLTimeline as highest-scoring candidate, migrates it...
+
+---
+
+## **8. Success Metrics & Monitoring**
+
+### **8.1. Progress Tracking**
+
+```yaml
+Architecture Adoption:
+  Total Components: 250
+  Migrated to Cells: 6
+  Progress: 2.4%
+  Target: 100%
+
+Type Safety:
+  Type Coverage: 87%
+  Any Types: 23
+  Target: 100% coverage, 0 any types
+
+Data Layer:
+  Direct DB Calls: 17
+  tRPC Procedures: 8
+  Target: 0 direct calls
+
+Velocity:
+  Average Migration Time: 21 minutes
+  Migrations per Week: 15
+  Estimated Completion: 17 weeks
+```
+
+### **8.2. Quality Metrics**
+
+```yaml
+Test Coverage:
+  Overall: 78%
+  Migrated Cells: 85%
+  Target: ≥80%
+
+Performance:
+  Average Impact: +7% (acceptable: ≤10%)
+  Regressions: 0
+  Improvements: 3 components faster
+
+Code Quality:
+  Linting Errors: 0
+  TypeScript Errors: 0
+  Dead Code: Reduced by 15%
+```
+
+---
+
+## **9. Conclusion**
+
+The Autonomous ANDA Migration Workflow represents a paradigm shift in AI-driven codebase transformation. By eliminating upfront planning overhead and enabling autonomous, incremental migration execution, the system achieves:
+
+**Key Benefits:**
+
+1. **Zero Planning Overhead** - Start migrating immediately
+2. **Continuous Value Delivery** - Each run completes a working migration
+3. **Autonomous Operation** - No human decisions required
+4. **Adaptive Learning** - Improves with each invocation
+5. **Predictable Progress** - Clear metrics and velocity tracking
+6. **100% ANDA Adoption** - Systematic path to AI-optimized codebase
+
+**Operational Model:**
+
+```bash
+# Simple, repeatable invocation
+$ run-anda-migration
+→ Discovers, selects, migrates one feature
+→ Updates ledger, exits
+
+# Run again (minutes, hours, or days later)
+$ run-anda-migration
+→ Learns from ledger, selects next target
+→ Migrates different feature
+
+# Continue until complete
+$ run-anda-migration
+→ "100% ANDA adoption achieved!"
+```
+
+This workflow transforms codebases into Living Blueprints where AI agents can navigate with perfect clarity, understand requirements through explicit manifests, and operate with complete type safety from database to UI.
+
+**The goal:** A codebase where every component is a Cell, every data flow is typed, every change is documented, and AI agents can develop with maximum effectiveness.

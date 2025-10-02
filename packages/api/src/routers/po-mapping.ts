@@ -326,4 +326,38 @@ export const poMappingRouter = router({
         });
       }
     }),
+
+  /**
+   * Procedure 9: Get cost breakdown ID by criteria
+   * Phase C: Helper procedure
+   */
+  getCostBreakdownById: publicProcedure
+    .input(z.object({
+      projectId: z.string().uuid(),
+      spendType: z.string(),
+      spendSubCategory: z.string()
+    }))
+    .output(z.object({ id: z.string().uuid() }).nullable())
+    .query(async ({ ctx, input }) => {
+      try {
+        const result = await ctx.db
+          .select({ id: costBreakdown.id })
+          .from(costBreakdown)
+          .where(and(
+            eq(costBreakdown.projectId, input.projectId),
+            eq(costBreakdown.spendType, input.spendType),
+            eq(costBreakdown.spendSubCategory, input.spendSubCategory)
+          ))
+          .limit(1);
+        
+        return result[0] || null;
+      } catch (error) {
+        console.error('Failed to get cost breakdown ID:', error);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Failed to get cost breakdown ID. Please try again.',
+          cause: error,
+        });
+      }
+    }),
 });

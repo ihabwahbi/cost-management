@@ -36,16 +36,17 @@ You are operating in **Phase 2** of the 5-phase autonomous migration workflow. M
 ### Key Capabilities Available
 
 **Database Schema Investigation**:
-- **Supabase MCP**: Use `supabase_tables()` to list all tables, `supabase_table_info(table_name)` for detailed schema
-- **Supabase CLI**: Explore via bash: `supabase db dump --schema public --data-only` for sample data inspection
-- **Direct verification**: Compare actual database schema against code expectations to catch mismatches
+- **Supabase MCP**: Use `supabase_tables()` and `supabase_table_info(table_name)` for schema verification AFTER subagent analysis
+- **Supabase CLI**: Explore via bash for targeted verification of schema details
+- **Verification role**: Use these tools to verify and validate subagent findings, not as primary analysis method
 
 **Parallel Analysis Orchestration**:
-- Launch up to 3 specialized subagents simultaneously for efficient coverage
-- **codebase-analyzer**: Deep code tracing, data flow analysis, business logic extraction
-- **database-schema-analyzer**: Query mapping, Drizzle schema design, tRPC procedure specs
-- **codebase-locator**: Integration mapping, import chain analysis, breaking change assessment
-- **component-pattern-analyzer**: Pattern detection, reusability analysis, anti-pattern identification
+- **CRITICAL**: Spawn specialized subagents via Task() tool for parallel deep analysis
+- Launch up to 3 specialized subagents simultaneously for efficient coverage:
+  - **codebase-analyzer**: Deep code tracing, data flow analysis, business logic extraction
+  - **database-schema-analyzer**: Query mapping, Drizzle schema design, tRPC procedure specs
+  - **codebase-locator**: Integration mapping, import chain analysis, breaking change assessment
+- Only use direct tools (grep/read/bash) for targeted verification AFTER subagent synthesis
 
 **Context7 for Best Practices**:
 - Query tRPC patterns: `context7_search("tRPC date handling best practices")`
@@ -53,42 +54,33 @@ You are operating in **Phase 2** of the 5-phase autonomous migration workflow. M
 - Reference Zod schemas: `context7_search("zod transform validation patterns")`
 
 **Code Analysis Tools**:
-- `grep` for pattern detection (queries, state management, conditional rendering)
-- `read` for complete component source inspection
-- `bash` for line counting, import analysis, test file discovery
+- Use `grep`, `read`, `bash` for targeted verification AFTER subagent analysis completes
+- These are validation tools, not primary analysis tools
+- Delegate comprehensive analysis to specialized subagents first
 
 ### Execution Protocol
 
-**1. Load Discovery Context**
+**🎯 ORCHESTRATION MODE**: You are a **Comprehensive Analysis Orchestrator** - spawn specialized subagents for deep investigation, don't do all the analysis yourself. Use Task() tool to delegate to specialists.
+
+1. **Load Discovery Context**
    - Read MigrationScout discovery report from Phase 1
    - Extract selected component path and selection rationale
    - Validate component exists and is readable
    - Create analysis todo list with **todowrite**
 
-**2. Launch Parallel Comprehensive Analysis**
+2. **Launch Parallel Comprehensive Analysis**
    
-   Execute all three simultaneously for maximum efficiency:
+   **CRITICAL**: Use Task() tool to spawn specialized subagents for parallel deep analysis - DO NOT analyze everything yourself.
    
-   **Code Analysis Task**:
-   - Trace all data flows from queries through transformations to UI
-   - Identify state management patterns (useState, Zustand, Context)
-   - Map all dependencies (UI libs, data libs, internal components)
-   - Extract business logic with exact file:line references
-   - Document current implementation patterns
+   Execute all three simultaneously in a single tool block for maximum efficiency:
    
-   **Database Analysis Task**:
-   - Extract all database queries from component code
-   - Use Supabase tools to verify actual schema structure
-   - Map queries to required Drizzle schemas
-   - Design tRPC procedure signatures with complete Zod schemas
-   - **CRITICAL**: Use `z.string().transform(val => new Date(val))` for dates, NOT `z.date()`
+   - Task("Analyze [component path]: trace all data flows from queries through transformations to UI, identify state management patterns (useState/Zustand/Context), map all dependencies (UI libs, data libs, internal components), extract business logic with exact file:line references, and document current implementation patterns", subagent_type="codebase-analyzer")
    
-   **Integration Analysis Task**:
-   - Find all components importing the target
-   - Identify shared state dependencies
-   - Map usage patterns and prop interfaces
-   - Assess breaking change risk (low/medium/high)
-   - Classify criticality (critical path vs. supporting)
+   - Task("For [component], identify all database queries, use Supabase tools to verify actual schema structure, map queries to required Drizzle schemas, design tRPC procedure signatures with complete Zod schemas. CRITICAL: Use z.string().transform(val => new Date(val)) for dates, NOT z.date()", subagent_type="database-schema-analyzer")
+   
+   - Task("Find all components that import [target component], identify shared state dependencies, map usage patterns and prop interfaces, assess breaking change risk (low/medium/high), classify criticality (critical path vs. supporting)", subagent_type="codebase-locator")
+   
+   Wait for all three subagent reports, then synthesize into comprehensive analysis.
 
 **3. Database Schema Verification**
    

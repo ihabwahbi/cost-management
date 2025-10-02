@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { DollarSign, TrendingUp, TrendingDown, AlertCircle, Activity, Package, Calculator, FileText } from 'lucide-react'
 // Import new P&L components
-import { PLCommandCenter } from '@/components/dashboard/pl-command-center'
+import { PLCommandCenter } from '@/components/cells/pl-command-center/component'
 import { FinancialControlMatrix } from '@/components/dashboard/financial-control-matrix'
 import { PLTimeline } from '@/components/dashboard/pl-timeline'
 import { SupplierPromiseCalendar } from '@/components/dashboard/supplier-promise-calendar'
@@ -376,32 +376,14 @@ export default function ProjectDashboard({ params }: ProjectDashboardProps) {
         {/* Living Blueprint Architecture - Smart Cell */}
         <KPICard projectId={projectId} />
 
-        {/* P&L Command Center - Replace KPI Cards */}
-        {metrics && (
-          <PLCommandCenter
-            budget={metrics.totalBudget}
-            committed={metrics.actualSpend} // actualSpend is the total committed (PO value)
-            plImpact={metrics.invoicedAmount} // invoicedAmount is the actual P&L impact
-            thisMonthPL={metrics.invoicedAmount / 12} // Simplified monthly average
-            thisMonthChange={23} // Would calculate from historical data
-            nextPLHits={promiseDates.slice(0, 3).map(p => ({
-              date: p.date,
-              amount: p.amount,
-              supplier: p.supplier || 'Various'
-            }))}
-            plGap={metrics.actualSpend - metrics.invoicedAmount} // Gap between committed and invoiced
-            monthlyBreakdown={plTimeline.map(entry => ({
-              month: entry.month,
-              actual: entry.actualPL || 0,
-              projected: entry.projectedPL || 0
-            }))}
-            loading={loading}
-            onViewGapAnalysis={() => {
-              // Navigate to detailed analysis
-              console.log('View gap analysis')
-            }}
-          />
-        )}
+        {/* P&L Command Center - Living Blueprint Cell (fetches own data via tRPC) */}
+        <PLCommandCenter
+          projectId={projectId}
+          onViewGapAnalysis={() => {
+            // Navigate to detailed analysis
+            console.log('View gap analysis')
+          }}
+        />
 
         {/* Financial Control Matrix */}
         {categoryPLData.length > 0 && (

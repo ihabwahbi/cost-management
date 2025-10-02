@@ -1,0 +1,67 @@
+{
+  "id": "budget-timeline-chart",
+  "version": "2.0.0",
+  "description": "P&L impact timeline visualization showing budget limit as reference line, cumulative actual invoiced values, and future P&L commitments from supplier promises",
+  "behavioral_assertions": [
+    {
+      "id": "BA-001",
+      "description": "Component renders P&L timeline with budget reference line and stacked bars (actual + forecast)",
+      "verification": "Mock P&L data, verify ReferenceLine and two stacked Bar elements render",
+      "source": "Emergency scope expansion - P&L requirements"
+    },
+    {
+      "id": "BA-002",
+      "description": "Budget displays as horizontal reference line (fixed value across all months)",
+      "verification": "Verify ReferenceLine y-value matches budget from data, line is dashed",
+      "source": "P&L timeline requirement - budget as limit not distribution"
+    },
+    {
+      "id": "BA-003",
+      "description": "Actual bar shows cumulative invoiced values (P&L impact) from earliest invoice date",
+      "verification": "Mock invoice data, verify actual values are cumulative and start from first invoice month",
+      "source": "P&L timeline requirement - track actual P&L hit"
+    },
+    {
+      "id": "BA-004",
+      "description": "Forecast bar shows future P&L commitments from supplier promise dates (non-cumulative per month)",
+      "verification": "Mock promise data, verify forecast appears only in future months with promises",
+      "source": "P&L timeline requirement - track expected future P&L"
+    },
+    {
+      "id": "BA-005",
+      "description": "Component shows skeleton loader during data fetch",
+      "verification": "Mock loading state from useQuery, verify skeleton element renders",
+      "source": "Cell standard requirement"
+    },
+    {
+      "id": "BA-006",
+      "description": "Component displays error alert on query failure",
+      "verification": "Mock query error, verify error message displays",
+      "source": "Cell standard requirement"
+    },
+    {
+      "id": "BA-007",
+      "description": "Component gracefully handles empty data (no invoices/promises) without crashing",
+      "verification": "Mock empty data array from tRPC, verify empty state message displays",
+      "source": "Cell standard requirement"
+    },
+    {
+      "id": "BA-008",
+      "description": "Y-axis and tooltip format currency values with K notation",
+      "verification": "Render chart, verify axis shows '$100K' format and tooltip shows '$100.5K'",
+      "source": "Standard currency formatting"
+    }
+  ],
+  "dependencies": {
+    "data": ["budget_forecasts", "forecast_versions", "po_line_items", "po_mappings", "cost_breakdown"],
+    "ui": ["recharts", "@/components/ui/chart", "@/components/ui/alert", "@/components/ui/skeleton"]
+  },
+  "scope_changes": [
+    {
+      "date": "2025-10-02",
+      "reason": "Emergency scope expansion during validation - requirements evolved from monthly budget distribution to P&L impact tracking",
+      "changes": "Complete data model rewrite: budget from budget_forecasts (version-aware), actual from invoiced_value_usd, forecast from supplier_promise_date",
+      "risk": "Implemented without full planning phase (Path B decision), higher testing requirements"
+    }
+  ]
+}

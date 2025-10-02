@@ -1,0 +1,26 @@
+gates:
+  - type: "types"
+    requirement: "TypeScript zero errors"
+    command: "pnpm type-check"
+    automated: true
+    
+  - type: "tests"
+    requirement: "80%+ coverage, all 6 behavioral assertions verified"
+    command: "pnpm test budget-timeline-chart"
+    automated: true
+    
+  - type: "build"
+    requirement: "Production build succeeds"
+    command: "pnpm build"
+    automated: true
+    
+  - type: "performance"
+    requirement: "Load time ≤110% of baseline (165ms max)"
+    measurement: "React DevTools Profiler"
+    baseline: "150ms"
+    automated: true
+    
+  - type: "accessibility"
+    requirement: "Chart has proper ARIA labels and keyboard navigation"
+    standard: "WCAG AA"
+    automated: false

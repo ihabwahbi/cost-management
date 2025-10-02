@@ -12,14 +12,14 @@ import { SupplierPromiseCalendar } from '@/components/dashboard/supplier-promise
 import { SpendSubcategoryChart } from '@/components/dashboard/spend-subcategory-chart'
 import { DebugPanel } from '@/components/dashboard/debug-panel'
 // Keep existing components for now
-import { BudgetTimelineChart } from '@/components/dashboard/budget-timeline-chart'
+import { BudgetTimelineChartCell } from '@/components/cells/budget-timeline-chart/component'
 import { SpendCategoryChart } from '@/components/dashboard/spend-category-chart'
 import { CostBreakdownTable } from '@/components/dashboard/cost-breakdown-table'
 import { DashboardFilterPanel } from '@/components/dashboard/dashboard-filters'
 import { DashboardSkeleton } from '@/components/dashboard/dashboard-skeleton'
 // Living Blueprint Architecture - Smart Cell
 import { KPICard } from '@/components/cells/kpi-card/component'
-import { calculateProjectMetrics, getTimelineData, getCategoryBreakdown, getHierarchicalBreakdown } from '@/lib/dashboard-metrics'
+import { calculateProjectMetrics, getCategoryBreakdown, getHierarchicalBreakdown } from '@/lib/dashboard-metrics'
 import { getProjectPLMetrics, getPLImpactByMonth, getOpenPOsByPromiseDate } from '@/lib/pl-tracking-service'
 import { useToast } from '@/hooks/use-toast'
 import { Button } from '@/components/ui/button'
@@ -61,7 +61,6 @@ export default function ProjectDashboard({ params }: ProjectDashboardProps) {
   const [metrics, setMetrics] = useState<ProjectMetrics | null>(null)
   const [loading, setLoading] = useState(true)
   const [project, setProject] = useState<any>(null)
-  const [timelineData, setTimelineData] = useState<any[]>([])
   const [categoryData, setCategoryData] = useState<any[]>([])
   const [breakdownData, setBreakdownData] = useState<any[]>([])
   const [burnRateData, setBurnRateData] = useState<any[]>([])
@@ -119,8 +118,7 @@ export default function ProjectDashboard({ params }: ProjectDashboardProps) {
       console.log('P&L Metrics:', plData) // Debug log
       
       // Fetch chart data and P&L timeline
-      const [timeline, categories, breakdown, plTimelineData, openPOs] = await Promise.all([
-        getTimelineData(projectId, filters),
+      const [categories, breakdown, plTimelineData, openPOs] = await Promise.all([
         getCategoryBreakdown(projectId, filters),
         getHierarchicalBreakdown(projectId, filters),
         getPLImpactByMonth(projectId, filters.dateRange.from, filters.dateRange.to),
@@ -129,11 +127,8 @@ export default function ProjectDashboard({ params }: ProjectDashboardProps) {
       console.log('P&L Timeline:', plTimelineData) // Debug log
       console.log('Open POs by Promise Date:', openPOs) // Debug log
       
-      console.log('Timeline data:', timeline) // Debug log
       console.log('Category data:', categories) // Debug log
       console.log('Breakdown data:', breakdown) // Debug log
-      
-      setTimelineData(timeline)
       setCategoryData(categories)
       setBreakdownData(breakdown)
       setPLTimeline(plTimelineData)
@@ -189,8 +184,8 @@ export default function ProjectDashboard({ params }: ProjectDashboardProps) {
       setSubcategoryData(subcategoryArray)
       
       // Calculate burn rate data
-      const burnRate = calculateBurnRateFromTimeline(timeline)
-      setBurnRateData(burnRate)
+      // Note: Burn rate calculation removed as timeline data now fetched by Cell
+      setBurnRateData([])
       
     } catch (error) {
       console.error('Error loading dashboard data:', error)
@@ -279,7 +274,6 @@ export default function ProjectDashboard({ params }: ProjectDashboardProps) {
     const data = {
       metrics,
       breakdown: breakdownData,
-      timeline: timelineData,
       categories: categoryData
     }
     
@@ -368,7 +362,6 @@ export default function ProjectDashboard({ params }: ProjectDashboardProps) {
             promiseDates={promiseDates}
             categoryData={categoryData}
             breakdownData={breakdownData}
-            timelineData={timelineData}
             subcategoryData={subcategoryData}
           />
         )}
@@ -424,16 +417,14 @@ export default function ProjectDashboard({ params }: ProjectDashboardProps) {
         )}
 
         {/* Budget Timeline Visualization */}
-        {timelineData.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Budget vs Actual Timeline</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <BudgetTimelineChart data={timelineData} />
-            </CardContent>
-          </Card>
-        )}
+        <Card>
+          <CardHeader>
+            <CardTitle>Budget vs Actual Timeline</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <BudgetTimelineChartCell projectId={projectId} />
+          </CardContent>
+        </Card>
 
         {/* Category and Subcategory Charts */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

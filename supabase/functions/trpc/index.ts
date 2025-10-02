@@ -70,6 +70,81 @@ function splitMappedAmount(mappedAmount: number, lineItem: any): { actual: numbe
   };
 }
 
+// Helper: Generate timeline data for budget visualization
+// Helper: Generate P&L timeline with actual invoices and future promises
+// Budget as fixed reference line, actual as cumulative invoiced, forecast as future promises
+function generatePLTimeline(
+  totalBudget: number,
+  invoiceData: Array<{ month: Date; invoiced: number }>,
+  promiseData: Array<{ month: Date; future: number }>
+): Array<{
+  month: string;
+  budget: number;
+  actual: number;
+  forecast: number;
+}> {
+  // Build month map for invoices
+  const invoiceMap = new Map<string, number>();
+  invoiceData.forEach((row) => {
+    const key = new Date(row.month).toISOString().slice(0, 7); // YYYY-MM
+    invoiceMap.set(key, Number(row.invoiced || 0));
+  });
+
+  // Build month map for promises
+  const promiseMap = new Map<string, number>();
+  promiseData.forEach((row) => {
+    const key = new Date(row.month).toISOString().slice(0, 7); // YYYY-MM
+    promiseMap.set(key, Number(row.future || 0));
+  });
+
+  // Determine date range
+  const allDates = [...invoiceData.map(d => new Date(d.month)), ...promiseData.map(d => new Date(d.month))];
+  if (allDates.length === 0) {
+    // No data - return empty array
+    return [];
+  }
+
+  const startDate = new Date(Math.min(...allDates.map(d => d.getTime())));
+  const endDate = new Date(Math.max(...allDates.map(d => d.getTime())));
+  
+  // Extend end date to include at least 3 months into future for visibility
+  const minEndDate = new Date();
+  minEndDate.setMonth(minEndDate.getMonth() + 3);
+  if (endDate < minEndDate) {
+    endDate.setMonth(minEndDate.getMonth());
+  }
+
+  // Generate timeline
+  const timeline: Array<{ month: string; budget: number; actual: number; forecast: number }> = [];
+  const current = new Date(startDate);
+  current.setDate(1); // Normalize to first of month
+  
+  let cumulativeActual = 0;
+
+  while (current <= endDate) {
+    const monthKey = current.toISOString().slice(0, 7); // YYYY-MM
+    const monthLabel = current.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+    
+    // Add monthly invoice to cumulative
+    const monthlyInvoice = invoiceMap.get(monthKey) || 0;
+    cumulativeActual += monthlyInvoice;
+    
+    // Get forecast for this month (not cumulative - just this month's promise)
+    const monthlyForecast = promiseMap.get(monthKey) || 0;
+
+    timeline.push({
+      month: monthLabel,
+      budget: totalBudget, // Fixed budget reference
+      actual: Math.round(cumulativeActual),
+      forecast: Math.round(monthlyForecast)
+    });
+
+    current.setMonth(current.getMonth() + 1);
+  }
+
+  return timeline;
+}
+
 const dashboardRouter = router({
   /**
    * Get KPI Metrics for a project
@@ -352,6 +427,102 @@ const dashboardRouter = router({
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
           message: 'Failed to fetch promise dates. Please try again.',
+          cause: error,
+        });
+      }
+    }),
+
+  /**
+   * Get Timeline Budget
+   * Returns monthly budget timeline for visualization
+   * Used by BudgetTimelineChartCell
+   */
+  getTimelineBudget: publicProcedure
+    .input(
+      z.object({
+        projectId: z.string().uuid(),
+        filters: z
+          .object({
+            costLine: z.string().optional(),
+            spendType: z.string().optional(),
+            dateRange: z
+              .object({
+                from: z.string().transform((val) => new Date(val)),
+                to: z.string().transform((val) => new Date(val)),
+              })
+              .optional(),
+          })
+          .optional(),
+      })
+    )
+    .query(async ({ input, ctx }) => {
+      try {
+        // Validate projectId
+        if (!input.projectId) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: 'Project ID is required',
+          });
+        }
+
+        // 1. Get latest budget forecast for project
+        const budgetResult = await ctx.sql`
+          SELECT COALESCE(SUM(bf.forecasted_cost), 0) as total_budget
+          FROM budget_forecasts bf
+          JOIN forecast_versions fv ON bf.forecast_version_id = fv.id
+          JOIN cost_breakdown cb ON bf.cost_breakdown_id = cb.id
+          WHERE cb.project_id = ${input.projectId}
+            AND fv.version_number = (
+              SELECT MAX(version_number)
+              FROM forecast_versions
+              WHERE project_id = ${input.projectId}
+            )
+        `;
+
+        const totalBudget = Number(budgetResult[0]?.total_budget || 0);
+
+        // 2. Get invoice timeline (monthly aggregated actuals)
+        const invoiceResult = await ctx.sql`
+          SELECT 
+            DATE_TRUNC('month', pli.invoice_date) as month,
+            COALESCE(SUM(pli.invoiced_value_usd), 0) as invoiced
+          FROM po_line_items pli
+          JOIN po_mappings pm ON pli.id = pm.po_line_item_id
+          JOIN cost_breakdown cb ON pm.cost_breakdown_id = cb.id
+          WHERE cb.project_id = ${input.projectId}
+            AND pli.invoice_date IS NOT NULL
+          GROUP BY DATE_TRUNC('month', pli.invoice_date)
+          ORDER BY DATE_TRUNC('month', pli.invoice_date)
+        `;
+
+        // 3. Get supplier promise timeline (future P&L)
+        const promiseResult = await ctx.sql`
+          SELECT 
+            DATE_TRUNC('month', pli.supplier_promise_date) as month,
+            COALESCE(SUM(pli.line_value - COALESCE(pli.invoiced_value_usd, 0)), 0) as future
+          FROM po_line_items pli
+          JOIN po_mappings pm ON pli.id = pm.po_line_item_id
+          JOIN cost_breakdown cb ON pm.cost_breakdown_id = cb.id
+          WHERE cb.project_id = ${input.projectId}
+            AND pli.supplier_promise_date IS NOT NULL
+            AND pli.supplier_promise_date >= CURRENT_DATE
+          GROUP BY DATE_TRUNC('month', pli.supplier_promise_date)
+          ORDER BY DATE_TRUNC('month', pli.supplier_promise_date)
+        `;
+
+        // 4. Generate P&L timeline
+        return generatePLTimeline(totalBudget, invoiceResult as any, promiseResult as any);
+      } catch (error) {
+        // Handle known tRPC errors
+        if (error instanceof TRPCError) {
+          throw error;
+        }
+
+        // Handle database errors
+        console.error('Failed to fetch timeline budget:', error);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Failed to fetch timeline data',
           cause: error,
         });
       }

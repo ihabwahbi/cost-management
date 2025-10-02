@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { router, publicProcedure } from '../trpc';
-import { eq, sum, sql, inArray } from 'drizzle-orm';
-import { costBreakdown, poMappings, poLineItems } from '@cost-mgmt/db';
+import { eq, sum, sql, inArray, and, desc } from 'drizzle-orm';
+import { costBreakdown, poMappings, poLineItems, budgetForecasts, forecastVersions } from '@cost-mgmt/db';
 import { TRPCError } from '@trpc/server';
 
 /**
@@ -32,6 +32,80 @@ function splitMappedAmount(mappedAmount: number, lineItem: any): { actual: numbe
     actual: inferredActual,
     future: Math.max(mappedAmount - inferredActual, 0)
   };
+}
+
+// Helper: Generate P&L timeline with actual invoices and future promises
+// Budget as fixed reference line, actual as cumulative invoiced, forecast as future promises
+function generatePLTimeline(
+  totalBudget: number,
+  invoiceData: Array<{ month: Date; invoiced: string | null }>,
+  promiseData: Array<{ month: Date; future: string | null }>
+): Array<{
+  month: string;
+  budget: number;
+  actual: number;
+  forecast: number;
+}> {
+  // Build month map for invoices
+  const invoiceMap = new Map<string, number>();
+  invoiceData.forEach((row) => {
+    const key = new Date(row.month).toISOString().slice(0, 7); // YYYY-MM
+    invoiceMap.set(key, Number(row.invoiced || 0));
+  });
+
+  // Build month map for promises
+  const promiseMap = new Map<string, number>();
+  promiseData.forEach((row) => {
+    const key = new Date(row.month).toISOString().slice(0, 7); // YYYY-MM
+    promiseMap.set(key, Number(row.future || 0));
+  });
+
+  // Determine date range
+  const allDates = [...invoiceData.map(d => new Date(d.month)), ...promiseData.map(d => new Date(d.month))];
+  if (allDates.length === 0) {
+    // No data - return empty array
+    return [];
+  }
+
+  const startDate = new Date(Math.min(...allDates.map(d => d.getTime())));
+  const endDate = new Date(Math.max(...allDates.map(d => d.getTime())));
+  
+  // Extend end date to include at least 3 months into future for visibility
+  const minEndDate = new Date();
+  minEndDate.setMonth(minEndDate.getMonth() + 3);
+  if (endDate < minEndDate) {
+    endDate.setMonth(minEndDate.getMonth());
+  }
+
+  // Generate timeline
+  const timeline: Array<{ month: string; budget: number; actual: number; forecast: number }> = [];
+  const current = new Date(startDate);
+  current.setDate(1); // Normalize to first of month
+  
+  let cumulativeActual = 0;
+
+  while (current <= endDate) {
+    const monthKey = current.toISOString().slice(0, 7); // YYYY-MM
+    const monthLabel = current.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+    
+    // Add monthly invoice to cumulative
+    const monthlyInvoice = invoiceMap.get(monthKey) || 0;
+    cumulativeActual += monthlyInvoice;
+    
+    // Get forecast for this month (not cumulative - just this month's promise)
+    const monthlyForecast = promiseMap.get(monthKey) || 0;
+
+    timeline.push({
+      month: monthLabel,
+      budget: totalBudget, // Fixed budget reference
+      actual: Math.round(cumulativeActual),
+      forecast: Math.round(monthlyForecast)
+    });
+
+    current.setMonth(current.getMonth() + 1);
+  }
+
+  return timeline;
 }
 
 export const dashboardRouter = router({
@@ -363,6 +437,122 @@ export const dashboardRouter = router({
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
           message: 'Failed to fetch promise dates. Please try again.',
+          cause: error,
+        });
+      }
+    }),
+
+  /**
+   * Get Timeline Budget
+   * Returns monthly budget timeline for visualization
+   * Used by BudgetTimelineChartCell
+   */
+  getTimelineBudget: publicProcedure
+    .input(
+      z.object({
+        projectId: z.string().uuid(),
+        filters: z
+          .object({
+            costLine: z.string().optional(),
+            spendType: z.string().optional(),
+            dateRange: z
+              .object({
+                from: z.string().transform((val) => new Date(val)),
+                to: z.string().transform((val) => new Date(val)),
+              })
+              .optional(),
+          })
+          .optional(),
+      })
+    )
+    .query(async ({ input, ctx }) => {
+      try {
+        // Validate projectId
+        if (!input.projectId) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: 'Project ID is required',
+          });
+        }
+
+        // 1. Get latest budget forecast for project
+        // Find max version number for this project
+        const maxVersionResult = await ctx.db
+          .select({ maxVersion: sql<number>`MAX(${forecastVersions.versionNumber})` })
+          .from(forecastVersions)
+          .where(eq(forecastVersions.projectId, input.projectId));
+
+        const latestVersion = maxVersionResult[0]?.maxVersion ?? 0;
+
+        // Get budget for latest version
+        const budgetResult = await ctx.db
+          .select({
+            totalBudget: sum(budgetForecasts.forecastedCost),
+          })
+          .from(budgetForecasts)
+          .innerJoin(forecastVersions, eq(budgetForecasts.forecastVersionId, forecastVersions.id))
+          .innerJoin(costBreakdown, eq(budgetForecasts.costBreakdownId, costBreakdown.id))
+          .where(
+            and(
+              eq(costBreakdown.projectId, input.projectId),
+              eq(forecastVersions.versionNumber, latestVersion)
+            )
+          );
+
+        const totalBudget = Number(budgetResult[0]?.totalBudget || 0);
+
+        // 2. Get invoice timeline (cumulative actuals)
+        const invoiceResult = await ctx.db
+          .select({
+            month: sql<Date>`DATE_TRUNC('month', ${poLineItems.invoiceDate})`,
+            invoiced: sum(poLineItems.invoicedValueUsd),
+          })
+          .from(poLineItems)
+          .innerJoin(poMappings, eq(poLineItems.id, poMappings.poLineItemId))
+          .innerJoin(costBreakdown, eq(poMappings.costBreakdownId, costBreakdown.id))
+          .where(
+            and(
+              eq(costBreakdown.projectId, input.projectId),
+              sql`${poLineItems.invoiceDate} IS NOT NULL`
+            )
+          )
+          .groupBy(sql`DATE_TRUNC('month', ${poLineItems.invoiceDate})`)
+          .orderBy(sql`DATE_TRUNC('month', ${poLineItems.invoiceDate})`);
+
+        // 3. Get supplier promise timeline (future P&L)
+        const promiseResult = await ctx.db
+          .select({
+            month: sql<Date>`DATE_TRUNC('month', ${poLineItems.supplierPromiseDate})`,
+            future: sum(
+              sql<number>`${poLineItems.lineValue} - COALESCE(${poLineItems.invoicedValueUsd}, 0)`
+            ),
+          })
+          .from(poLineItems)
+          .innerJoin(poMappings, eq(poLineItems.id, poMappings.poLineItemId))
+          .innerJoin(costBreakdown, eq(poMappings.costBreakdownId, costBreakdown.id))
+          .where(
+            and(
+              eq(costBreakdown.projectId, input.projectId),
+              sql`${poLineItems.supplierPromiseDate} IS NOT NULL`,
+              sql`${poLineItems.supplierPromiseDate} >= CURRENT_DATE`
+            )
+          )
+          .groupBy(sql`DATE_TRUNC('month', ${poLineItems.supplierPromiseDate})`)
+          .orderBy(sql`DATE_TRUNC('month', ${poLineItems.supplierPromiseDate})`);
+
+        // 4. Generate P&L timeline
+        return generatePLTimeline(totalBudget, invoiceResult, promiseResult);
+      } catch (error) {
+        // Handle known tRPC errors
+        if (error instanceof TRPCError) {
+          throw error;
+        }
+
+        // Handle database errors
+        console.error('Failed to fetch timeline budget:', error);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Failed to fetch timeline data',
           cause: error,
         });
       }

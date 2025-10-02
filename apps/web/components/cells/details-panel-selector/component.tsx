@@ -19,14 +19,14 @@ interface SelectorProps {
   onProjectChange: (value: string) => void
   onSpendTypeChange: (value: string) => void
   onSubCategoryChange: (value: string) => void
+  onCostBreakdownFound: (id: string | null) => void
 }
 
 /**
- * DetailsPanelSelector - Phase A.1 (Partial)
+ * DetailsPanelSelector - Phase A.2 (Complete)
  * 
  * Cascading dropdown selectors for PO mapping workflow
- * Currently uses procedures 1-3 only
- * Procedure 4 (findMatchingCostBreakdown) will be added in Phase A.2
+ * Uses all 4 read procedures to find matching cost breakdown
  */
 export function DetailsPanelSelector(props: SelectorProps) {
   // No input required for projects query (void procedure)
@@ -54,6 +54,33 @@ export function DetailsPanelSelector(props: SelectorProps) {
     subCatInput,
     { enabled: !!props.selectedProject && !!props.selectedSpendType }
   )
+  
+  // Memoized input for finding matching cost breakdown (Procedure 4)
+  const findInput = useMemo(
+    () => ({
+      projectId: props.selectedProject,
+      spendType: props.selectedSpendType,
+      spendSubCategory: props.selectedSpendSubCategory
+    }),
+    [props.selectedProject, props.selectedSpendType, props.selectedSpendSubCategory]
+  )
+  const { data: costBreakdowns } = trpc.poMapping.findMatchingCostBreakdown.useQuery(
+    findInput,
+    { 
+      enabled: !!props.selectedProject && !!props.selectedSpendType && !!props.selectedSpendSubCategory,
+      refetchOnMount: false,
+      refetchOnWindowFocus: false
+    }
+  )
+  
+  // Notify parent when cost breakdown is found
+  useEffect(() => {
+    if (costBreakdowns && costBreakdowns.length > 0) {
+      props.onCostBreakdownFound(costBreakdowns[0].id)
+    } else {
+      props.onCostBreakdownFound(null)
+    }
+  }, [costBreakdowns, props.onCostBreakdownFound])
   
   // Cascading reset logic - BA-006
   useEffect(() => {

@@ -1,0 +1,20 @@
+gates:
+  - name: types
+    command: pnpm type-check
+    requirement: "TypeScript zero errors"
+  
+  - name: tests
+    command: pnpm test -- components/cells/details-panel-viewer
+    requirement: "80%+ coverage, 3 behavioral assertions verified"
+  
+  - name: build
+    command: pnpm build
+    requirement: "Production build succeeds"
+  
+  - name: performance
+    requirement: "Load time ≤110% baseline"
+    measurement: "React DevTools Profiler"
+  
+  - name: accessibility
+    requirement: "WCAG AA compliance"
+    tools: "Automated + manual review"

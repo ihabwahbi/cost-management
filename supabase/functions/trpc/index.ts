@@ -442,6 +442,84 @@ const poMappingRouter = router({
         });
       }
     }),
+
+  /**
+   * Procedure 4: Find matching cost breakdown
+   */
+  findMatchingCostBreakdown: publicProcedure
+    .input(z.object({
+      projectId: z.string().uuid(),
+      spendType: z.string(),
+      spendSubCategory: z.string()
+    }))
+    .query(async ({ ctx, input }) => {
+      try {
+        const result = await ctx.sql`
+          SELECT 
+            cb.id,
+            cb.project_id as "projectId",
+            cb.sub_business_line as "subBusinessLine",
+            cb.cost_line as "costLine",
+            cb.spend_type as "spendType",
+            cb.spend_sub_category as "spendSubCategory",
+            cb.budget_cost as "budgetCost"
+          FROM cost_breakdown cb
+          INNER JOIN projects p ON p.id = cb.project_id
+          WHERE cb.project_id = ${input.projectId}
+            AND cb.spend_type = ${input.spendType}
+            AND cb.spend_sub_category = ${input.spendSubCategory}
+        `;
+        
+        return result;
+      } catch (error) {
+        console.error('Failed to find matching cost breakdown:', error);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Failed to find matching cost breakdown. Please try again.',
+          cause: error,
+        });
+      }
+    }),
+
+  /**
+   * Procedure 5: Get existing PO mappings
+   */
+  getExistingMappings: publicProcedure
+    .input(z.object({
+      poId: z.string().uuid()
+    }))
+    .query(async ({ ctx, input }) => {
+      try {
+        const result = await ctx.sql`
+          SELECT 
+            pm.id,
+            pm.po_line_item_id as "poLineItemId",
+            pm.cost_breakdown_id as "costBreakdownId",
+            pm.mapped_amount as "mappedAmount",
+            pm.mapping_notes as "mappingNotes",
+            pli.line_item_number as "lineItemNumber",
+            pli.description,
+            pli.quantity,
+            pli.line_value as "lineValue",
+            cb.cost_line as "costLine",
+            cb.spend_type as "spendType",
+            cb.spend_sub_category as "spendSubCategory"
+          FROM po_mappings pm
+          INNER JOIN po_line_items pli ON pli.id = pm.po_line_item_id
+          INNER JOIN cost_breakdown cb ON cb.id = pm.cost_breakdown_id
+          WHERE pli.po_id = ${input.poId}
+        `;
+        
+        return result;
+      } catch (error) {
+        console.error('Failed to fetch existing mappings:', error);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Failed to fetch existing mappings. Please try again.',
+          cause: error,
+        });
+      }
+    }),
 });
 
 // ============================================================================

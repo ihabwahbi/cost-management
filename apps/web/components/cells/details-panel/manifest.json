@@ -1,0 +1,36 @@
+{
+  "id": "details-panel",
+  "version": "1.0.0",
+  "description": "PO mapping details panel orchestrator",
+  "phase": "C",
+  "status": "complete",
+  "behavioral_assertions": [
+    {
+      "id": "BA-010",
+      "description": "Shows empty state when no PO selected",
+      "verification": "Render without selectedPO, verify message",
+      "source": "Original lines 417-432"
+    },
+    {
+      "id": "BA-011",
+      "description": "Shows 'Not Mapped' state with create button",
+      "verification": "PO with no mappings, verify create button",
+      "source": "Original lines 448-465"
+    },
+    {
+      "id": "BA-012",
+      "description": "Resets all states when PO changes",
+      "verification": "Change selectedPO prop, verify reset",
+      "source": "Original lines 135-138"
+    }
+  ],
+  "dependencies": {
+    "data": [],
+    "ui": ["@/components/ui/card", "@/components/ui/button"],
+    "cells": [
+      "details-panel-viewer",
+      "details-panel-selector",
+      "details-panel-mapper"
+    ]
+  }
+}

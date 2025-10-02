@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect } from 'react'
 import { trpc } from '@/lib/trpc'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -9,9 +10,10 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 interface DetailsPanelViewerProps {
   poId: string | null
   onEditMapping?: (mappingId: string) => void
+  onMappingsLoaded?: (mappings: Array<{ id: string; poLineItemId: string }>) => void
 }
 
-export function DetailsPanelViewer({ poId, onEditMapping }: DetailsPanelViewerProps) {
+export function DetailsPanelViewer({ poId, onEditMapping, onMappingsLoaded }: DetailsPanelViewerProps) {
   // No memoization needed - poId is primitive string
   const { data, isLoading, error } = trpc.poMapping.getExistingMappings.useQuery(
     { poId: poId! },
@@ -22,6 +24,21 @@ export function DetailsPanelViewer({ poId, onEditMapping }: DetailsPanelViewerPr
       staleTime: 5 * 60 * 1000 // 5 minutes
     }
   )
+  
+  // Notify parent component when mappings data loads
+  useEffect(() => {
+    if (data && onMappingsLoaded) {
+      // Extract just id and poLineItemId for orchestrator state management
+      const mappingsData = data.map(m => ({ 
+        id: m.id, 
+        poLineItemId: m.poLineItemId 
+      }))
+      onMappingsLoaded(mappingsData)
+    } else if (!data && onMappingsLoaded) {
+      // No mappings - notify with empty array
+      onMappingsLoaded([])
+    }
+  }, [data, onMappingsLoaded])
   
   // BA-002: Currency formatting helper - shows 'N/A' for null/invalid
   const formatCurrency = (value: string | null) => {

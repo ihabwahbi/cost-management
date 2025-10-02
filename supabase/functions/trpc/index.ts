@@ -605,6 +605,34 @@ const poMappingRouter = router({
         });
       }
     }),
+
+  /**
+   * Procedure 8: Clear/delete mappings
+   * Phase B.2: Mutation Operations
+   */
+  clearMappings: publicProcedure
+    .input(z.object({
+      poLineItemIds: z.array(z.string().uuid())
+    }))
+    .mutation(async ({ ctx, input }) => {
+      try {
+        for (const lineItemId of input.poLineItemIds) {
+          await ctx.sql`
+            DELETE FROM po_mappings
+            WHERE po_line_item_id = ${lineItemId}
+          `;
+        }
+        
+        return { success: true };
+      } catch (error) {
+        console.error('Failed to clear mappings:', error);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Failed to clear mappings. Please try again.',
+          cause: error,
+        });
+      }
+    }),
 });
 
 // ============================================================================

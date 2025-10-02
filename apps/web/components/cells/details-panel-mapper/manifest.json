@@ -1,0 +1,40 @@
+{
+  "id": "details-panel-mapper",
+  "version": "1.0.0",
+  "description": "CRUD operations for PO mappings",
+  "phase": "B.1",
+  "status": "in_progress",
+  "behavioral_assertions": [
+    {
+      "id": "BA-007",
+      "description": "Save button disabled when required fields missing",
+      "verification": "Leave fields empty, verify button disabled",
+      "source": "Original details-panel.tsx lines 549-555"
+    },
+    {
+      "id": "BA-008",
+      "description": "Shows two-step confirmation before clearing",
+      "verification": "Click clear, verify dialog appears",
+      "source": "Original details-panel.tsx lines 592-626"
+    },
+    {
+      "id": "BA-009",
+      "description": "Refreshes display after successful operation",
+      "verification": "Complete operation, verify data reloads",
+      "source": "Original callback patterns"
+    }
+  ],
+  "dependencies": {
+    "data": ["po_mappings", "cost_breakdown"],
+    "trpc": [
+      "poMapping.createMapping",
+      "poMapping.updateMapping"
+    ],
+    "ui": [
+      "@/components/ui/button",
+      "@/components/ui/textarea",
+      "@/components/ui/alert-dialog",
+      "@/components/ui/label"
+    ]
+  }
+}

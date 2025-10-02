@@ -703,7 +703,7 @@ Phase 5: Verification
 }
 ```
 
-### 4.4 Target Monorepo Structure
+### 4.3 Target Monorepo Structure
 
 ```
 cost-management-hub/
@@ -765,7 +765,7 @@ cost-management-hub/
 └── turbo.json                         # Turborepo configuration
 ```
 
-### 4.5 Migration Epics
+### 4.4 Migration Epics
 
 #### Epic 1: Living Blueprint Phase 1 Foundation & Validation
 **Epic ID:** EPIC-001  
@@ -1072,7 +1072,7 @@ project-dashboard (page) [orchestrator]
 
 ---
 
-### 4.6 Migration Timeline
+### 4.5 Migration Timeline
 
 ```
 Week 1-3:   Epic 1 - Foundation & Pilot Cells Validation
@@ -1537,6 +1537,750 @@ This architecture is specifically designed for **AI-agentic development** with c
 - v1.0 (2025-10-01): Initial architecture proposal
 
 ---
+## Part 11: Development Pitfalls & Prevention
+
+**Context:** Lessons learned from Story 1.3 (PLCommandCenter) implementation incident
+
+### 11.1 Overview
+
+During Story 1.3 implementation, the team encountered 4 critical issues that extended the estimated 2-hour task to 6+ hours. While all issues were ultimately resolved, they exposed gaps in our development workflow and documentation. This section captures these lessons to prevent future occurrences.
+
+**Key Finding:** All issues were **workflow and discipline failures**, not architectural flaws. The Smart Cell architecture remains sound, but requires enhanced development procedures.
+
+### 11.2 Pitfall #1: Infinite Render Loops with React Query
+
+**Severity:** CRITICAL - Hardest to debug, most time-consuming (90 minutes lost)
+
+**Symptom:**
+- Component stuck in perpetual loading state
+- Network tab shows successful 200 OK responses
+- No error messages in console
+- React Query status shows `pending` forever
+- Data never appears in UI
+
+**Root Cause:**
+Unmemoized objects/arrays passed to React hooks create new references on every render, causing React Query to think the query key changed, abandoning the previous query and starting a new one infinitely.
+
+**Example of Bug:**
+```typescript
+// ❌ WRONG - Creates new Date objects every render (milliseconds differ)
+function PLCommandCenter({ projectId }: Props) {
+  const { data } = trpc.getPLTimeline.useQuery({
+    projectId,
+    dateRange: {
+      from: new Date(new Date().setMonth(new Date().getMonth() - 6)),
+      to: new Date(new Date().setMonth(new Date().getMonth() + 6)),
+    },
+  })
+  // ^ Every render creates new Date objects with different milliseconds
+  // React Query sees: 2025-10-02T16:26:30.600Z vs 2025-10-02T16:26:30.601Z
+  // Treats as different queries → infinite loop
+}
+```
+
+**How to Fix:**
+```typescript
+// ✅ CORRECT - Memoized, stable reference across renders
+function PLCommandCenter({ projectId }: Props) {
+  const dateRange = useMemo(() => {
+    const now = new Date()
+    const from = new Date(now)
+    from.setMonth(from.getMonth() - 6)
+    from.setHours(0, 0, 0, 0) // Normalize time to prevent millisecond drift
+    
+    const to = new Date(now)
+    to.setMonth(to.getMonth() + 6)
+    to.setHours(23, 59, 59, 999)
+    
+    return { from, to }
+  }, []) // Empty deps = memoized once, never recreated
+
+  const { data } = trpc.getPLTimeline.useQuery({
+    projectId,
+    dateRange, // ✅ Stable reference
+  })
+}
+```
+
+**Prevention Strategy:**
+1. **ALWAYS memoize** complex objects/arrays passed to hooks:
+   - `useQuery` inputs
+   - `useEffect` dependencies
+   - `useMemo` dependencies
+   - `useCallback` dependencies
+
+2. **Debugging checklist** when component won't load:
+   ```yaml
+   - [ ] Check Network tab: Are requests succeeding? (200 OK?)
+   - [ ] Check Console: Is React Query status stuck on 'pending'?
+   - [ ] Add console.log for query inputs - do they change every render?
+   - [ ] Wrap all object/array inputs in useMemo
+   ```
+
+3. **Mandatory review:** Before committing Cell code, verify ALL hook inputs are memoized
+
+**Detection:**
+```typescript
+// Add defensive logging during development
+const dateRange = useMemo(() => {
+  const range = { from: new Date(), to: new Date() }
+  console.log('[PLCommandCenter] dateRange created:', range)
+  return range
+}, [])
+// If you see this log on EVERY render → you have an infinite loop
+```
+
+---
+
+### 11.3 Pitfall #2: Date Serialization Over HTTP
+
+**Severity:** HIGH - Causes 400 Bad Request errors (45 minutes lost)
+
+**Symptom:**
+- tRPC queries return 400 Bad Request
+- Zod validation errors in console
+- Error message: "Expected date, received string"
+- Network tab shows request payload has ISO date strings
+
+**Root Cause:**
+JavaScript Date objects cannot be sent over HTTP. tRPC automatically serializes Date → ISO string on the client, but if the Zod schema expects `z.date()`, validation fails on the server.
+
+**Example of Bug:**
+```typescript
+// ❌ WRONG - Schema expects Date object, but HTTP sends string
+export const dashboardRouter = router({
+  getPLTimeline: publicProcedure
+    .input(z.object({
+      projectId: z.string().uuid(),
+      dateRange: z.object({
+        from: z.date(),  // ❌ This expects Date object
+        to: z.date(),    // ❌ But receives "2025-10-02T00:00:00Z" string
+      })
+    }))
+    .query(async ({ input }) => { /* ... */ })
+})
+
+// Client sends:
+// { dateRange: { from: "2025-10-02T00:00:00Z", to: "2025-10-02T23:59:59Z" } }
+// Server schema expects Date objects → Zod rejects → 400 Bad Request
+```
+
+**How to Fix:**
+```typescript
+// ✅ CORRECT - Accept strings, transform to Date objects
+export const dashboardRouter = router({
+  getPLTimeline: publicProcedure
+    .input(z.object({
+      projectId: z.string().uuid(),
+      dateRange: z.object({
+        from: z.string().transform((val) => new Date(val)),
+        to: z.string().transform((val) => new Date(val)),
+      })
+    }))
+    .query(async ({ input }) => {
+      // input.dateRange.from is now a Date object
+      // input.dateRange.to is now a Date object
+    })
+})
+```
+
+**Prevention Strategy:**
+
+1. **ALWAYS use `z.string().transform()` for dates** in tRPC input schemas
+2. **Test procedures via curl BEFORE writing client code:**
+   ```bash
+   # Test with ISO string dates
+   curl -X POST https://your-edge-function.supabase.co/trpc/getPLTimeline \
+     -d '{"projectId":"uuid","dateRange":{"from":"2025-10-02T00:00:00Z","to":"2025-12-31T23:59:59Z"}}'
+   
+   # If this succeeds, your schema is correct
+   ```
+
+3. **Pattern to follow:**
+   ```typescript
+   // Date inputs: ALWAYS z.string().transform()
+   // Date outputs: Return ISO strings or Date objects (both work)
+   
+   input: z.object({
+     date: z.string().transform(val => new Date(val)),
+     dateRange: z.object({
+       from: z.string().transform(val => new Date(val)),
+       to: z.string().transform(val => new Date(val)),
+     })
+   })
+   ```
+
+**Reference Implementation:**
+See `supabase/functions/trpc/index.ts::getPLTimeline` for correct pattern.
+
+---
+
+### 11.4 Pitfall #3: SQL Syntax Confusion Across Query Builders
+
+**Severity:** MEDIUM - Breaks edge function queries (20 minutes lost)
+
+**Symptom:**
+- Edge function throws SQL syntax errors
+- Queries return no results when data exists
+- PostgreSQL error messages about invalid syntax
+
+**Root Cause:**
+Mixing mental models between different SQL query builders:
+- **Drizzle ORM** - TypeScript-first query builder
+- **Raw SQL** - Template literals with `sql` tag
+- **postgres package** - Used in Supabase Edge Functions
+
+**Example of Bug:**
+```typescript
+// ❌ WRONG - Mixing raw SQL syntax with Drizzle
+import { sql } from 'drizzle-orm'
+
+const costBreakdownIds = [1, 2, 3]
+
+const mappings = await db
+  .select()
+  .from(poMappings)
+  .where(sql`${poMappings.costBreakdownId} = ANY(${costBreakdownIds})`)
+  // ❌ ANY() is PostgreSQL syntax, not compatible with Drizzle's sql tag
+```
+
+**How to Fix:**
+```typescript
+// ✅ CORRECT - Use Drizzle's helper functions
+import { inArray } from 'drizzle-orm'
+
+const costBreakdownIds = [1, 2, 3]
+
+const mappings = await db
+  .select()
+  .from(poMappings)
+  .where(inArray(poMappings.costBreakdownId, costBreakdownIds))
+  // ✅ Drizzle's inArray() handles the SQL generation correctly
+```
+
+**Prevention Strategy:**
+
+1. **ALWAYS reference existing working procedures** before writing new queries
+   - See: `supabase/functions/trpc/index.ts::getKPIMetrics` for patterns
+   - Copy query structure, modify for your use case
+
+2. **Use Drizzle helper functions:**
+   ```typescript
+   // Common patterns:
+   import { eq, inArray, and, or, gt, lt, between } from 'drizzle-orm'
+   
+   // Single condition
+   .where(eq(table.column, value))
+   
+   // Multiple values
+   .where(inArray(table.column, [val1, val2, val3]))
+   
+   // Multiple conditions
+   .where(and(
+     eq(table.col1, val1),
+     gt(table.col2, val2)
+   ))
+   
+   // Date ranges
+   .where(between(table.date, fromDate, toDate))
+   ```
+
+3. **Test queries in Supabase SQL Editor FIRST:**
+   - Write raw SQL to verify logic
+   - Then translate to Drizzle syntax
+   - Reference Drizzle docs for helper functions
+
+**Reference:**
+- Drizzle ORM docs: https://orm.drizzle.team/docs/select
+- Existing working queries: `supabase/functions/trpc/index.ts`
+
+---
+
+### 11.5 Pitfall #4: Infrastructure Confusion
+
+**Severity:** MEDIUM - Can break existing features (30 minutes lost)
+
+**Symptom:**
+- Existing working features suddenly break (e.g., KPICard)
+- tRPC client can't reach endpoints
+- Environment variables pointing to wrong URLs
+
+**Root Cause:**
+Not understanding existing infrastructure setup, attempting to recreate what already exists (e.g., creating local API route when Supabase Edge Function already deployed).
+
+**Example of Bug:**
+Story 1.3 attempted to create a local Next.js API route instead of adding procedures to the existing Supabase Edge Function, which:
+- Broke the working KPICard component (changed `NEXT_PUBLIC_TRPC_URL`)
+- Added unnecessary complexity
+- Violated the established pattern
+
+**How to Fix:**
+```typescript
+// ✅ CORRECT - Add to existing edge function
+// File: supabase/functions/trpc/index.ts
+
+// Import existing router
+import { router } from './trpc-setup'
+import { dashboardRouter } from './routers/dashboard'
+
+// Add new procedures to existing dashboard router
+export const appRouter = router({
+  dashboard: dashboardRouter, // Already exists
+  // Just add procedures to dashboardRouter, don't create new infrastructure
+})
+```
+
+**Prevention Strategy:**
+
+1. **MANDATORY Task 0: Review Existing Patterns**
+   ```yaml
+   Before ANY implementation:
+   - [ ] Query ledger for similar Cells
+   - [ ] Review referenced Cell code
+   - [ ] Check existing tRPC routers (what procedures exist?)
+   - [ ] Verify edge function deployment status
+   - [ ] Confirm environment variables point to correct endpoints
+   - [ ] DO NOT recreate infrastructure that already exists
+   ```
+
+2. **Check before creating:**
+   - New tRPC router? → Check if router already exists
+   - New edge function? → Check if edge function deployed
+   - New package? → Check if package already exists
+   - **Default assumption: It probably exists, find it first**
+
+3. **Reference checklist:**
+   ```yaml
+   - [ ] Existing edge function: supabase/functions/trpc/
+   - [ ] Existing tRPC routers: supabase/functions/trpc/index.ts
+   - [ ] Existing procedures: Check dashboardRouter
+   - [ ] Environment variables: .env.local, .env.example
+   - [ ] Deployment status: Check Supabase dashboard
+   ```
+
+---
+
+### 11.6 Debugging Workflow for Async Issues
+
+**When components won't load or queries fail:**
+
+**Step 1: Check Network Tab (ALWAYS FIRST)**
+```yaml
+Questions to answer:
+- [ ] Are requests being sent?
+- [ ] What status codes? (200 OK = server success, 4xx/5xx = server error)
+- [ ] What is the request payload?
+- [ ] What is the response payload?
+- [ ] How long do requests take?
+```
+
+**Step 2: Check Console Logs**
+```yaml
+Questions to answer:
+- [ ] What is React Query status? (pending/success/error)
+- [ ] Are there error messages?
+- [ ] Are query inputs logged correctly?
+- [ ] Any warnings or exceptions?
+```
+
+**Step 3: Isolate Client vs Server**
+```yaml
+If Network = 200 OK but UI stuck loading:
+  → Issue is CLIENT-SIDE (React Query, memoization, rendering)
+  → Check: Are inputs memoized? Is component re-rendering infinitely?
+
+If Network = 4xx/5xx errors:
+  → Issue is SERVER-SIDE (edge function, database, validation)
+  → Check: Test procedure via curl, check Zod schemas, check SQL queries
+```
+
+**Step 4: Use Supabase CLI for Database Verification**
+```bash
+# Connect to database
+supabase db connect
+
+# Run query directly to verify data
+SELECT * FROM cost_breakdown WHERE project_id = 'your-uuid';
+
+# Check if query returns expected results
+# Compare with what tRPC procedure is doing
+```
+
+**Step 5: Add Defensive Logging**
+```typescript
+// In component
+const { data, status, error } = trpc.getPLMetrics.useQuery(input)
+
+console.log('[Component] Query state:', {
+  status,        // pending/success/error
+  hasData: !!data,
+  error: error?.message,
+  input          // Check if input changes every render
+})
+
+// In tRPC procedure
+.query(async ({ input }) => {
+  console.log('[getPLMetrics] Called with:', input)
+  const result = await db.query(...)
+  console.log('[getPLMetrics] Result:', result)
+  return result
+})
+```
+
+**Step 6: Generate Failure Report (After 30 min debugging)**
+If you can't resolve in 30 minutes:
+1. Document symptoms, steps taken, hypotheses
+2. Create failure report
+3. Start new session with clean context
+4. Maximum 3 attempts before escalating to human
+
+---
+
+### 11.7 Mandatory Checklists for Cell Development
+
+**Pre-Implementation Checklist:**
+```yaml
+Before writing ANY code:
+- [ ] Query ledger for reference Cells with similar complexity
+- [ ] Review reference Cell implementation (copy successful patterns)
+- [ ] Identify ALL tRPC procedures needed
+- [ ] Test EACH procedure via curl (verify responses work)
+- [ ] Verify existing infrastructure (don't recreate what exists)
+- [ ] Read "Development Pitfalls" section (this section)
+```
+
+**During Implementation Checklist:**
+```yaml
+While writing code:
+- [ ] Memoize ALL objects/arrays passed to hooks (useMemo required)
+- [ ] Use z.string().transform() for dates (NOT z.date())
+- [ ] Reference existing working procedures for SQL patterns
+- [ ] Add defensive logging for all query states
+- [ ] Test queries independently before integration
+- [ ] Keep component under size limit (< 200 lines simple, < 300 complex)
+```
+
+**Validation Checklist:**
+```yaml
+Before marking complete:
+- [ ] Check Network tab: All requests successful (200 OK)
+- [ ] Check Console: Query states correct (not stuck on pending)
+- [ ] Use Supabase CLI: Verify database queries return correct data
+- [ ] Compare calculations: 100% parity with old implementation
+- [ ] Measure performance: ≤110% of baseline
+- [ ] Run all tests: 80%+ coverage, all behavioral assertions tested
+- [ ] Verify cleanup: Old component deleted, no references remain
+```
+
+---
+
+## Part 12: 100% Adoption Strategy
+
+### 12.1 The Ultimate Goal
+
+**Vision:** A codebase where AI agents operate at peak efficiency because:
+- Every UI component is a Cell with manifest
+- Every API call goes through tRPC
+- Every data query uses Drizzle
+- Every feature is documented in the ledger
+- Zero legacy code remains
+
+**This is not gradual addition - it is complete replacement.**
+
+### 12.2 Adoption Metrics
+
+**Current State (Pre-Migration):**
+- Cell adoption: 0%
+- tRPC adoption: 0%
+- Type safety: ~40%
+- Parallel implementations: N/A (no migration started)
+
+**Target State (Post-Migration):**
+- Cell adoption: 100%
+- tRPC adoption: 100%
+- Type safety: 100%
+- Parallel implementations: 0% (all old code deleted)
+
+**Tracking:**
+- After each epic, calculate: (Cells / Total Components) × 100
+- After each story, verify: Old component deleted? (Yes/No)
+- Final validation: grep -r "components/dashboard" → should return 0 results
+
+### 12.3 Non-Negotiable Rules
+
+1. **No Hybrid Architecture**: Never acceptable to have some Cells and some old components long-term
+2. **No Versioning**: Cell names never include v1, v2, etc.
+3. **No Feature Flags**: Only acceptable during single story implementation, deleted before commit
+4. **No Parallel Implementations**: Old code deleted in same story as new Cell creation
+5. **No Exceptions**: Every component must migrate - no "too complex" or "too risky" excuses
+
+### 12.4 Validation Gates
+
+**Per Story:**
+- [ ] Old component deleted?
+- [ ] Grep returns zero references to old component?
+- [ ] No version suffixes in Cell names?
+- [ ] No feature flags committed?
+
+**Per Epic:**
+- [ ] All stories in epic follow deletion pattern?
+- [ ] Cell adoption percentage increased?
+- [ ] No regressions in test suite?
+
+**Final (Pre-Main Merge):**
+- [ ] 100% Cell adoption achieved?
+- [ ] Zero old component files remain?
+- [ ] Zero direct Supabase queries in components?
+- [ ] All data flows through tRPC?
+- [ ] Ledger contains all Cells?
+
+### 12.5 Success Definition
+
+**The migration is complete when:**
+1. `/components/dashboard` directory is empty (deleted)
+2. `/components/cells` directory contains all UI components
+3. All tRPC routers handle all data fetching
+4. All components have manifests and pipelines
+5. Ledger contains complete history
+6. grep -r "supabase.from" apps/web/components → returns 0 results
+7. grep -r "v1\|v2\|v3" apps/web/components/cells → returns 0 results
+8. AI agents can develop new features 3x faster than on old codebase
+
+**Anything less than 100% is considered incomplete.**
+
+---
+
+## Part 13: Complex Cell Development Strategy
+
+**Context:** Lessons from Story 1.3 - multi-query Cells require phased implementation
+
+### 13.1 Cell Complexity Classification
+
+**Simple Cells (1-2 queries):**
+- Example: KPICard - single `getPLMetrics` query
+- Low risk, straightforward implementation
+- Follow standard Cell development workflow
+- Estimated time: 2-4 hours
+
+**Complex Cells (3+ queries, multiple data sources):**
+- Example: PLCommandCenter - 3 separate queries (metrics, timeline, promise dates)
+- Higher risk, requires phased implementation
+- Follow enhanced validation workflow (see below)
+- Estimated time: 6-8 hours
+
+### 13.2 Phased Implementation for Complex Cells
+
+**DO NOT attempt "big bang" migration with multiple untested queries.**
+
+**Phase 1: Infrastructure Validation (BEFORE any Cell code)**
+
+```yaml
+- [ ] Design all tRPC procedures needed
+- [ ] Implement procedures in edge function
+- [ ] Test EACH procedure independently via curl:
+      curl -X POST https://your-function.supabase.co/trpc/getPLMetrics \
+        -d '{"projectId":"test-uuid"}'
+- [ ] Verify each procedure returns expected data
+- [ ] Document test data and expected outputs
+- [ ] Use Supabase CLI to verify database queries
+- [ ] Deploy edge function ONCE with all procedures
+```
+
+**Phase 2: Incremental Cell Development**
+
+```yaml
+Step 1: Create Cell skeleton (no queries):
+  - [ ] Create Cell directory structure
+  - [ ] Create component.tsx with loading/error states ONLY
+  - [ ] Create state.ts (if needed)
+  - [ ] Create manifest.json with behavioral assertions
+  - [ ] Create pipeline.yaml
+  - [ ] Verify component renders (shows loading state)
+
+Step 2: Add FIRST query:
+  - [ ] Add first tRPC query (simplest one)
+  - [ ] Memoize all query inputs
+  - [ ] Test query in isolation
+  - [ ] Verify data displays correctly
+  - [ ] Check Network tab (200 OK?)
+  - [ ] Check Console (success state?)
+  - [ ] COMMIT checkpoint (can rollback to this)
+
+Step 3: Add SECOND query:
+  - [ ] Add second tRPC query
+  - [ ] Memoize all query inputs
+  - [ ] Verify both queries work together
+  - [ ] Check for race conditions
+  - [ ] Test loading states for both queries
+  - [ ] COMMIT checkpoint
+
+Step 4: Add THIRD query (if needed):
+  - [ ] Add third tRPC query
+  - [ ] Memoize all query inputs
+  - [ ] Verify all three queries work together
+  - [ ] Verify tRPC batching (single HTTP request)
+  - [ ] Test all permutations (loading, error, success)
+  - [ ] COMMIT checkpoint
+
+NEVER skip validation between queries.
+```
+
+**Phase 3: Calculation Validation (CRITICAL)**
+
+```yaml
+- [ ] Test old component in browser
+- [ ] Record ALL calculations in spreadsheet:
+      - Metric 1: [value]
+      - Metric 2: [value]
+      - Calculation formulas documented
+- [ ] Test new Cell in browser
+- [ ] Record ALL calculations from new Cell
+- [ ] Compare side-by-side (MUST be 100% match)
+- [ ] If mismatch found:
+      - [ ] Use Supabase CLI to query database directly
+      - [ ] Determine which implementation is correct
+      - [ ] Debug and fix incorrect implementation
+      - [ ] Re-validate until 100% parity achieved
+```
+
+**Phase 4: Performance Validation**
+
+```yaml
+- [ ] Measure old component (Chrome DevTools Performance tab):
+      - Record 5 samples
+      - Calculate average Time to Interactive (TTI)
+      - Document baseline: Avg TTI = ___ ms
+- [ ] Measure new Cell (same methodology):
+      - Record 5 samples
+      - Calculate average TTI
+      - Document: New TTI = ___ ms
+- [ ] Compare: New TTI ≤ 110% of baseline
+- [ ] If performance fails:
+      - [ ] Check tRPC batching (queries combined?)
+      - [ ] Profile with React DevTools Profiler
+      - [ ] Add React.memo if excessive re-renders
+      - [ ] Check network waterfall for bottlenecks
+      - [ ] Re-measure after optimization
+```
+
+**Phase 5: Cleanup (Only after ALL validations pass)**
+
+```yaml
+Prerequisites:
+  - [x] Calculation validation: 100% parity ✅
+  - [x] Performance validation: ≤110% baseline ✅
+  - [x] All tests passing ✅
+  - [x] Human approval received ✅
+
+Actions:
+  - [ ] Delete old component file
+  - [ ] Update all imports to use new Cell
+  - [ ] Verify no references remain (grep)
+  - [ ] Update ledger with replacement entry
+  - [ ] Run all tests one final time
+  - [ ] Commit: "Story X.Y: [Component] Cell migration - complete"
+```
+
+### 13.3 Risk Management for Complex Cells
+
+**Rollback Checkpoints:**
+
+Create git commits at each phase:
+```bash
+# After Phase 1
+git commit -m "Story 1.3: tRPC procedures deployed and tested"
+
+# After Phase 2.2
+git commit -m "Story 1.3: Cell with first query working"
+
+# After Phase 2.3
+git commit -m "Story 1.3: Cell with two queries working"
+
+# After Phase 3
+git commit -m "Story 1.3: Calculation validation passed"
+
+# After Phase 4
+git commit -m "Story 1.3: Performance validation passed"
+
+# After Phase 5
+git commit -m "Story 1.3: Cleanup complete - old component deleted"
+```
+
+**If issues arise:** `git reset --hard` to last working checkpoint
+
+**Maximum Iteration Protocol:**
+- Attempt 1 fails → Generate failure report, new session
+- Attempt 2 fails → Generate detailed failure report, new session  
+- Attempt 3 fails → ESCALATE TO HUMAN
+- Never exceed 3 attempts per phase
+
+**Escalation Criteria:**
+- Calculation parity cannot be achieved (values don't match)
+- Performance degradation >10% cannot be optimized
+- Unexpected architectural issues discovered
+- Component exceeds size limit (>300 lines) and cannot be refactored
+
+### 13.4 When to Use Simple vs Complex Cell Approach
+
+**Use Simple Cell Approach When:**
+- Cell needs 1-2 tRPC queries
+- Queries are independent (no complex aggregations)
+- Component is straightforward (< 200 lines)
+- No complex calculations required
+- Low risk tolerance
+
+**Use Complex Cell Approach When:**
+- Cell needs 3+ tRPC queries
+- Queries depend on each other or require aggregation
+- Component has complex business logic
+- High-value dashboard KPI component
+- Requires careful validation
+
+**Example Decision Matrix:**
+
+| Component | Queries | Complexity | Approach |
+|-----------|---------|------------|----------|
+| KPICard | 1 | Low | Simple Cell (2-4 hours) |
+| BudgetChart | 2 | Low | Simple Cell (3-5 hours) |
+| PLCommandCenter | 3 | High | Complex Cell (6-8 hours) |
+| Dashboard Summary | 5 | Very High | Complex Cell + phased (8-12 hours) |
+
+### 13.5 Success Criteria for Complex Cells
+
+**Before marking story complete:**
+
+```yaml
+Technical Validation:
+  - [ ] All tRPC procedures tested independently via curl
+  - [ ] All queries work correctly in Cell
+  - [ ] tRPC batching confirmed (single HTTP request for parallel queries)
+  - [ ] All calculations match old implementation (100% parity)
+  - [ ] Performance meets target (≤110% baseline)
+  - [ ] All tests passing (80%+ coverage)
+  - [ ] Component size within limit (< 300 lines)
+
+Process Validation:
+  - [ ] All phases completed in sequence (no skipping)
+  - [ ] Git commits created at each checkpoint
+  - [ ] Calculation spreadsheet documented
+  - [ ] Performance measurements documented
+  - [ ] Human validation received
+  - [ ] Old component deleted
+  - [ ] Ledger updated
+
+Quality Validation:
+  - [ ] All behavioral assertions have tests
+  - [ ] Loading states work correctly
+  - [ ] Error states work correctly
+  - [ ] Empty states work correctly
+  - [ ] Type safety end-to-end verified
+  - [ ] No TypeScript errors
+  - [ ] Pipeline validation passes
+```
+
+**Only when ALL criteria met:** Proceed to cleanup and commit.
+
+---
 
 ## Appendix A: Reference Documentation
 
@@ -1676,84 +2420,424 @@ Phase 4 - Commit:
 
 ---
 
+## Appendix C: Cell Development Checklist
+
+**Comprehensive checklist for ALL Cell development - print and follow**
+
+### C.1 Pre-Implementation Phase
+
+**Story Preparation:**
+```yaml
+- [ ] Read story requirements completely
+- [ ] Verify prerequisites complete (if any)
+- [ ] Check for dependency on previous stories
+- [ ] Review reference implementations (query ledger)
+- [ ] Estimate complexity (Simple vs Complex Cell)
+```
+
+**Pattern Review (MANDATORY - Task 0):**
+```yaml
+- [ ] Query ledger for similar Cells:
+      ledger.findCell("[similar feature]")
+- [ ] Read reference Cell code:
+      - Component structure
+      - tRPC query patterns
+      - Testing approach
+      - Memoization patterns
+- [ ] Review existing tRPC procedures:
+      supabase/functions/trpc/index.ts
+- [ ] Verify infrastructure setup:
+      - Edge function deployed?
+      - Environment variables correct?
+      - tRPC client configured?
+- [ ] Document key learnings to apply
+```
+
+**Infrastructure Verification:**
+```yaml
+- [ ] Edge function exists: supabase/functions/trpc/
+- [ ] tRPC routers location: Check index.ts
+- [ ] Database schemas: packages/db/src/schema/
+- [ ] Environment variables: .env.local has NEXT_PUBLIC_TRPC_URL
+- [ ] Confirm: Do NOT recreate existing infrastructure
+```
+
+### C.2 Implementation Phase
+
+**Phase 1: tRPC Procedures (Complex Cells Only)**
+
+```yaml
+Procedure Design:
+- [ ] List ALL procedures needed
+- [ ] Design input schemas (use z.string().transform() for dates!)
+- [ ] Design output schemas
+- [ ] Reference existing procedure patterns
+
+Procedure Implementation:
+- [ ] Add procedure to existing router (don't create new router)
+- [ ] Use Drizzle helper functions (eq, inArray, between)
+- [ ] Add Zod validation for inputs
+- [ ] Add TRPCError handling
+- [ ] Add console.log for debugging
+
+Procedure Testing (BEFORE client code):
+- [ ] Test via curl with sample data
+- [ ] Verify response structure matches schema
+- [ ] Test error cases (invalid inputs)
+- [ ] Use Supabase CLI to verify database queries
+- [ ] Document test data for future reference
+
+Deployment:
+- [ ] Deploy edge function: supabase functions deploy trpc
+- [ ] Verify deployment successful
+- [ ] Test deployed endpoint via curl
+```
+
+**Phase 2: Cell Structure**
+
+```yaml
+Directory Setup:
+- [ ] Create: apps/web/components/cells/[cell-name]/
+- [ ] Use kebab-case for directory (e.g., pl-command-center)
+- [ ] No version suffixes (e.g., NOT kpi-card-v2)
+
+Files to Create:
+- [ ] component.tsx - React component
+- [ ] state.ts - Zustand store (if needed)
+- [ ] manifest.json - Behavioral assertions
+- [ ] pipeline.yaml - Validation gates
+- [ ] __tests__/component.test.tsx - Test file
+```
+
+**Phase 3: Component Implementation**
+
+```yaml
+Component Skeleton:
+- [ ] Create basic component structure
+- [ ] Add loading state UI
+- [ ] Add error state UI
+- [ ] Add empty state UI (if applicable)
+- [ ] Verify skeleton renders
+
+Query Integration (Simple Cells):
+- [ ] Import tRPC client
+- [ ] Add query hook(s)
+- [ ] MEMOIZE all object/array inputs (useMemo)
+- [ ] Add defensive console.logging
+- [ ] Test query works
+- [ ] Verify Network tab (200 OK)
+- [ ] Verify Console (success state)
+
+Query Integration (Complex Cells - INCREMENTAL):
+- [ ] Add FIRST query only
+      - [ ] Memoize inputs
+      - [ ] Test in isolation
+      - [ ] Verify data displays
+      - [ ] COMMIT checkpoint
+- [ ] Add SECOND query
+      - [ ] Memoize inputs
+      - [ ] Test both queries together
+      - [ ] Check for race conditions
+      - [ ] COMMIT checkpoint
+- [ ] Add THIRD query (if needed)
+      - [ ] Memoize inputs
+      - [ ] Test all queries together
+      - [ ] Verify tRPC batching
+      - [ ] COMMIT checkpoint
+
+Memoization Checklist (CRITICAL):
+- [ ] All Date objects in useMemo
+- [ ] All object literals in useMemo
+- [ ] All array literals in useMemo
+- [ ] All computed values in useMemo or useCallback
+- [ ] No inline object/array creation in hook dependencies
+
+Component Size:
+- [ ] Check line count: component.tsx
+- [ ] If > 250 lines: Extract formatters to lib/
+- [ ] If > 280 lines: Extract calculations to lib/
+- [ ] If > 300 lines: HALT - refactor required
+- [ ] Target: < 200 lines (simple), < 300 lines (complex)
+
+Code Quality:
+- [ ] No TypeScript errors
+- [ ] No ESLint warnings
+- [ ] Clear variable names
+- [ ] Comments for complex logic
+- [ ] Accessibility attributes (aria-labels)
+```
+
+**Phase 4: Manifest & Pipeline**
+
+```yaml
+manifest.json:
+- [ ] Set unique ID (kebab-case, no version suffix)
+- [ ] Set version (semver: "1.0.0")
+- [ ] Write description
+- [ ] Define dataContract (list all tRPC procedures)
+- [ ] Write behavioral assertions:
+      - [ ] Each assertion has unique ID (BA-001, BA-002...)
+      - [ ] Each assertion is testable
+      - [ ] Each assertion has validation method
+      - [ ] Each assertion has criticality (high/medium/low)
+- [ ] List dependencies (UI components, state, APIs)
+- [ ] Add accessibility requirements
+- [ ] Add metadata (createdBy ledger iteration ID)
+
+pipeline.yaml:
+- [ ] Add Type Check gate
+- [ ] Add Lint gate
+- [ ] Add Unit Tests gate (80% coverage threshold)
+- [ ] Add Behavioral Assertions Validation gate
+- [ ] Add Build Check gate
+- [ ] Define success criteria
+```
+
+### C.3 Testing Phase
+
+```yaml
+Test Setup:
+- [ ] Create __tests__/component.test.tsx
+- [ ] Import testing utilities (@testing-library/react)
+- [ ] Mock tRPC client (vi.mock)
+- [ ] Set up test data fixtures
+
+Behavioral Assertion Tests (REQUIRED):
+- [ ] Write test for each BA-XXX from manifest
+- [ ] Include BA ID in test name or comment
+- [ ] Test exact requirement (not implementation)
+- [ ] Use meaningful assertions
+
+State Tests:
+- [ ] Test loading state (isLoading=true)
+- [ ] Test error state (error present)
+- [ ] Test success state (data present)
+- [ ] Test empty state (data empty array)
+
+Calculation Tests (if applicable):
+- [ ] Test percentage calculations
+- [ ] Test currency formatting
+- [ ] Test date formatting
+- [ ] Test aggregation logic
+- [ ] Use known data sets
+
+Coverage:
+- [ ] Run: pnpm test --coverage
+- [ ] Verify: Coverage ≥ 80%
+- [ ] All behavioral assertions tested
+- [ ] All conditional rendering tested
+```
+
+### C.4 Validation Phase
+
+**Network Validation:**
+```yaml
+- [ ] Open Chrome DevTools → Network tab
+- [ ] Trigger Cell render
+- [ ] Check: Requests sent to edge function?
+- [ ] Check: Status codes all 200 OK?
+- [ ] Check: Response payloads correct structure?
+- [ ] Check: Request batching working? (single HTTP request for multiple queries)
+```
+
+**Console Validation:**
+```yaml
+- [ ] Open Chrome DevTools → Console tab
+- [ ] Check: No errors or warnings?
+- [ ] Check: React Query status = 'success'?
+- [ ] Check: Defensive logs show correct data?
+- [ ] Check: No infinite re-render warnings?
+```
+
+**Calculation Validation (CRITICAL for Complex Cells):**
+```yaml
+- [ ] Open old component in browser
+- [ ] Record ALL displayed values in spreadsheet
+- [ ] Document calculation formulas
+- [ ] Open new Cell in browser
+- [ ] Record ALL displayed values from new Cell
+- [ ] Compare side-by-side (MUST be 100% match)
+- [ ] If mismatch:
+      - [ ] Use Supabase CLI to query database
+      - [ ] Determine which implementation is correct
+      - [ ] Fix incorrect implementation
+      - [ ] Re-validate until 100% parity
+```
+
+**Performance Validation (CRITICAL):**
+```yaml
+- [ ] Measure old component:
+      - [ ] Open Chrome DevTools → Performance tab
+      - [ ] Record page load (5 samples)
+      - [ ] Calculate average Time to Interactive
+      - [ ] Document: Baseline TTI = ___ ms
+- [ ] Measure new Cell:
+      - [ ] Same methodology (5 samples)
+      - [ ] Calculate average TTI
+      - [ ] Document: New TTI = ___ ms
+- [ ] Compare: New TTI ≤ 110% of baseline
+- [ ] If fails:
+      - [ ] Profile with React DevTools Profiler
+      - [ ] Check for excessive re-renders
+      - [ ] Verify tRPC batching
+      - [ ] Optimize and re-measure
+```
+
+**Pipeline Validation:**
+```yaml
+- [ ] Run: pnpm type-check (no errors)
+- [ ] Run: pnpm lint (no warnings)
+- [ ] Run: pnpm test (all tests pass)
+- [ ] Run: pnpm build (build succeeds)
+- [ ] Run: cell-validator validate [cell-path]
+- [ ] All gates: PASS
+```
+
+### C.5 Integration Phase
+
+```yaml
+Page Integration:
+- [ ] Update page file imports
+- [ ] Remove old component import
+- [ ] Add new Cell import
+- [ ] Remove old data fetching logic (if applicable)
+- [ ] Update JSX to use new Cell
+- [ ] Pass only projectId prop (Cell fetches own data)
+
+Manual Browser Testing:
+- [ ] Run: pnpm dev
+- [ ] Navigate to page with Cell
+- [ ] Verify Cell displays correctly
+- [ ] Test loading states (hard refresh)
+- [ ] Test error states (break edge function temporarily)
+- [ ] Verify all features work
+- [ ] Check mobile responsiveness
+
+Final Test Run:
+- [ ] Run ALL tests: pnpm test
+- [ ] Run type check: pnpm type-check
+- [ ] Run build: pnpm build
+- [ ] All MUST pass before cleanup
+```
+
+### C.6 Human Validation Gate (MANDATORY for Complex Cells)
+
+```yaml
+Request Human Validation:
+- [ ] Agent: "Implementation complete. Request human validation."
+- [ ] Provide checklist for human to verify:
+      - [ ] Component displays correctly
+      - [ ] All metrics/data visible
+      - [ ] Loading states work
+      - [ ] Error handling works
+      - [ ] Calculations appear correct
+      - [ ] No console errors
+
+Wait for Human Decision:
+- [ ] Human confirms: "Validated - proceed with cleanup" ✅
+      → Proceed to Cleanup Phase
+- [ ] Human rejects: "Fix issues" ❌
+      → Return to Implementation Phase, address issues
+
+Do NOT proceed to cleanup without explicit human approval.
+```
+
+### C.7 Cleanup Phase (ONLY after ALL validations pass)
+
+```yaml
+Prerequisites (ALL must be checked):
+- [x] Calculation validation: 100% parity ✅
+- [x] Performance validation: ≤110% baseline ✅
+- [x] All tests passing ✅
+- [x] Human approval received ✅
+
+Delete Old Component:
+- [ ] Identify old component file path
+- [ ] Delete file: rm [old-component-path]
+- [ ] Verify file deleted: ls [old-component-path]
+
+Verify No References:
+- [ ] Run: grep -r "[old-component-name]" apps/web/
+- [ ] Exclude coverage/build artifacts
+- [ ] Zero source code references = PASS
+- [ ] If references found: Update imports, re-check
+
+Update Ledger:
+- [ ] Open: ledger.jsonl
+- [ ] Create new entry:
+      - iterationId: iter_YYYYMMDD_HHMMSS_[description]
+      - artifacts.created: [new Cell]
+      - artifacts.replaced: [old component]
+      - deletedAt timestamp
+      - reason: "Migrated to Cell architecture"
+- [ ] Append to ledger.jsonl
+
+Final Verification:
+- [ ] Run: pnpm test (all tests pass)
+- [ ] Run: pnpm type-check (no errors)
+- [ ] Run: pnpm build (build succeeds)
+- [ ] Verify: Old component file deleted
+- [ ] Verify: No references to old component
+- [ ] Verify: Ledger updated
+
+Commit:
+- [ ] Stage all changes: git add .
+- [ ] Commit: "Story X.Y: [Component] Cell migration - complete"
+- [ ] Verify commit contains:
+      - New Cell files
+      - Updated page integration
+      - Deleted old component
+      - Updated ledger
+      - NO old component files
+      - NO feature flag code
+      - NO version suffixes
+```
+
+### C.8 Debugging Checklist (When Issues Arise)
+
+```yaml
+Symptom: Component won't load (stuck in loading state)
+- [ ] Check Network tab: Requests successful? (200 OK?)
+- [ ] Check Console: React Query status stuck on 'pending'?
+- [ ] Check: Are query inputs memoized?
+- [ ] Add console.log to query inputs - do they change every render?
+- [ ] Likely cause: Unmemoized objects creating infinite loop
+
+Symptom: 400 Bad Request errors
+- [ ] Check: Using z.string().transform() for dates?
+- [ ] Test procedure via curl with ISO string dates
+- [ ] Verify Zod schema accepts strings, not Date objects
+- [ ] Likely cause: Date serialization mismatch
+
+Symptom: SQL errors in edge function
+- [ ] Check: Using Drizzle helper functions (eq, inArray)?
+- [ ] Reference existing working procedures
+- [ ] Test SQL in Supabase SQL Editor first
+- [ ] Likely cause: Wrong SQL syntax for Drizzle
+
+Symptom: Calculations don't match old component
+- [ ] Use Supabase CLI to query database directly
+- [ ] Compare query results with old implementation
+- [ ] Verify business logic matches exactly
+- [ ] Document difference in spreadsheet
+- [ ] Likely cause: Logic migration error
+
+If stuck for 30+ minutes:
+- [ ] Generate failure report
+- [ ] Document: Symptoms, steps taken, hypotheses
+- [ ] Start new session with clean context
+- [ ] Maximum 3 attempts before escalating
+```
+
+---
+
+**Print this checklist and check off each item as you complete it.**  
+**Do not skip steps. Do not assume. Verify everything.**
+
+---
+
+---
+
 **End of Document**
 
-This architecture document is now ready for review and approval.
-
----
-
-## Part 11: 100% Adoption Strategy
-
-### 11.1 The Ultimate Goal
-
-**Vision:** A codebase where AI agents operate at peak efficiency because:
-- Every UI component is a Cell with manifest
-- Every API call goes through tRPC
-- Every data query uses Drizzle
-- Every feature is documented in the ledger
-- Zero legacy code remains
-
-**This is not gradual addition - it is complete replacement.**
-
-### 11.2 Adoption Metrics
-
-**Current State (Pre-Migration):**
-- Cell adoption: 0%
-- tRPC adoption: 0%
-- Type safety: ~40%
-- Parallel implementations: N/A (no migration started)
-
-**Target State (Post-Migration):**
-- Cell adoption: 100%
-- tRPC adoption: 100%
-- Type safety: 100%
-- Parallel implementations: 0% (all old code deleted)
-
-**Tracking:**
-- After each epic, calculate: (Cells / Total Components) × 100
-- After each story, verify: Old component deleted? (Yes/No)
-- Final validation: grep -r "components/dashboard" → should return 0 results
-
-### 11.3 Non-Negotiable Rules
-
-1. **No Hybrid Architecture**: Never acceptable to have some Cells and some old components long-term
-2. **No Versioning**: Cell names never include v1, v2, etc.
-3. **No Feature Flags**: Only acceptable during single story implementation, deleted before commit
-4. **No Parallel Implementations**: Old code deleted in same story as new Cell creation
-5. **No Exceptions**: Every component must migrate - no "too complex" or "too risky" excuses
-
-### 11.4 Validation Gates
-
-**Per Story:**
-- [ ] Old component deleted?
-- [ ] Grep returns zero references to old component?
-- [ ] No version suffixes in Cell names?
-- [ ] No feature flags committed?
-
-**Per Epic:**
-- [ ] All stories in epic follow deletion pattern?
-- [ ] Cell adoption percentage increased?
-- [ ] No regressions in test suite?
-
-**Final (Pre-Main Merge):**
-- [ ] 100% Cell adoption achieved?
-- [ ] Zero old component files remain?
-- [ ] Zero direct Supabase queries in components?
-- [ ] All data flows through tRPC?
-- [ ] Ledger contains all Cells?
-
-### 11.5 Success Definition
-
-**The migration is complete when:**
-1. `/components/dashboard` directory is empty (deleted)
-2. `/components/cells` directory contains all UI components
-3. All tRPC routers handle all data fetching
-4. All components have manifests and pipelines
-5. Ledger contains complete history
-6. grep -r "supabase.from" apps/web/components → returns 0 results
-7. grep -r "v1\|v2\|v3" apps/web/components/cells → returns 0 results
-8. AI agents can develop new features 3x faster than on old codebase
-
-**Anything less than 100% is considered incomplete.**
-
----
+This Living Blueprint Architecture document is complete and ready for implementation.

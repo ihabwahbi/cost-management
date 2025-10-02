@@ -5,6 +5,16 @@ import { useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
+import { 
+  AlertDialog, 
+  AlertDialogContent, 
+  AlertDialogHeader, 
+  AlertDialogFooter, 
+  AlertDialogTitle, 
+  AlertDialogDescription, 
+  AlertDialogCancel, 
+  AlertDialogAction 
+} from '@/components/ui/alert-dialog'
 import { toast } from '@/hooks/use-toast'
 
 interface MapperProps {
@@ -18,19 +28,21 @@ interface MapperProps {
 /**
  * DetailsPanelMapper
  * 
- * CRUD operations for PO mappings (Phase B.1: Create/Update only)
- * Clear operation will be added in Phase B.2
+ * CRUD operations for PO mappings (Phase B Complete)
+ * Includes: Create, Update, and Clear operations
  * 
  * Behavioral Assertions:
  * - BA-007: Save button disabled when required fields missing
- * - BA-008: Shows two-step confirmation before clearing (Phase B.2)
+ * - BA-008: Shows two-step confirmation before clearing
  * - BA-009: Refreshes display after successful operation
  */
 export function DetailsPanelMapper(props: MapperProps) {
   const [mappingNotes, setMappingNotes] = useState('')
+  const [showClearDialog, setShowClearDialog] = useState(false)
   
   const createMutation = trpc.poMapping.createMapping.useMutation()
   const updateMutation = trpc.poMapping.updateMapping.useMutation()
+  const clearMutation = trpc.poMapping.clearMappings.useMutation()
   
   // CRITICAL: Memoize all mutation inputs (objects passed to useMutation)
   const createInput = useMemo(
@@ -49,6 +61,13 @@ export function DetailsPanelMapper(props: MapperProps) {
       mappingNotes: mappingNotes || undefined
     }),
     [props.existingMappings, props.costBreakdownId, mappingNotes]
+  )
+  
+  const clearInput = useMemo(
+    () => ({
+      poLineItemIds: props.existingMappings.map(m => m.poLineItemId)
+    }),
+    [props.existingMappings]
   )
   
   const handleSave = async () => {
@@ -82,9 +101,30 @@ export function DetailsPanelMapper(props: MapperProps) {
     }
   }
   
+  const handleClear = async () => {
+    try {
+      await clearMutation.mutateAsync(clearInput)
+      toast({ 
+        title: 'Mappings cleared successfully',
+        description: `Cleared ${clearInput.poLineItemIds.length} mapping(s)`
+      })
+      setShowClearDialog(false)
+      
+      // BA-009: Refresh display after successful operation
+      props.onMappingComplete()
+    } catch (error) {
+      console.error('Error clearing mappings:', error)
+      toast({ 
+        title: 'Error clearing mappings', 
+        description: error instanceof Error ? error.message : 'Please try again',
+        variant: 'destructive' 
+      })
+    }
+  }
+  
   // BA-007: Save button disabled when required fields missing
   const isSaveDisabled = !props.poId || !props.costBreakdownId
-  const isLoading = createMutation.isPending || updateMutation.isPending
+  const isLoading = createMutation.isPending || updateMutation.isPending || clearMutation.isPending
   
   return (
     <div className="space-y-4">
@@ -108,8 +148,36 @@ export function DetailsPanelMapper(props: MapperProps) {
           {isLoading ? 'Saving...' : (props.isEditMode ? 'Update Mapping' : 'Create Mapping')}
         </Button>
         
-        {/* Clear button will be added in Phase B.2 */}
+        {/* BA-008: Clear button only in edit mode */}
+        {props.isEditMode && props.existingMappings.length > 0 && (
+          <Button 
+            variant="destructive"
+            onClick={() => setShowClearDialog(true)}
+            disabled={isLoading}
+          >
+            Clear All Mappings
+          </Button>
+        )}
       </div>
+      
+      {/* BA-008: Two-step confirmation dialog */}
+      <AlertDialog open={showClearDialog} onOpenChange={setShowClearDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Clear all mappings?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will remove all {clearInput.poLineItemIds.length} PO line item mapping(s). 
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleClear} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Clear Mappings
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

@@ -2,8 +2,8 @@
   "id": "details-panel-mapper",
   "version": "1.0.0",
   "description": "CRUD operations for PO mappings",
-  "phase": "B.1",
-  "status": "in_progress",
+  "phase": "B.2",
+  "status": "complete",
   "behavioral_assertions": [
     {
       "id": "BA-007",
@@ -28,7 +28,8 @@
     "data": ["po_mappings", "cost_breakdown"],
     "trpc": [
       "poMapping.createMapping",
-      "poMapping.updateMapping"
+      "poMapping.updateMapping",
+      "poMapping.clearMappings"
     ],
     "ui": [
       "@/components/ui/button",

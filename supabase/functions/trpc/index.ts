@@ -158,11 +158,23 @@ const dashboardRouter = router({
     )
     .query(async ({ input, ctx }) => {
       try {
-        // Calculate total budget from cost breakdown
-        const budgetResult = await ctx.sql`
-          SELECT COALESCE(SUM(budget_cost), 0) as total
-          FROM cost_breakdown
+        // Get latest forecast version
+        const versionResult = await ctx.sql`
+          SELECT MAX(version_number) as max_version
+          FROM forecast_versions
           WHERE project_id = ${input.projectId}
+        `;
+        
+        const latestVersion = versionResult[0]?.max_version ?? 0;
+
+        // Calculate total budget from latest forecast version (not baseline)
+        const budgetResult = await ctx.sql`
+          SELECT COALESCE(SUM(bf.forecasted_cost), 0) as total
+          FROM budget_forecasts bf
+          INNER JOIN forecast_versions fv ON bf.forecast_version_id = fv.id
+          INNER JOIN cost_breakdown cb ON bf.cost_breakdown_id = cb.id
+          WHERE cb.project_id = ${input.projectId}
+            AND fv.version_number = ${latestVersion}
         `;
         
         const budgetTotal = Number(budgetResult[0]?.total || 0);
@@ -214,11 +226,23 @@ const dashboardRouter = router({
     )
     .query(async ({ input, ctx }) => {
       try {
-        // Get total budget
-        const budgetResult = await ctx.sql`
-          SELECT COALESCE(SUM(budget_cost), 0) as total
-          FROM cost_breakdown
+        // Get latest forecast version
+        const versionResult = await ctx.sql`
+          SELECT MAX(version_number) as max_version
+          FROM forecast_versions
           WHERE project_id = ${input.projectId}
+        `;
+        
+        const latestVersion = versionResult[0]?.max_version ?? 0;
+
+        // Get total budget from latest forecast version (not baseline)
+        const budgetResult = await ctx.sql`
+          SELECT COALESCE(SUM(bf.forecasted_cost), 0) as total
+          FROM budget_forecasts bf
+          INNER JOIN forecast_versions fv ON bf.forecast_version_id = fv.id
+          INNER JOIN cost_breakdown cb ON bf.cost_breakdown_id = cb.id
+          WHERE cb.project_id = ${input.projectId}
+            AND fv.version_number = ${latestVersion}
         `;
         
         const totalBudget = Number(budgetResult[0]?.total || 0);
@@ -523,6 +547,137 @@ const dashboardRouter = router({
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
           message: 'Failed to fetch timeline data',
+          cause: error,
+        });
+      }
+    }),
+
+  /**
+   * Get Financial Control Metrics
+   * Returns budget control matrix by category (spend_type) with real P&L tracking
+   * Replaces fake 0.6 multiplier with actual invoiced_value_usd data
+   */
+  getFinancialControlMetrics: publicProcedure
+    .input(
+      z.object({
+        projectId: z.string().uuid(),
+        filters: z
+          .object({
+            costLine: z.string().optional(),
+            spendType: z.string().optional(),
+          })
+          .optional(),
+      })
+    )
+    .query(async ({ input, ctx }) => {
+      try {
+        // Step 1: Get latest forecast version for project
+        const versionResult = await ctx.sql`
+          SELECT MAX(version_number) as max_version
+          FROM forecast_versions
+          WHERE project_id = ${input.projectId}
+        `;
+        
+        const latestVersion = versionResult[0]?.max_version ?? 0;
+
+        // Step 2: Query budget data from LATEST forecast version (not baseline)
+        const budgetData = await ctx.sql`
+          SELECT 
+            cb.id,
+            cb.spend_type,
+            bf.forecasted_cost
+          FROM cost_breakdown cb
+          INNER JOIN budget_forecasts bf ON bf.cost_breakdown_id = cb.id
+          INNER JOIN forecast_versions fv ON bf.forecast_version_id = fv.id
+          WHERE cb.project_id = ${input.projectId}
+            AND fv.version_number = ${latestVersion}
+            ${input.filters?.spendType ? ctx.sql`AND cb.spend_type = ${input.filters.spendType}` : ctx.sql``}
+            ${input.filters?.costLine ? ctx.sql`AND cb.cost_line = ${input.filters.costLine}` : ctx.sql``}
+        `;
+
+        if (budgetData.length === 0) {
+          return []; // Early return for no data
+        }
+
+        // Step 2: Get all cost_breakdown IDs
+        const costBreakdownIds = budgetData.map((row: any) => row.id);
+
+        // Step 3: Join po_mappings and po_line_items
+        const mappingsData = await ctx.sql`
+          SELECT 
+            pm.cost_breakdown_id,
+            pm.mapped_amount,
+            pl.line_value,
+            pl.invoiced_value_usd
+          FROM po_mappings pm
+          LEFT JOIN po_line_items pl ON pm.po_line_item_id = pl.id
+          WHERE pm.cost_breakdown_id = ANY(${costBreakdownIds})
+        `;
+
+        // Step 4: Aggregate by category (spend_type)
+        const categoryMap = new Map<
+          string,
+          {
+            budget: number;
+            committed: number;
+            actual: number;
+            future: number;
+          }
+        >();
+
+        // Initialize categories from budget data (using latest forecast version)
+        for (const row of budgetData) {
+          const category = row.spend_type || 'Uncategorized';
+          if (!categoryMap.has(category)) {
+            categoryMap.set(category, {
+              budget: Number(row.forecasted_cost || 0),
+              committed: 0,
+              actual: 0,
+              future: 0,
+            });
+          } else {
+            // Sum budget if multiple cost lines in same category
+            const existing = categoryMap.get(category)!;
+            existing.budget += Number(row.forecasted_cost || 0);
+          }
+        }
+
+        // Add mappings data
+        for (const mapping of mappingsData) {
+          // Find which category this mapping belongs to
+          const budgetRow = budgetData.find((b: any) => b.id === mapping.cost_breakdown_id);
+          if (!budgetRow) continue;
+
+          const category = budgetRow.spend_type || 'Uncategorized';
+          const categoryData = categoryMap.get(category)!;
+
+          const mappedAmount = Number(mapping.mapped_amount || 0);
+          categoryData.committed += mappedAmount;
+
+          // ✅ CRITICAL: Use splitMappedAmount() helper for real P&L calculation
+          const { actual, future } = splitMappedAmount(mappedAmount, mapping);
+          categoryData.actual += actual;
+          categoryData.future += future;
+        }
+
+        // Step 5: Convert to output format
+        const result = Array.from(categoryMap.entries()).map(([name, data]) => ({
+          name,
+          budget: data.budget,
+          committed: data.committed,
+          plImpact: data.actual, // ✅ REAL P&L impact
+          gapToPL: data.future, // ✅ REAL open commitments
+        }));
+
+        // Step 6: Sort by budget descending (largest categories first)
+        result.sort((a, b) => b.budget - a.budget);
+
+        return result;
+      } catch (error) {
+        console.error('[getFinancialControlMetrics] Failed:', error);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Failed to fetch financial control metrics. Please try again.',
           cause: error,
         });
       }

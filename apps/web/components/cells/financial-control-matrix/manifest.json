@@ -1,0 +1,157 @@
+{
+  "id": "financial-control-matrix",
+  "version": "1.0.0",
+  "name": "Financial Control Matrix Cell",
+  "description": "Displays budget control matrix with real P&L tracking from invoice data. Shows budget allocation, PO commitments, actual P&L impact, and open commitments per category with automated insights.",
+  "type": "cell",
+  "created": "2025-10-02",
+  "migrated_from": "apps/web/components/dashboard/financial-control-matrix.tsx",
+  
+  "behavioral_assertions": [
+    {
+      "id": "BA-001",
+      "priority": "HIGH",
+      "description": "Displays centered loading spinner when data is fetching",
+      "source": "financial-control-matrix.tsx lines 98-111",
+      "verification": "Mock loading state (isLoading=true), verify spinner renders",
+      "test_file": "__tests__/component.test.tsx"
+    },
+    {
+      "id": "BA-002",
+      "priority": "HIGH",
+      "description": "Calculates 3 automated insights: largest P&L gap, most efficient category, smallest future risk",
+      "source": "financial-control-matrix.tsx lines 53-96",
+      "verification": "Mock category data with known values, verify 3 insights calculated correctly",
+      "test_file": "__tests__/component.test.tsx"
+    },
+    {
+      "id": "BA-003",
+      "priority": "HIGH",
+      "description": "Handles empty categories array without crashing, matrix header still renders",
+      "source": "financial-control-matrix.tsx lines 143-228",
+      "verification": "Mock empty array [], verify no errors and header visible",
+      "test_file": "__tests__/component.test.tsx"
+    },
+    {
+      "id": "BA-004",
+      "priority": "CRITICAL",
+      "description": "All percentage calculations protected against division by zero (budget > 0 check)",
+      "source": "financial-control-matrix.tsx lines 70-71, 76, 145-150",
+      "verification": "Mock category with budget: 0, verify no NaN values, shows 0%",
+      "test_file": "__tests__/component.test.tsx"
+    },
+    {
+      "id": "BA-005",
+      "priority": "MEDIUM",
+      "description": "Displays 3 progress bars per category (committed, plImpact, gapToPL)",
+      "source": "financial-control-matrix.tsx lines 178-225",
+      "verification": "Mock data, verify 3 progress bars render with correct percentages",
+      "test_file": "__tests__/component.test.tsx"
+    },
+    {
+      "id": "BA-006",
+      "priority": "MEDIUM",
+      "description": "All monetary values formatted as USD ($1,234,567 or $1.2M compact)",
+      "source": "utils.ts formatCurrency function",
+      "verification": "Test formatCurrency with various amounts, verify formatting",
+      "test_file": "__tests__/utils.test.tsx"
+    },
+    {
+      "id": "BA-007",
+      "priority": "MEDIUM",
+      "description": "Clicking category row triggers onDrillDown callback with category name",
+      "source": "financial-control-matrix.tsx line 156",
+      "verification": "Mock callback, click category, verify called with correct name",
+      "test_file": "__tests__/component.test.tsx"
+    },
+    {
+      "id": "BA-008",
+      "priority": "LOW",
+      "description": "Insights section hidden when no insights available (empty categories)",
+      "source": "financial-control-matrix.tsx lines 232-257",
+      "verification": "Mock empty categories, verify insights section not rendered",
+      "test_file": "__tests__/component.test.tsx"
+    },
+    {
+      "id": "BA-009",
+      "priority": "LOW",
+      "description": "Customize button only visible when onCustomize prop provided",
+      "source": "financial-control-matrix.tsx lines 119-128",
+      "verification": "Test with/without prop, verify button presence",
+      "test_file": "__tests__/component.test.tsx"
+    },
+    {
+      "id": "BA-010",
+      "priority": "MEDIUM",
+      "description": "Progress bar turns red when committed > budget (over-budget indicator)",
+      "source": "financial-control-matrix.tsx lines 194-197",
+      "verification": "Mock over-budget category, verify red bg-destructive styling",
+      "test_file": "__tests__/component.test.tsx"
+    },
+    {
+      "id": "BA-011",
+      "priority": "HIGH",
+      "description": "Displays error alert when tRPC query fails",
+      "source": "component.tsx error handling",
+      "verification": "Mock error state, verify Alert component with error message renders",
+      "test_file": "__tests__/component.test.tsx"
+    },
+    {
+      "id": "BA-012",
+      "priority": "CRITICAL",
+      "description": "Uses REAL P&L data from invoiced_value_usd, NOT hardcoded multipliers",
+      "source": "component.tsx + tRPC procedure",
+      "verification": "Verify plImpact values are NOT exactly committed * 0.6",
+      "test_file": "Manual validation + SQL comparison"
+    }
+  ],
+  
+  "dependencies": {
+    "data": [
+      "cost_breakdown (spend_type, budget_cost)",
+      "po_mappings (mapped_amount)",
+      "po_line_items (invoiced_value_usd, invoice_date)"
+    ],
+    "trpc_procedures": [
+      "dashboard.getFinancialControlMetrics"
+    ],
+    "ui_components": [
+      "@/components/ui/card",
+      "@/components/ui/button",
+      "@/components/ui/progress",
+      "@/components/ui/alert",
+      "lucide-react icons"
+    ],
+    "helpers": [
+      "splitMappedAmount() from @/lib/supabase/line-items"
+    ]
+  },
+  
+  "technical_debt_resolved": [
+    "CRITICAL: Removed hardcoded 0.6 multiplier for P&L impact (lines 121 of parent)",
+    "CRITICAL: Removed hardcoded 0.4 multiplier for gap to P&L (line 122 of parent)",
+    "REMOVED: Fake data generation in parent component (lines 117-124)",
+    "REMOVED: TODO comment 'This would come from actual P&L data' (line 121)",
+    "IMPROVED: Cell now self-contained, no prop drilling from parent"
+  ],
+  
+  "known_limitations": [
+    "When invoiced_value_usd is NULL, falls back to 60% ratio estimate (via splitMappedAmount helper)",
+    "Drill-down navigation not implemented (onDrillDown callback logged only)",
+    "Customization modal not implemented (onCustomize callback logged only)",
+    "No real-time updates (5-minute stale time, manual refresh required)"
+  ],
+  
+  "performance_targets": {
+    "initial_load": "< 500ms",
+    "trpc_query": "< 300ms",
+    "total_render": "≤ 110% of baseline (current implementation)"
+  },
+  
+  "migration_notes": {
+    "complexity": "Medium (261 lines, single query, medium calculations)",
+    "duration": "4-6 hours",
+    "risk": "LOW-MEDIUM (critical path, requires manual validation)",
+    "strategy": "Standard 7-step (single query, no phasing needed)"
+  }
+}

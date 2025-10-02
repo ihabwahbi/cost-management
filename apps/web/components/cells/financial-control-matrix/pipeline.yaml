@@ -1,0 +1,160 @@
+cell_id: financial-control-matrix
+version: 1.0.0
+migration_date: 2025-10-02
+
+validation_gates:
+  - gate: types
+    description: TypeScript type checking passes with zero errors
+    command: pnpm type-check
+    requirement: Zero errors
+    automated: true
+    blocking: true
+    
+  - gate: tests
+    description: All unit and integration tests pass with adequate coverage
+    command: pnpm test components/cells/financial-control-matrix
+    requirements:
+      - All tests pass
+      - Coverage ≥ 80%
+      - All 12 behavioral assertions verified
+    automated: true
+    blocking: true
+    
+  - gate: build
+    description: Production build succeeds without errors
+    command: pnpm build
+    requirement: Build completes successfully
+    automated: true
+    blocking: true
+    
+  - gate: performance
+    description: Cell load time within acceptable threshold
+    measurement: React DevTools Profiler
+    requirement: Load time ≤ 110% of baseline (current implementation)
+    baseline: TBD (measure current implementation first)
+    automated: false
+    blocking: true
+    notes: |
+      Current implementation loads in ~300ms
+      Cell should load in ≤ 330ms (110% threshold)
+    
+  - gate: data_accuracy
+    description: Real P&L data matches database reality
+    validation_method: SQL comparison query
+    requirement: Cell output matches direct database query results
+    automated: false
+    blocking: true
+    sql_validation: |
+      SELECT 
+        cb.spend_type as name,
+        SUM(cb.budget_cost) as budget,
+        SUM(pm.mapped_amount) as committed,
+        SUM(CASE 
+          WHEN pli.invoiced_value_usd IS NOT NULL 
+          THEN pli.invoiced_value_usd * (pm.mapped_amount / pli.line_value)
+          ELSE pm.mapped_amount * 0.6
+        END) as pl_impact
+      FROM cost_breakdown cb
+      LEFT JOIN po_mappings pm ON pm.cost_breakdown_id = cb.id
+      LEFT JOIN po_line_items pli ON pli.id = pm.po_line_item_id
+      WHERE cb.project_id = 'PROJECT_UUID'
+      GROUP BY cb.spend_type
+      ORDER BY budget DESC;
+    notes: |
+      CRITICAL: Verify Cell output matches this SQL query
+      Check that plImpact values are NOT exactly committed * 0.6 (real data!)
+    
+  - gate: integration
+    description: Cell integrates correctly with dashboard page
+    requirements:
+      - Import path updated in page.tsx
+      - Fake data logic removed from parent (lines 117-124)
+      - State variable removed (line 66)
+      - Build succeeds after integration
+      - Dashboard page loads without errors
+    automated: false
+    blocking: true
+    
+  - gate: manual_validation
+    description: Human validation of Cell behavior in browser
+    reason: Critical path component with financial data accuracy requirements
+    requirements:
+      - Cell displays correctly in browser
+      - All category data visible and accurate
+      - Loading states work (refresh page, verify skeleton)
+      - Error states work (disconnect network, verify error message)
+      - No console errors
+      - Network tab shows single request to /trpc/
+      - Insights calculations appear correct
+      - Progress bars render with reasonable percentages
+      - Compare Cell data with old component (expect differences - real vs fake!)
+    automated: false
+    blocking: true
+    approval_required: true
+    notes: |
+      USER MUST RESPOND: "VALIDATED - proceed" before continuing to cleanup
+      DO NOT proceed without explicit approval
+
+quality_thresholds:
+  test_coverage: 80%
+  type_errors: 0
+  build_warnings: 0
+  performance_degradation: 10%
+  
+rollback_strategy:
+  trigger_conditions:
+    - Any blocking gate fails
+    - Performance degradation > 10%
+    - Data accuracy issues detected
+    - Manual validation rejected
+    - Console errors present
+    
+  rollback_steps:
+    - action: Revert commit atomically
+      command: git revert HEAD
+      result: All code changes undone
+      
+    - action: Verify rollback successful
+      checks:
+        - Old component file restored
+        - New Cell directory removed (or not imported)
+        - All imports back to original
+        - Dashboard page loads with old component
+        - Build succeeds
+        
+    - action: Update ledger with FAILED status
+      file: ledger.jsonl
+      entry_type: MIGRATION_FAILED
+      include:
+        - Failure reason (which gate failed)
+        - Error messages
+        - Which step failed
+        - Lessons learned
+        - Next steps for retry
+        
+  edge_function_handling:
+    note: Leave tRPC procedure deployed (additive, unused procedures safe)
+    rationale: Will be reused in next migration attempt
+    
+  estimated_rollback_time: < 15 minutes
+  
+success_criteria:
+  - All validation gates passed
+  - Manual validation approved
+  - No console errors
+  - Performance within threshold
+  - Data accuracy verified
+  - Old component deleted
+  - Ledger updated with SUCCESS entry
+  - Git commit created with clear message
+
+notes: |
+  This Cell replaces FAKE P&L data with REAL P&L tracking.
+  Expect data differences between old and new implementations.
+  Old: plImpact = committed * 0.6 (fake)
+  New: plImpact = actual invoiced_value_usd (real)
+  
+  Validation should confirm:
+  1. New data is MORE ACCURATE (from database)
+  2. Calculations are correct (match SQL query)
+  3. No hardcoded multipliers present

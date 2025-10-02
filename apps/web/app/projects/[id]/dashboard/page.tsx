@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { DollarSign, TrendingUp, TrendingDown, AlertCircle, Activity, Package, Calculator, FileText } from 'lucide-react'
 // Import new P&L components
 import { PLCommandCenter } from '@/components/cells/pl-command-center/component'
-import { FinancialControlMatrix } from '@/components/dashboard/financial-control-matrix'
+import { FinancialControlMatrixCell } from '@/components/cells/financial-control-matrix/component'
 import { SpendSubcategoryChart } from '@/components/dashboard/spend-subcategory-chart'
 // Keep existing components for now
 import { BudgetTimelineChartCell } from '@/components/cells/budget-timeline-chart/component'
@@ -63,7 +63,6 @@ export default function ProjectDashboard({ params }: ProjectDashboardProps) {
   const [refreshing, setRefreshing] = useState(false)
   
   // New P&L tracking states
-  const [categoryPLData, setCategoryPLData] = useState<any[]>([])
   const [subcategoryData, setSubcategoryData] = useState<any[]>([])
   
   const [filters, setFilters] = useState<DashboardFilters>({
@@ -112,16 +111,6 @@ export default function ProjectDashboard({ params }: ProjectDashboardProps) {
       console.log('Breakdown data:', breakdown) // Debug log
       setCategoryData(categories)
       setBreakdownData(breakdown)
-      
-      // Prepare category P&L data for Financial Control Matrix
-      const categoryPL = categories.map(cat => ({
-        name: cat.name,
-        budget: cat.budget,
-        committed: cat.value,
-        plImpact: cat.value * 0.6, // This would come from actual P&L data
-        gapToPL: cat.value * 0.4
-      }))
-      setCategoryPLData(categoryPL)
       
       // Prepare subcategory data from breakdown
       const subcategoryArray: any[] = []
@@ -336,19 +325,16 @@ export default function ProjectDashboard({ params }: ProjectDashboardProps) {
           }}
         />
 
-        {/* Financial Control Matrix */}
-        {categoryPLData.length > 0 && (
-          <FinancialControlMatrix
-            categories={categoryPLData}
-            onDrillDown={(category) => {
-              console.log('Drill down into:', category)
-            }}
-            onCustomize={() => {
-              console.log('Customize matrix view')
-            }}
-            loading={loading}
-          />
-        )}
+        {/* Financial Control Matrix - Living Blueprint Cell (fetches own data via tRPC) */}
+        <FinancialControlMatrixCell
+          projectId={projectId}
+          onDrillDown={(category) => {
+            console.log('Drill down into:', category)
+          }}
+          onCustomize={() => {
+            console.log('Customize matrix view')
+          }}
+        />
 
         {/* Budget Timeline Visualization */}
         <Card>

@@ -38,7 +38,7 @@ export function DetailsPanelViewer({ poId, onEditMapping, onMappingsLoaded }: De
       // No mappings - notify with empty array
       onMappingsLoaded([])
     }
-  }, [data, onMappingsLoaded])
+  }, [data]) // Removed callback from deps - event handlers don't need to be dependencies
   
   // BA-002: Currency formatting helper - shows 'N/A' for null/invalid
   const formatCurrency = (value: string | null) => {

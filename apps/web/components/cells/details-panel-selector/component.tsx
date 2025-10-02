@@ -80,7 +80,7 @@ export function DetailsPanelSelector(props: SelectorProps) {
     } else {
       props.onCostBreakdownFound(null)
     }
-  }, [costBreakdowns, props.onCostBreakdownFound])
+  }, [costBreakdowns]) // Removed callback from deps - event handlers don't need to be dependencies
   
   // Cascading reset logic - BA-006
   useEffect(() => {
@@ -88,13 +88,13 @@ export function DetailsPanelSelector(props: SelectorProps) {
       props.onSpendTypeChange('')
       props.onSubCategoryChange('')
     }
-  }, [props.selectedProject, props.onSpendTypeChange, props.onSubCategoryChange])
+  }, [props.selectedProject]) // Removed callbacks from deps
   
   useEffect(() => {
     if (!props.selectedSpendType) {
       props.onSubCategoryChange('')
     }
-  }, [props.selectedSpendType, props.onSubCategoryChange])
+  }, [props.selectedSpendType]) // Removed callback from deps
   
   return (
     <div className="space-y-4">

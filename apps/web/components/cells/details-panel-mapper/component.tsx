@@ -40,6 +40,9 @@ export function DetailsPanelMapper(props: MapperProps) {
   const [mappingNotes, setMappingNotes] = useState('')
   const [showClearDialog, setShowClearDialog] = useState(false)
   
+  // Get tRPC utils for cache invalidation
+  const utils = trpc.useUtils()
+  
   const createMutation = trpc.poMapping.createMapping.useMutation()
   const updateMutation = trpc.poMapping.updateMapping.useMutation()
   const clearMutation = trpc.poMapping.clearMappings.useMutation()
@@ -86,6 +89,9 @@ export function DetailsPanelMapper(props: MapperProps) {
         })
       }
       
+      // CRITICAL: Invalidate cache to force refetch of mappings
+      await utils.poMapping.getExistingMappings.invalidate({ poId: props.poId! })
+      
       // BA-009: Refresh display after successful operation
       props.onMappingComplete()
       
@@ -109,6 +115,9 @@ export function DetailsPanelMapper(props: MapperProps) {
         description: `Cleared ${clearInput.poLineItemIds.length} mapping(s)`
       })
       setShowClearDialog(false)
+      
+      // CRITICAL: Invalidate cache to force refetch and show unmapped state
+      await utils.poMapping.getExistingMappings.invalidate({ poId: props.poId! })
       
       // BA-009: Refresh display after successful operation
       props.onMappingComplete()

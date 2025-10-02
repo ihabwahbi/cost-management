@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { trpc } from '@/lib/trpc'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -15,13 +15,13 @@ interface DetailsPanelViewerProps {
 
 export function DetailsPanelViewer({ poId, onEditMapping, onMappingsLoaded }: DetailsPanelViewerProps) {
   // No memoization needed - poId is primitive string
-  const { data, isLoading, error } = trpc.poMapping.getExistingMappings.useQuery(
+  const { data, isLoading, error, refetch } = trpc.poMapping.getExistingMappings.useQuery(
     { poId: poId! },
     { 
       enabled: !!poId,
-      refetchOnMount: false,
+      refetchOnMount: true, // Changed: Allow refetch to catch updates
       refetchOnWindowFocus: false,
-      staleTime: 5 * 60 * 1000 // 5 minutes
+      staleTime: 1000 // Changed: 1 second to ensure fresh data after mutations
     }
   )
   
@@ -53,6 +53,37 @@ export function DetailsPanelViewer({ poId, onEditMapping, onMappingsLoaded }: De
     }).format(num)
   }
   
+  // Aggregate PO-level summary from line item mappings
+  const poSummary = useMemo(() => {
+    if (!data || data.length === 0) return null
+    
+    // All line items are mapped to the same cost breakdown (PO-level mapping)
+    // Take cost breakdown info from first item
+    const firstMapping = data[0]
+    
+    // Calculate total mapped amount across all line items
+    const totalMappedAmount = data.reduce((sum, mapping) => {
+      const amount = parseFloat(mapping.mappedAmount) || 0
+      return sum + amount
+    }, 0)
+    
+    // Calculate total PO value from line items
+    const totalPOValue = data.reduce((sum, mapping) => {
+      const value = parseFloat(mapping.lineValue || '0') || 0
+      return sum + value
+    }, 0)
+    
+    return {
+      lineItemCount: data.length,
+      totalMappedAmount: totalMappedAmount.toString(),
+      totalPOValue: totalPOValue.toString(),
+      costLine: firstMapping.costLine,
+      spendType: firstMapping.spendType,
+      spendSubCategory: firstMapping.spendSubCategory,
+      mappingNotes: firstMapping.mappingNotes // Same notes for all line items
+    }
+  }, [data])
+  
   // Don't render if no PO selected
   if (!poId) return null
   
@@ -79,11 +110,11 @@ export function DetailsPanelViewer({ poId, onEditMapping, onMappingsLoaded }: De
   }
   
   // No mappings - don't display viewer (empty state handled by parent)
-  if (!data || data.length === 0) {
+  if (!data || data.length === 0 || !poSummary) {
     return null
   }
   
-  // BA-001: Display mappings in green card
+  // BA-001: Display PO-level mapping in green card (MAPPED STATE)
   return (
     <Card className="border-green-500 bg-green-50">
       <CardHeader>
@@ -91,51 +122,49 @@ export function DetailsPanelViewer({ poId, onEditMapping, onMappingsLoaded }: De
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
           </svg>
-          Current Mappings ({data.length})
+          PO Mapped
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="space-y-4">
-          {data.map((mapping) => (
-            <div 
-              key={mapping.id} 
-              className="bg-white p-4 rounded-lg border border-green-200"
-            >
-              <div className="grid grid-cols-2 gap-4">
-                {/* Line Item Info */}
-                <div>
-                  <div className="text-sm font-medium text-gray-500">Line Item</div>
-                  <div className="text-sm">
-                    #{mapping.lineItemNumber} - {mapping.description}
-                  </div>
-                  <div className="text-sm text-gray-600 mt-1">
-                    Qty: {mapping.quantity} | Value: {formatCurrency(mapping.lineValue)}
-                  </div>
-                </div>
-                
-                {/* Cost Breakdown Info */}
-                <div>
-                  <div className="text-sm font-medium text-gray-500">Mapped To</div>
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    <Badge variant="secondary">{mapping.costLine}</Badge>
-                    <Badge variant="outline">{mapping.spendType}</Badge>
-                    <Badge variant="outline">{mapping.spendSubCategory}</Badge>
-                  </div>
-                  <div className="text-sm font-semibold text-green-700 mt-2">
-                    Mapped: {formatCurrency(mapping.mappedAmount)}
-                  </div>
-                </div>
+        <div className="bg-white p-4 rounded-lg border border-green-200">
+          {/* PO Summary */}
+          <div className="mb-4 pb-4 border-b border-green-100">
+            <div className="text-sm font-medium text-gray-500 mb-2">PO Summary</div>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <span className="text-gray-600">Line Items:</span>
+                <span className="ml-2 font-semibold">{poSummary.lineItemCount}</span>
               </div>
-              
-              {/* Mapping Notes (if present) */}
-              {mapping.mappingNotes && (
-                <div className="mt-3 pt-3 border-t border-green-100">
-                  <div className="text-xs font-medium text-gray-500">Notes</div>
-                  <div className="text-sm text-gray-700">{mapping.mappingNotes}</div>
-                </div>
-              )}
+              <div>
+                <span className="text-gray-600">Total PO Value:</span>
+                <span className="ml-2 font-semibold">{formatCurrency(poSummary.totalPOValue)}</span>
+              </div>
             </div>
-          ))}
+          </div>
+          
+          {/* Cost Breakdown Mapping */}
+          <div>
+            <div className="text-sm font-medium text-gray-500 mb-2">Mapped To</div>
+            <div className="flex flex-wrap gap-2 mb-3">
+              <Badge variant="secondary" className="text-sm">{poSummary.costLine}</Badge>
+              <Badge variant="outline" className="text-sm">{poSummary.spendType}</Badge>
+              <Badge variant="outline" className="text-sm">{poSummary.spendSubCategory}</Badge>
+            </div>
+            <div className="text-sm">
+              <span className="text-gray-600">Total Mapped Amount:</span>
+              <span className="ml-2 font-semibold text-green-700">
+                {formatCurrency(poSummary.totalMappedAmount)}
+              </span>
+            </div>
+          </div>
+          
+          {/* Mapping Notes (if present) */}
+          {poSummary.mappingNotes && (
+            <div className="mt-4 pt-4 border-t border-green-100">
+              <div className="text-xs font-medium text-gray-500 mb-1">Mapping Notes</div>
+              <div className="text-sm text-gray-700">{poSummary.mappingNotes}</div>
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>

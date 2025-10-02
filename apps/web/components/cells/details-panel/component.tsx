@@ -86,11 +86,30 @@ export function DetailsPanel({ selectedPO, onMappingChange }: DetailsPanelProps)
         <CardTitle>PO Details - {selectedPO.poNumber}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Viewer - always visible if mappings exist */}
+        {/* Viewer - always visible if mappings exist (GREEN CARD) */}
         <DetailsPanelViewer 
           poId={selectedPO.id}
           onMappingsLoaded={handleViewerDataLoaded}
         />
+        
+        {/* BA-011: Show unmapped state in RED CARD if no mappings and not editing */}
+        {existingMappings.length === 0 && !isEditMode && (
+          <Card className="border-red-500 bg-red-50">
+            <CardHeader>
+              <CardTitle className="text-red-800 flex items-center gap-2">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                Not Mapped
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-red-700">
+                This PO has not been mapped to a cost breakdown. Click "Create Mapping" to assign it.
+              </p>
+            </CardContent>
+          </Card>
+        )}
         
         {/* Show create/edit UI based on state */}
         {(existingMappings.length === 0 || isEditMode) && (

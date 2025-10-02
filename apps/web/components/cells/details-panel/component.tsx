@@ -111,8 +111,8 @@ export function DetailsPanel({ selectedPO, onMappingChange }: DetailsPanelProps)
           </Card>
         )}
         
-        {/* Show create/edit UI based on state */}
-        {(existingMappings.length === 0 || isEditMode) && (
+        {/* Show create/edit UI ONLY when in edit mode (after clicking button) */}
+        {isEditMode && (
           <>
             <DetailsPanelSelector
               selectedProject={selectedProject}
@@ -128,7 +128,7 @@ export function DetailsPanel({ selectedPO, onMappingChange }: DetailsPanelProps)
               poId={selectedPO.id}
               costBreakdownId={costBreakdownId}
               existingMappings={existingMappings}
-              isEditMode={isEditMode}
+              isEditMode={existingMappings.length > 0}
               onMappingComplete={handleMappingComplete}
             />
           </>

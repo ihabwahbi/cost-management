@@ -7,10 +7,7 @@ import { DollarSign, TrendingUp, TrendingDown, AlertCircle, Activity, Package, C
 // Import new P&L components
 import { PLCommandCenter } from '@/components/cells/pl-command-center/component'
 import { FinancialControlMatrix } from '@/components/dashboard/financial-control-matrix'
-import { PLTimeline } from '@/components/dashboard/pl-timeline'
-import { SupplierPromiseCalendar } from '@/components/dashboard/supplier-promise-calendar'
 import { SpendSubcategoryChart } from '@/components/dashboard/spend-subcategory-chart'
-import { DebugPanel } from '@/components/dashboard/debug-panel'
 // Keep existing components for now
 import { BudgetTimelineChartCell } from '@/components/cells/budget-timeline-chart/component'
 import { SpendCategoryChart } from '@/components/dashboard/spend-category-chart'
@@ -20,7 +17,6 @@ import { DashboardSkeleton } from '@/components/dashboard/dashboard-skeleton'
 // Living Blueprint Architecture - Smart Cell
 import { KPICard } from '@/components/cells/kpi-card/component'
 import { calculateProjectMetrics, getCategoryBreakdown, getHierarchicalBreakdown } from '@/lib/dashboard-metrics'
-import { getProjectPLMetrics, getPLImpactByMonth, getOpenPOsByPromiseDate } from '@/lib/pl-tracking-service'
 import { useToast } from '@/hooks/use-toast'
 import { Button } from '@/components/ui/button'
 import { RefreshCw } from 'lucide-react'
@@ -67,9 +63,6 @@ export default function ProjectDashboard({ params }: ProjectDashboardProps) {
   const [refreshing, setRefreshing] = useState(false)
   
   // New P&L tracking states
-  const [plMetrics, setPLMetrics] = useState<any>(null)
-  const [plTimeline, setPLTimeline] = useState<any[]>([])
-  const [promiseDates, setPromiseDates] = useState<any[]>([])
   const [categoryPLData, setCategoryPLData] = useState<any[]>([])
   const [subcategoryData, setSubcategoryData] = useState<any[]>([])
   
@@ -109,38 +102,16 @@ export default function ProjectDashboard({ params }: ProjectDashboardProps) {
       const metricsData = await calculateProjectMetrics(projectId, filters)
       setMetrics(metricsData)
       
-      // Fetch P&L metrics
-      const plData = await getProjectPLMetrics(projectId, {
-        costLine: filters.costLine,
-        spendType: filters.spendType
-      })
-      setPLMetrics(plData)
-      console.log('P&L Metrics:', plData) // Debug log
-      
-      // Fetch chart data and P&L timeline
-      const [categories, breakdown, plTimelineData, openPOs] = await Promise.all([
+      // Fetch chart data
+      const [categories, breakdown] = await Promise.all([
         getCategoryBreakdown(projectId, filters),
-        getHierarchicalBreakdown(projectId, filters),
-        getPLImpactByMonth(projectId, filters.dateRange.from, filters.dateRange.to),
-        getOpenPOsByPromiseDate(projectId)
+        getHierarchicalBreakdown(projectId, filters)
       ])
-      console.log('P&L Timeline:', plTimelineData) // Debug log
-      console.log('Open POs by Promise Date:', openPOs) // Debug log
       
       console.log('Category data:', categories) // Debug log
       console.log('Breakdown data:', breakdown) // Debug log
       setCategoryData(categories)
       setBreakdownData(breakdown)
-      setPLTimeline(plTimelineData)
-      
-      // Convert promise dates map to array for calendar
-      const promiseArray = Array.from(openPOs.entries()).map(([date, amount]) => ({
-        date,
-        amount,
-        supplier: 'Multiple', // Would need to fetch supplier details
-        lineItems: 1
-      }))
-      setPromiseDates(promiseArray)
       
       // Prepare category P&L data for Financial Control Matrix
       const categoryPL = categories.map(cat => ({
@@ -353,19 +324,6 @@ export default function ProjectDashboard({ params }: ProjectDashboardProps) {
       /> */}
 
        <div id="dashboard-content" className="space-y-6 mt-6">
-        {/* Debug Panel - remove after testing */}
-        {process.env.NODE_ENV === 'development' && (
-          <DebugPanel 
-            metrics={metrics}
-            plMetrics={plMetrics}
-            plTimeline={plTimeline}
-            promiseDates={promiseDates}
-            categoryData={categoryData}
-            breakdownData={breakdownData}
-            subcategoryData={subcategoryData}
-          />
-        )}
-
         {/* Living Blueprint Architecture - Smart Cell */}
         <KPICard projectId={projectId} />
 
@@ -388,30 +346,6 @@ export default function ProjectDashboard({ params }: ProjectDashboardProps) {
             onCustomize={() => {
               console.log('Customize matrix view')
             }}
-            loading={loading}
-          />
-        )}
-
-        {/* P&L Timeline */}
-        {plTimeline.length > 0 && (
-          <PLTimeline
-            data={plTimeline.map(entry => ({
-              month: entry.month,
-              actualPL: entry.actualPL,
-              projectedPL: entry.projectedPL,
-              budget: metrics?.totalBudget ? metrics.totalBudget / 12 : 0,
-              cumulative: entry.cumulative
-            }))}
-            events={promiseDates.slice(0, 5).map(p => ({
-              date: p.date,
-              amount: p.amount,
-              description: `${p.supplier} delivery`,
-              type: new Date(p.date) < new Date() ? 'overdue' as const : 'expected' as const
-            }))}
-            currentMonth={new Date().getMonth()}
-            view="monthly"
-            onViewChange={(view) => console.log('Change view to:', view)}
-            onRefresh={handleRefresh}
             loading={loading}
           />
         )}
@@ -466,19 +400,6 @@ export default function ProjectDashboard({ params }: ProjectDashboardProps) {
             </CardContent>
           </Card>
         </div>
-
-        {/* Supplier Promise Calendar on its own row */}
-        {promiseDates.length > 0 && (
-          <SupplierPromiseCalendar
-            promises={promiseDates}
-            currentDate={new Date()}
-            onDateClick={(date, promises) => {
-              console.log('Date clicked:', date, promises)
-              // Could open a modal with line item details
-            }}
-            loading={loading}
-          />
-        )}
 
         {/* Cost Breakdown Table */}
         <Card>

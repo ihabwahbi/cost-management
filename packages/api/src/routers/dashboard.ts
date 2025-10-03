@@ -12,6 +12,24 @@ import { TRPCError } from '@trpc/server';
 // Constants for P&L calculations
 const FALLBACK_INVOICE_RATIO = 0.6;
 
+// Helper function for relative time formatting
+function getRelativeTime(date: Date): string {
+  const now = new Date()
+  const diffMs = now.getTime() - date.getTime()
+  const diffMins = Math.floor(diffMs / 60000)
+  
+  if (diffMins < 1) return 'just now'
+  if (diffMins < 60) return `${diffMins} min${diffMins > 1 ? 's' : ''} ago`
+  
+  const diffHours = Math.floor(diffMins / 60)
+  if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`
+  
+  const diffDays = Math.floor(diffHours / 24)
+  if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`
+  
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}
+
 // Helper: Calculate actual vs future P&L from line item
 function splitMappedAmount(mappedAmount: number, lineItem: any): { actual: number; future: number } {
   const lineValue = Number(lineItem.lineValue || 0);
@@ -182,6 +200,71 @@ export const dashboardRouter = router({
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
           message: 'Failed to fetch main dashboard metrics. Please try again.',
+          cause: error,
+        });
+      }
+    }),
+
+  /**
+   * Get Recent Activity (Global - no project filter)
+   * Returns recent PO mappings with full relationship details (quad join)
+   * Formats activity with relative time and descriptive text
+   */
+  getRecentActivity: publicProcedure
+    .input(z.object({
+      limit: z.number().min(1).max(50).default(5),
+    }))
+    .output(z.object({
+      activities: z.array(z.object({
+        id: z.string().uuid(),
+        type: z.literal('po_mapped'),
+        description: z.string(),
+        time: z.string(),
+        timestamp: z.string(),
+        poNumber: z.string(),
+        projectName: z.string(),
+        mappedAmount: z.number(),
+      })),
+    }))
+    .query(async ({ input, ctx }) => {
+      try {
+        const result = await ctx.db
+          .select({
+            id: poMappings.id,
+            poNumber: pos.poNumber,
+            projectName: projects.name,
+            mappedAmount: poMappings.mappedAmount,
+            createdAt: poMappings.createdAt,
+            mappedAt: poMappings.mappedAt,
+          })
+          .from(poMappings)
+          .innerJoin(poLineItems, eq(poMappings.poLineItemId, poLineItems.id))
+          .innerJoin(pos, eq(poLineItems.poId, pos.id))
+          .innerJoin(costBreakdown, eq(poMappings.costBreakdownId, costBreakdown.id))
+          .innerJoin(projects, eq(costBreakdown.projectId, projects.id))
+          .orderBy(desc(poMappings.createdAt))
+          .limit(input.limit);
+        
+        const activities = result.map(row => {
+          const timestamp = new Date(row.createdAt || row.mappedAt || new Date());
+          return {
+            id: row.id,
+            type: 'po_mapped' as const,
+            description: `PO ${row.poNumber} mapped to ${row.projectName}`,
+            time: getRelativeTime(timestamp),
+            timestamp: timestamp.toISOString(),
+            poNumber: row.poNumber,
+            projectName: row.projectName,
+            mappedAmount: Number(row.mappedAmount || 0),
+          };
+        });
+        
+        return { activities };
+      } catch (error) {
+        console.error('[getRecentActivity] Failed:', error);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Failed to fetch recent activity. Please try again.',
           cause: error,
         });
       }

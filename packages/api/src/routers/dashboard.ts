@@ -4,127 +4,16 @@ import { eq, sum, sql, inArray, and, desc, count, isNull } from 'drizzle-orm';
 import { costBreakdown, poMappings, poLineItems, budgetForecasts, forecastVersions, projects, pos } from '@cost-mgmt/db';
 import { TRPCError } from '@trpc/server';
 
+// Import helpers from dedicated files
+import { getRelativeTime } from '../procedures/dashboard/helpers/get-relative-time.helper';
+import { splitMappedAmount } from '../procedures/dashboard/helpers/split-mapped-amount.helper';
+import { generatePLTimeline } from '../procedures/dashboard/helpers/generate-pl-timeline.helper';
+import { FALLBACK_INVOICE_RATIO } from '../procedures/dashboard/helpers/constants';
+
 /**
  * Dashboard Router
  * Procedures for dashboard KPI metrics and visualizations
  */
-
-// Constants for P&L calculations
-const FALLBACK_INVOICE_RATIO = 0.6;
-
-// Helper function for relative time formatting
-function getRelativeTime(date: Date): string {
-  const now = new Date()
-  const diffMs = now.getTime() - date.getTime()
-  const diffMins = Math.floor(diffMs / 60000)
-  
-  if (diffMins < 1) return 'just now'
-  if (diffMins < 60) return `${diffMins} min${diffMins > 1 ? 's' : ''} ago`
-  
-  const diffHours = Math.floor(diffMins / 60)
-  if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`
-  
-  const diffDays = Math.floor(diffHours / 24)
-  if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`
-  
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-}
-
-// Helper: Calculate actual vs future P&L from line item
-function splitMappedAmount(mappedAmount: number, lineItem: any): { actual: number; future: number } {
-  const lineValue = Number(lineItem.lineValue || 0);
-  const invoiceValue = Number(lineItem.invoicedValueUsd || 0);
-  const hasInvoiceField = lineItem.invoicedValueUsd !== null;
-  
-  const safeLineValue = lineValue > 0 ? lineValue : mappedAmount;
-  const ratio = safeLineValue > 0 ? Math.min(mappedAmount / safeLineValue, 1) : 1;
-  
-  if (hasInvoiceField) {
-    const actual = invoiceValue * ratio;
-    const future = Math.max(mappedAmount - actual, 0);
-    return { actual, future };
-  }
-  
-  const inferredActual = mappedAmount * FALLBACK_INVOICE_RATIO;
-  return {
-    actual: inferredActual,
-    future: Math.max(mappedAmount - inferredActual, 0)
-  };
-}
-
-// Helper: Generate P&L timeline with actual invoices and future promises
-// Budget as fixed reference line, actual as cumulative invoiced, forecast as future promises
-function generatePLTimeline(
-  totalBudget: number,
-  invoiceData: Array<{ month: Date; invoiced: string | null }>,
-  promiseData: Array<{ month: Date; future: string | null }>
-): Array<{
-  month: string;
-  budget: number;
-  actual: number;
-  forecast: number;
-}> {
-  // Build month map for invoices
-  const invoiceMap = new Map<string, number>();
-  invoiceData.forEach((row) => {
-    const key = new Date(row.month).toISOString().slice(0, 7); // YYYY-MM
-    invoiceMap.set(key, Number(row.invoiced || 0));
-  });
-
-  // Build month map for promises
-  const promiseMap = new Map<string, number>();
-  promiseData.forEach((row) => {
-    const key = new Date(row.month).toISOString().slice(0, 7); // YYYY-MM
-    promiseMap.set(key, Number(row.future || 0));
-  });
-
-  // Determine date range
-  const allDates = [...invoiceData.map(d => new Date(d.month)), ...promiseData.map(d => new Date(d.month))];
-  if (allDates.length === 0) {
-    // No data - return empty array
-    return [];
-  }
-
-  const startDate = new Date(Math.min(...allDates.map(d => d.getTime())));
-  const endDate = new Date(Math.max(...allDates.map(d => d.getTime())));
-  
-  // Extend end date to include at least 3 months into future for visibility
-  const minEndDate = new Date();
-  minEndDate.setMonth(minEndDate.getMonth() + 3);
-  if (endDate < minEndDate) {
-    endDate.setMonth(minEndDate.getMonth());
-  }
-
-  // Generate timeline
-  const timeline: Array<{ month: string; budget: number; actual: number; forecast: number }> = [];
-  const current = new Date(startDate);
-  current.setDate(1); // Normalize to first of month
-  
-  let cumulativeActual = 0;
-
-  while (current <= endDate) {
-    const monthKey = current.toISOString().slice(0, 7); // YYYY-MM
-    const monthLabel = current.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-    
-    // Add monthly invoice to cumulative
-    const monthlyInvoice = invoiceMap.get(monthKey) || 0;
-    cumulativeActual += monthlyInvoice;
-    
-    // Get forecast for this month (not cumulative - just this month's promise)
-    const monthlyForecast = promiseMap.get(monthKey) || 0;
-
-    timeline.push({
-      month: monthLabel,
-      budget: totalBudget, // Fixed budget reference
-      actual: Math.round(cumulativeActual),
-      forecast: Math.round(monthlyForecast)
-    });
-
-    current.setMonth(current.getMonth() + 1);
-  }
-
-  return timeline;
-}
 
 export const dashboardRouter = router({
   /**

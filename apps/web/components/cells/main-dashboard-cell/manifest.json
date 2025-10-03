@@ -1,0 +1,165 @@
+{
+  "id": "main-dashboard-cell",
+  "version": "1.0.0",
+  "name": "Main Dashboard Cell",
+  "description": "Main landing page dashboard displaying global metrics, recent activity, category breakdown, and timeline data. Replaces 18,701-line page.tsx with 4 specialized tRPC procedures.",
+  "type": "cell",
+  "created": "2025-10-03",
+  "migrated_from": "apps/web/app/page.tsx",
+  
+  "behavioral_assertions": [
+    {
+      "id": "BA-001",
+      "priority": "HIGH",
+      "description": "Displays loading skeleton while main metrics are fetching",
+      "verification": "Mock getMainMetrics loading state, verify skeleton renders"
+    },
+    {
+      "id": "BA-002",
+      "priority": "HIGH",
+      "description": "Displays loading skeleton while recent activity is fetching",
+      "verification": "Mock getRecentActivity loading state, verify skeleton renders"
+    },
+    {
+      "id": "BA-003",
+      "priority": "HIGH",
+      "description": "Displays loading skeleton while category breakdown is fetching",
+      "verification": "Mock getCategoryBreakdown loading state, verify skeleton renders"
+    },
+    {
+      "id": "BA-004",
+      "priority": "HIGH",
+      "description": "Displays loading skeleton while timeline data is fetching",
+      "verification": "Mock getTimelineData loading state, verify skeleton renders"
+    },
+    {
+      "id": "BA-005",
+      "priority": "CRITICAL",
+      "description": "Displays error alert when getMainMetrics fails",
+      "verification": "Mock error state, verify Alert with error message renders"
+    },
+    {
+      "id": "BA-006",
+      "priority": "HIGH",
+      "description": "Displays error alert when getRecentActivity fails",
+      "verification": "Mock error state, verify Alert with error message renders"
+    },
+    {
+      "id": "BA-007",
+      "priority": "HIGH",
+      "description": "Displays empty state when no recent activity exists",
+      "verification": "Mock empty activities array, verify empty message renders"
+    },
+    {
+      "id": "BA-008",
+      "priority": "CRITICAL",
+      "description": "Displays unmapped POs count from getMainMetrics query",
+      "verification": "Mock data with unmappedPOs: 5, verify '5 Unmapped POs' displayed"
+    },
+    {
+      "id": "BA-009",
+      "priority": "CRITICAL",
+      "description": "Displays total PO value formatted as currency from getMainMetrics",
+      "verification": "Mock totalPOValue: 676241.18, verify '$676,241.18' displayed"
+    },
+    {
+      "id": "BA-010",
+      "priority": "CRITICAL",
+      "description": "Displays active projects count from getMainMetrics",
+      "verification": "Mock activeProjects: 2, verify '2 Active Projects' displayed"
+    },
+    {
+      "id": "BA-011",
+      "priority": "CRITICAL",
+      "description": "Displays budget variance percentage with color coding (green/red)",
+      "verification": "Mock budgetVariance: -64.41, verify '-64.41%' in green (under budget)"
+    },
+    {
+      "id": "BA-012",
+      "priority": "HIGH",
+      "description": "No infinite render loops - memoized inputs to all tRPC queries",
+      "verification": "Check React DevTools Profiler, ≤3 renders per query completion"
+    },
+    {
+      "id": "BA-013",
+      "priority": "HIGH",
+      "description": "tRPC batching works - single HTTP request for all 4 queries",
+      "verification": "Check Network tab, verify 1 POST to /api/trpc (not 4 separate)"
+    },
+    {
+      "id": "BA-014",
+      "priority": "MEDIUM",
+      "description": "All monetary values formatted as USD with appropriate precision",
+      "verification": "Verify currency formatting across all metrics and categories"
+    },
+    {
+      "id": "BA-015",
+      "priority": "HIGH",
+      "description": "Category breakdown chart renders with REAL data (not simulated budget * 0.85)",
+      "verification": "Verify category values come from po_mappings actual spend"
+    },
+    {
+      "id": "BA-016",
+      "priority": "HIGH",
+      "description": "Timeline chart renders with REAL forecast data (not simulated budget * 1.05)",
+      "verification": "Verify forecast values come from budget_forecasts table"
+    },
+    {
+      "id": "BA-017",
+      "priority": "MEDIUM",
+      "description": "Recent activity displays with relative time formatting ('5 mins ago')",
+      "verification": "Mock activity with known timestamp, verify relative time displayed"
+    },
+    {
+      "id": "BA-018",
+      "priority": "CRITICAL",
+      "description": "Division-by-zero protection for budget variance calculation",
+      "verification": "Mock totalBudget: 0, verify budgetVariance: 0 (not NaN)"
+    }
+  ],
+  
+  "dependencies": {
+    "data": [
+      "po_line_items",
+      "po_mappings",
+      "projects",
+      "cost_breakdown",
+      "budget_forecasts"
+    ],
+    "trpc_procedures": [
+      "dashboard.getMainMetrics",
+      "dashboard.getRecentActivity",
+      "dashboard.getCategoryBreakdown",
+      "dashboard.getTimelineData"
+    ],
+    "ui_components": [
+      "@/components/ui/card",
+      "@/components/ui/skeleton",
+      "@/components/ui/alert",
+      "lucide-react icons",
+      "recharts (for charts)"
+    ]
+  },
+  
+  "technical_debt_resolved": [
+    "CRITICAL: Replaced simulated category data (budget * 0.85) with real po_mappings queries",
+    "CRITICAL: Replaced simulated timeline forecast (budget * 1.05) with real budget_forecasts data",
+    "CRITICAL: Removed unmemoized Supabase client creation (line 125 of original)",
+    "CRITICAL: Fixed stale closure in useEffect (line 242 of original)",
+    "ARCHITECTURAL: Migrated from 18,701-line monolith to 4 specialized procedures (M1-M4 compliant)",
+    "ARCHITECTURAL: Removed parallel implementation pattern violations"
+  ],
+  
+  "performance_targets": {
+    "initial_load": "< 1000ms",
+    "trpc_batched_queries": "< 500ms",
+    "total_render": "≤ 110% of baseline"
+  },
+  
+  "migration_notes": {
+    "complexity": "High (18,701 lines, 4 queries, phased implementation)",
+    "duration": "8-12 hours",
+    "risk": "MEDIUM (critical path - main landing page)",
+    "strategy": "Phased (A-B-C-D for procedures, then Cell implementation)"
+  }
+}

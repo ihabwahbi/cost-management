@@ -1,0 +1,48 @@
+gates:
+  - name: types
+    command: pnpm type-check
+    requirement: Zero TypeScript errors
+    priority: CRITICAL
+    
+  - name: tests
+    command: pnpm test -- components/cells/main-dashboard-cell/__tests__/
+    requirement: All 18+ tests pass, ≥80% coverage
+    priority: HIGH
+    
+  - name: build
+    command: pnpm build
+    requirement: Production build succeeds
+    priority: CRITICAL
+    
+  - name: performance
+    requirement: Load time ≤110% of baseline (18,701-line page.tsx)
+    measurement: React DevTools Profiler + Network tab
+    priority: HIGH
+    baseline_metrics:
+      initial_render: "measure original page.tsx"
+      query_time: "measure 4 parallel tRPC queries"
+      total_load: "≤ 1000ms target"
+    
+  - name: architecture
+    requirement: M1-M4 compliance for all procedures
+    checks:
+      - "All 10 dashboard procedures ≤200 lines"
+      - "dashboard.router.ts ≤50 lines"  
+      - "No parallel implementations in supabase/functions/"
+      - "Explicit naming: get-*, create-*, update-*, delete-*"
+    priority: CRITICAL
+    
+  - name: accessibility
+    requirement: WCAG AA compliance
+    checks:
+      - "Keyboard navigation works"
+      - "Screen reader announces metrics"
+      - "Color contrast meets standards"
+      - "Focus indicators visible"
+    priority: MEDIUM
+
+validation_strategy:
+  automated_gates: ["types", "tests", "build", "architecture"]
+  manual_gates: ["performance", "accessibility"]
+  critical_path: true
+  rollback_on_failure: true

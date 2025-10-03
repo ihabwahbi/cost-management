@@ -1,6 +1,6 @@
 import { router } from './trpc';
 import { testRouter } from './routers/test';
-import { dashboardRouter } from './routers/dashboard';
+import { dashboardRouter } from './procedures/dashboard/dashboard.router';
 import { poMappingRouter } from './routers/po-mapping';
 import { db } from '@cost-mgmt/db';
 import type { Context } from './trpc';

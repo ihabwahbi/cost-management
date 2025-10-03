@@ -11,17 +11,16 @@ import { useState } from 'react';
 import { trpc } from '@/lib/trpc';
 
 /**
- * Get tRPC endpoint URL from environment
+ * Get tRPC endpoint URL
+ * Uses Next.js API route for single source of truth
  */
 function getTRPCUrl() {
-  const url = process.env.NEXT_PUBLIC_TRPC_URL;
+  // Always use Next.js API route (no environment variable needed)
+  const baseUrl = typeof window !== 'undefined' 
+    ? '' // Browser: relative URL
+    : process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'; // Server: absolute URL
   
-  if (!url) {
-    console.warn('NEXT_PUBLIC_TRPC_URL not set, using default');
-    return 'http://localhost:54321/functions/v1/trpc';
-  }
-  
-  return url;
+  return `${baseUrl}/api/trpc`;
 }
 
 export function Providers({ children }: { children: React.ReactNode }) {

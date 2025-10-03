@@ -130,12 +130,13 @@ deep_analysis_tasks:
       
   task_2_database_analysis:
     subagent: "database-schema-analyzer"
-    prompt: "For [component], identify all database queries, map to schema tables, determine required Drizzle schemas, plan tRPC procedure signatures"
+    prompt: "For [component], identify all database queries, map to schema tables, determine required Drizzle schemas, and plan the specialized tRPC procedure files and domain router, including Zod schemas."
     expected_output:
       - queries_used
       - tables_accessed
       - drizzle_schema_requirements
-      - trpc_procedure_specs
+      - trpc_procedure_file_specs  # granular files
+      - trpc_domain_router_spec    # aggregator file
       
   task_3_integration_analysis:
     subagent: "codebase-locator"
@@ -282,22 +283,17 @@ const { data } = supabase
 
 // 2. Map to tRPC procedure specification
 interface TRPCProcedureSpec {
-  name: "budget.getOverview"
+  file: "procedures/[domain]/[procedure-name].procedure.ts"
+  name: "domain.procedureName"
   input: {
-    projectId: "z.string().uuid()"
-    dateRange: {
-      from: "z.string().transform(val => new Date(val))"  // CRITICAL: NOT z.date()
-      to: "z.string().transform(val => new Date(val))"
-    }
+    // ... Zod schema
   }
   output: {
-    costBreakdown: "z.array(z.object({ ... }))"
-    poMappings: "z.array(z.object({ ... }))"
+    // ... Zod schema
   }
   implementation_notes: [
     "Use inArray() for filtering by ID arrays",
     "Use between() for date ranges",
-    "Return null-safe aggregations (|| 0 patterns)"
   ]
 }
 
@@ -568,8 +564,8 @@ analysis_report:
           - "actualCost: numeric('actual_cost', { precision: 15, scale: 2 })"
           
     trpc_procedures:
-      - name: "budget.getOverview"
-        router: "packages/api/src/routers/budget.ts"
+      - file: "packages/api/src/procedures/budget/get-overview.procedure.ts"
+        name: "budget.getOverview"
         input_schema: |
           z.object({
             projectId: z.string().uuid(),
@@ -582,20 +578,14 @@ analysis_report:
           z.object({
             totalBudget: z.number(),
             totalActual: z.number(),
-            variance: z.number(),
-            breakdown: z.array(z.object({
-              costLine: z.string(),
-              budgetCost: z.number(),
-              actualCost: z.number()
-            }))
+            variance: z.number()
           })
         implementation_notes:
           - "Use between() for date range filtering"
-          - "Use leftJoin() to connect cost_breakdown to po_mappings"
           - "Aggregate with SUM() and handle null values"
           
-      - name: "budget.getBreakdown"
-        router: "packages/api/src/routers/budget.ts"
+      - file: "packages/api/src/procedures/budget/get-breakdown.procedure.ts"
+        name: "budget.getBreakdown"
         input_schema: |
           z.object({
             projectId: z.string().uuid()
@@ -606,6 +596,12 @@ analysis_report:
             costLine: z.string(),
             budgetCost: z.number()
           }))
+          
+      - file: "packages/api/src/procedures/budget/budget.router.ts"
+        purpose: "Aggregates all budget procedures into a single router."
+        implementation_notes:
+          - "Import all *.procedure.ts files from this domain."
+          - "Merge routers using tRPC's mergeRouters() utility."
           
     cell_structure:
       location: "components/cells/budget-overview/"
@@ -801,11 +797,16 @@ trpc_mapping:
     critical: "Use z.string().transform() for dates"
     output: "Complete input schema specification"
     
-  3_design_output_schema:
+  3_define_file_structure:
+    action: "Define the specialized procedure file path"
+    convention: "`packages/api/src/procedures/[domain]/[procedure-name].procedure.ts`"
+    output: "Exact file path for the new procedure"
+    
+  4_design_output_schema:
     action: "Define expected return type with Zod"
     output: "Complete output schema specification"
     
-  4_specify_implementation:
+  5_specify_implementation:
     action: "Document Drizzle query pattern needed"
     reference: "Use patterns from trpc-debugging-guide.md"
     output: "Implementation notes with specific helpers (eq, inArray, between)"

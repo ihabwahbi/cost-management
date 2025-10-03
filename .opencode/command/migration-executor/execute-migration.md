@@ -128,19 +128,26 @@ You are operating in **Phase 4** of the 5-phase autonomous migration workflow. P
    - Expected: Zero TypeScript errors
    - On failure: Fix syntax before proceeding
    
-   **2.2 Implement tRPC Procedures [STEP 2]**
+   **2.2 Implement Specialized tRPC Procedures [STEP 2]**
    
-   For each procedure from plan:
+   **CRITICAL**: API Procedure Specialization Architecture - One Procedure, One File (Max 200 Lines)
+   
+   For each procedure from plan, create individual file:
    ```typescript
-   // Location: packages/api/src/routers/[router-name].ts
+   // Location: packages/api/src/procedures/[domain]/[procedure-name].procedure.ts
+   // Max lines: 200
    // Source: migration_plan.data_layer_specifications.trpc_procedures
    
    import { z } from 'zod'
-   import { eq, inArray, between } from 'drizzle-orm'
+   import { publicProcedure, router } from '../../trpc'
+   import { db } from '@/db'
+   import { table } from '@/db/schema'
+   import { eq, inArray, between, and } from 'drizzle-orm'
    import { TRPCError } from '@trpc/server'
    
-   export const procedureRouter = router({
-     procedureName: publicProcedure
+   // CRITICAL: Each procedure exports its own router segment
+   export const [procedureName]Router = router({
+     [procedureName]: publicProcedure
        .input(z.object({
          projectId: z.string().uuid(),
          dateRange: z.object({
@@ -148,11 +155,11 @@ You are operating in **Phase 4** of the 5-phase autonomous migration workflow. P
            to: z.string().transform(val => new Date(val))
          })
        }))
-       .query(async ({ input, ctx }) => {
+       .query(async ({ input }) => {
          const { projectId, dateRange } = input
          
          // Use Drizzle helpers from plan
-         const data = await ctx.db.select()
+         const data = await db.select()
            .from(table)
            .where(and(
              eq(table.projectId, projectId),
@@ -165,16 +172,44 @@ You are operating in **Phase 4** of the 5-phase autonomous migration workflow. P
          return { data, total }
        })
    })
+   
+   // Max 200 lines per procedure file
+   ```
+   
+   **Then create domain router to aggregate procedures**:
+   ```typescript
+   // Location: packages/api/src/procedures/[domain]/[domain].router.ts
+   // Max lines: 50
+   
+   import { router } from '../../trpc'
+   import { procedure1Router } from './procedure-1.procedure'
+   import { procedure2Router } from './procedure-2.procedure'
+   
+   // Domain router aggregates all procedure routers from domain
+   export const [domain]Router = router({
+     ...procedure1Router,
+     ...procedure2Router,
+   })
+   
+   // Typically < 50 lines - simple aggregation
    ```
    
    **Critical Patterns**:
-   - ✓ Dates: ALWAYS `z.string().transform()` (NOT `z.date()`)
-   - ✓ Drizzle: ALWAYS use helpers (eq, inArray, between)
-   - ✓ Null safety: ALWAYS use `|| 0` for divisions/aggregations
+   - ✓ **Architecture**: One procedure per file (max 200 lines), domain router for aggregation (max 50 lines)
+   - ✓ **Dates**: ALWAYS `z.string().transform()` (NOT `z.date()`)
+   - ✓ **Drizzle**: ALWAYS use helpers (eq, inArray, between)
+   - ✓ **Null safety**: ALWAYS use `|| 0` for divisions/aggregations
+   - ✓ **Exports**: Each procedure file exports `[procedureName]Router`
    
    **Validation Checkpoint**: `pnpm type-check packages/api`
    - Expected: Zero TypeScript errors
    - On failure: Fix before proceeding
+   
+   **Architecture Validation**:
+   - ✓ Each procedure in separate file (max 200 lines)
+   - ✓ Domain router created and aggregates procedures
+   - ✓ Domain router under 50 lines
+   - ✓ Each procedure file exports named router segment
    
    **2.3 Test Procedures with Curl [STEP 2 VALIDATION]**
    

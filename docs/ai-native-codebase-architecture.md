@@ -76,8 +76,13 @@ project-root/
 ├── packages/
 │   ├── api/                           # tRPC Backend
 │   │   └── src/
-│   │       ├── routers/
-│   │       └── procedures/
+│   │       ├── procedures/              # Specialized, granular tRPC procedures
+│   │       │   └── dashboard/
+│   │       │       ├── get-main-metrics.procedure.ts
+│   │       │       └── dashboard.router.ts
+│   │       │
+│   │       ├── index.ts                 # Main appRouter composition
+│   │       └── trpc.ts                  # Core tRPC setup
 │   │
 │   ├── db/                            # Drizzle ORM + Schema
 │   │   └── src/
@@ -129,42 +134,43 @@ export type CostBreakdown = typeof costBreakdown.$inferSelect
 export type NewCostBreakdown = typeof costBreakdown.$inferInsert
 ```
 
-**API Layer (tRPC Backend):**
+**API Layer (Specialized tRPC Procedure):**
 ```typescript
-// packages/api/src/routers/budget.ts
+// packages/api/src/procedures/budget/get-waterfall-data.procedure.ts
 import { z } from 'zod'
 import { publicProcedure, router } from '../trpc'
 import { db } from '@/db'
 import { costBreakdown } from '@/db/schema'
+import { eq } from 'drizzle-orm';
 
-export const budgetRouter = router({
+// Each procedure is in its own file and exports a router segment.
+export const getWaterfallDataRouter = router({
   getWaterfallData: publicProcedure
     .input(z.object({
       projectId: z.string().uuid(),
       dateRange: z.object({
-        // CRITICAL: Use string transform for dates over HTTP
         from: z.string().transform((val) => new Date(val)),
         to: z.string().transform((val) => new Date(val)),
       })
     }))
     .query(async ({ input }) => {
-      // Drizzle query - fully typed
       const data = await db
         .select()
         .from(costBreakdown)
         .where(eq(costBreakdown.projectId, input.projectId))
       
-      // Return type is inferred from schema
       return {
         items: data.map(item => ({
           category: item.spendType,
           budgeted: Number(item.budgetCost),
-          actual: 0, // Would come from PO mappings
+          actual: 0, // Placeholder
           variance: 0
         }))
       }
     })
 })
+
+// These segments are then composed in a domain router, e.g., budget.router.ts
 ```
 
 **Frontend Integration:**

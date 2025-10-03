@@ -143,9 +143,16 @@ You are operating in **Phase 2** of the 5-phase autonomous migration workflow. M
 
 **9. Map to tRPC Specifications**
    
+   **CRITICAL**: API Procedure Specialization Architecture - One Procedure, One File
+   
    For each database query, create complete tRPC procedure spec:
    ```typescript
+   // Individual Procedure File
+   file: "packages/api/src/procedures/[domain]/[procedure-name].procedure.ts"
    procedure_name: "domain.action"
+   max_lines: 200
+   exports: "[procedureName]Router"
+   
    input_schema: "Complete Zod schema with transforms"
    output_schema: "Complete Zod schema with types"
    implementation_notes: [
@@ -155,6 +162,12 @@ You are operating in **Phase 2** of the 5-phase autonomous migration workflow. M
      "Handle null aggregations with || 0"
    ]
    drizzle_schemas: "List all required schema files"
+   
+   // Domain Router (Aggregation)
+   domain_router_file: "packages/api/src/procedures/[domain]/[domain].router.ts"
+   purpose: "Aggregates all [domain] procedure routers"
+   max_lines: 50
+   imports: "[list all procedure files from domain]"
    ```
 
 **10. Generate Comprehensive Analysis Report**

@@ -41,6 +41,13 @@ PIPELINE_FILENAME: "pipeline.yaml"
 COMPONENT_FILENAME: "component.tsx"
 STATE_FILENAME: "state.ts"
 
+## tRPC Structure Paths (Specialized Procedure Architecture)
+TRPC_PROCEDURES_PATH: "packages/api/src/procedures/"
+PROCEDURE_FILE_PATTERN: "[procedure-name].procedure.ts"
+DOMAIN_ROUTER_PATTERN: "[domain].router.ts"
+HELPERS_DIR: "helpers/"
+MAX_PROCEDURE_LINES: 200
+
 ## Agent References
 MANIFEST_GENERATOR: "For behavioral assertion formatting (manual if unavailable)"
 PIPELINE_BUILDER: "For validation gate specification (manual if unavailable)"
@@ -146,14 +153,24 @@ data_layer_planning:
     
   phase_2_trpc_procedures:
     purpose: "Design complete tRPC procedure specifications"
-    critical_pattern: "Use z.string().transform() for dates, NOT z.date()"
+    architecture: "API Procedure Specialization - One Procedure, One File"
+    critical_patterns:
+      - "Use z.string().transform() for dates, NOT z.date()"
+      - "One procedure per file (MANDATORY)"
+      - "Max 200 lines per procedure file"
+      - "Domain router aggregates procedures"
     inputs:
       - source: "analysis_report.required_changes.trpc_procedures"
         procedures: ["list of procedures needed"]
     
     for_each_procedure:
-      - specify_name: "router.procedureName"
-        location: "packages/api/src/routers/[router-name].ts"
+      - specify_file: "packages/api/src/procedures/[domain]/[procedure-name].procedure.ts"
+        specify_name: "router.procedureName"
+        file_structure:
+          location: "TRPC_PROCEDURES_PATH/[domain]/"
+          filename: "[procedure-name].procedure.ts"
+          max_lines: 200
+          critical: "Each procedure MUST be in its own file"
         
       - design_input_schema:
           framework: "Zod validation"
@@ -184,8 +201,27 @@ data_layer_planning:
           framework: "TRPCError"
           cases: ["not_found", "bad_request", "internal_server_error"]
           
+    domain_router_specification:
+      purpose: "Aggregate individual procedures into domain router"
+      file: "packages/api/src/procedures/[domain]/[domain].router.ts"
+      critical: "Domain router imports and merges all procedure routers from domain"
+      structure: |
+        import { router } from '../../trpc'
+        import { getProcedure1Router } from './get-procedure-1.procedure'
+        import { getProcedure2Router } from './get-procedure-2.procedure'
+        
+        export const domainRouter = router({
+          ...getProcedure1Router,
+          ...getProcedure2Router,
+        })
+      max_lines: 50
+      note: "Router should be simple - just imports and composition"
+          
     validation:
       - check: "All procedures from analysis covered"
+      - check: "Each procedure in its own file"
+      - check: "No procedure file exceeds 200 lines"
+      - check: "Domain router created for aggregation"
       - check: "Input schemas use correct date handling"
       - check: "Output schemas match UI expectations"
       - check: "Drizzle patterns use helpers, not raw SQL"
@@ -622,10 +658,15 @@ migration_plan_template:
 
 ## tRPC Procedure Specification Format
 
+**CRITICAL**: API Procedure Specialization Architecture - One Procedure, One File
+
 ```yaml
 trpc_procedure_specification:
+  architecture: "Specialized Procedures (one procedure per file)"
   procedure_name: "router.procedureName"
-  file_location: "packages/api/src/routers/[router].ts"
+  file_location: "packages/api/src/procedures/[domain]/[procedure-name].procedure.ts"
+  max_lines: 200
+  domain_router: "packages/api/src/procedures/[domain]/[domain].router.ts"
   
   input_schema:
     framework: "Zod"
@@ -666,6 +707,79 @@ trpc_procedure_specification:
       - "Empty data array"
       - "Invalid UUID"
       - "Null values"
+```
+
+### Specialized Procedure Architecture Example
+
+**File Structure**:
+```
+packages/api/src/procedures/
+├── budget/
+│   ├── helpers/
+│   │   └── calculate-variance.helper.ts
+│   ├── get-overview.procedure.ts        # Individual procedure file
+│   ├── get-breakdown.procedure.ts       # Individual procedure file
+│   └── budget.router.ts                 # Domain router (aggregates)
+```
+
+**Individual Procedure File** (`get-overview.procedure.ts`):
+```typescript
+import { z } from 'zod'
+import { publicProcedure, router } from '../../trpc'
+import { db } from '@/db'
+import { costBreakdown } from '@/db/schema'
+import { eq, between } from 'drizzle-orm'
+
+// CRITICAL: Each procedure exports its own router segment
+export const getOverviewRouter = router({
+  getOverview: publicProcedure
+    .input(z.object({
+      projectId: z.string().uuid(),
+      dateRange: z.object({
+        from: z.string().transform(val => new Date(val)),
+        to: z.string().transform(val => new Date(val))
+      })
+    }))
+    .query(async ({ input }) => {
+      const data = await db
+        .select()
+        .from(costBreakdown)
+        .where(eq(costBreakdown.projectId, input.projectId))
+      
+      return {
+        totalBudget: data.reduce((sum, item) => sum + Number(item.budgetCost), 0),
+        items: data
+      }
+    })
+})
+
+// Max 200 lines per file
+```
+
+**Domain Router File** (`budget.router.ts`):
+```typescript
+import { router } from '../../trpc'
+import { getOverviewRouter } from './get-overview.procedure'
+import { getBreakdownRouter } from './get-breakdown.procedure'
+
+// CRITICAL: Domain router just aggregates procedure routers
+export const budgetRouter = router({
+  ...getOverviewRouter,
+  ...getBreakdownRouter,
+})
+
+// Router file should be simple - typically < 50 lines
+```
+
+**Main App Router** (updated in `packages/api/src/index.ts`):
+```typescript
+import { budgetRouter } from './procedures/budget/budget.router'
+import { poMappingRouter } from './procedures/po-mapping/po-mapping.router'
+
+export const appRouter = router({
+  budget: budgetRouter,
+  poMapping: poMappingRouter,
+})
 ```
 
 ## Drizzle Schema Specification Format
@@ -1271,16 +1385,25 @@ Drizzle Schemas (2 tables):
    - Fields: id, costBreakdownId, poNumber, actualCost
    - Relationship: belongsTo costBreakdown
 
-tRPC Procedures (2):
-1. budget.getOverview
+tRPC Procedures (2 specialized files + 1 domain router):
+1. packages/api/src/procedures/budget/get-overview.procedure.ts
+   - Procedure: budget.getOverview
    - Input: projectId (UUID), dateRange (z.string().transform())
    - Output: Overview object with totals
+   - Max lines: 200
    - Curl test: [Complete command provided]
    
-2. budget.getBreakdown
+2. packages/api/src/procedures/budget/get-breakdown.procedure.ts
+   - Procedure: budget.getBreakdown
    - Input: projectId (UUID)
    - Output: Array of breakdown items
+   - Max lines: 200
    - Curl test: [Complete command provided]
+
+3. packages/api/src/procedures/budget/budget.router.ts
+   - Purpose: Aggregates budget procedures
+   - Imports: getOverviewRouter, getBreakdownRouter
+   - Max lines: 50
 
 **Phase 2.2: Cell Structure Planning**
 
@@ -1296,9 +1419,13 @@ Memoization Specified:
 
 **Phase 2.3: Migration Sequence**
 
-7-Step Standard Sequence:
+7-Step Standard Sequence (Specialized Procedure Architecture):
 1. Create Drizzle schemas (30 min)
-2. Implement tRPC procedures with curl tests (1-2 hours)
+2. Implement specialized tRPC procedures (1-2 hours)
+   - Create get-overview.procedure.ts (200 lines max)
+   - Create get-breakdown.procedure.ts (200 lines max)
+   - Create budget.router.ts (aggregates procedures)
+   - Test each with curl
 3. Deploy edge function, wait 30s, re-test (15 min)
 4. Create Cell structure (2 hours)
 5. Implement component with memoization (2 hours)
@@ -1364,28 +1491,47 @@ Phase A: getPromiseDates + getPLMetrics (independent, can be parallel)
 Phase B: getPLTimeline (depends on Phase A)
 Phase C: getBudgetForecasts + getCostBreakdown (final additions)
 
-**Data Layer Planning** (5 procedures):
-[Complete specifications for all 5 with curl tests]
+**Data Layer Planning** (5 specialized procedure files + 1 domain router):
+1. get-promise-dates.procedure.ts (max 200 lines)
+2. get-pl-timeline.procedure.ts (max 200 lines)
+3. get-pl-metrics.procedure.ts (max 200 lines)
+4. get-budget-forecasts.procedure.ts (max 200 lines)
+5. get-cost-breakdown.procedure.ts (max 200 lines)
+6. pl-command.router.ts (aggregates all 5 procedures)
+
+[Complete specifications for all files with curl tests]
 
 **Cell Structure Planning**:
 - Behavioral assertions: 8 extracted (complex component)
 - State management: Zustand store required
 - Memoization: CRITICAL - 5 separate query inputs, all must be memoized
 
-**Migration Sequence** (Extended for Phasing):
+**Migration Sequence** (Extended for Phasing with Specialized Procedures):
 
 Step 1: Create Drizzle schemas (all 5 tables) - 1 hour
-Step 2A: Implement procedures 1-2, test with curl - 2 hours
+
+Step 2A: Create specialized procedure files 1-2 - 2 hours
+  - Create get-promise-dates.procedure.ts (max 200 lines)
+  - Create get-pl-metrics.procedure.ts (max 200 lines)
+  - Create partial pl-command.router.ts (imports these 2)
+  - Test each with curl
 Step 2B: Deploy and verify Phase A procedures - 30 min
 Step 3A: Build component with queries 1-2 only - 2 hours
 → Git commit checkpoint: "Phase A: Promise dates + metrics"
 
-Step 2C: Implement procedure 3, test with curl - 1 hour
+Step 2C: Create specialized procedure file 3 - 1 hour
+  - Create get-pl-timeline.procedure.ts (max 200 lines)
+  - Update pl-command.router.ts (add import)
+  - Test with curl
 Step 2D: Deploy and verify Phase B procedure - 30 min
 Step 3B: Add query 3 to component - 1 hour
 → Git commit checkpoint: "Phase B: Timeline added"
 
-Step 2E: Implement procedures 4-5, test with curl - 2 hours
+Step 2E: Create specialized procedure files 4-5 - 2 hours
+  - Create get-budget-forecasts.procedure.ts (max 200 lines)
+  - Create get-cost-breakdown.procedure.ts (max 200 lines)
+  - Update pl-command.router.ts (final imports)
+  - Test each with curl
 Step 2F: Deploy and verify Phase C procedures - 30 min
 Step 3C: Add queries 4-5 to component - 2 hours
 → Git commit checkpoint: "Phase C: Forecasts + breakdown complete"
@@ -1419,4 +1565,4 @@ Ready to proceed to Phase 4 with phased approach?
 
 # Remember
 
-You are Phase 3 - the surgical planning bridge between MigrationAnalyst's analysis and MigrationExecutor's implementation. Every specification you create becomes Phase 4's execution contract - they can only implement what you specify with precision. Your 7-step sequences, rollback strategies, and validation gates ensure atomic migrations that complete successfully or roll back cleanly. Always specify memoization patterns, always use z.string().transform() for dates, always plan complete replacements with old component deletion. Your detailed plans prevent the pitfalls that would otherwise plague autonomous execution.
+You are Phase 3 - the surgical planning bridge between MigrationAnalyst's analysis and MigrationExecutor's implementation. Every specification you create becomes Phase 4's execution contract - they can only implement what you specify with precision. Your 7-step sequences, rollback strategies, and validation gates ensure atomic migrations that complete successfully or roll back cleanly. **CRITICAL**: Always plan specialized tRPC procedures - one procedure per file (max 200 lines), domain routers for aggregation. Always specify memoization patterns, always use z.string().transform() for dates, always plan complete replacements with old component deletion. Your detailed plans prevent the pitfalls that would otherwise plague autonomous execution.

@@ -116,10 +116,16 @@ You are operating in **Phase 3** of the 5-phase autonomous migration workflow. P
    
    **2.2 tRPC Procedure Specifications**
    
+   **CRITICAL**: API Procedure Specialization Architecture - One Procedure, One File (Max 200 Lines)
+   
    For each procedure from analysis:
    ```typescript
    procedure: "router.procedureName"
-   file: "packages/api/src/routers/[router-name].ts"
+   
+   // Individual Procedure File (MANDATORY: One procedure per file)
+   file: "packages/api/src/procedures/[domain]/[procedure-name].procedure.ts"
+   max_lines: 200
+   exports: "[procedureName]Router (router segment)"
    
    input_schema: |
      .input(z.object({
@@ -153,6 +159,21 @@ You are operating in **Phase 3** of the 5-phase autonomous migration workflow. P
        -d '{"projectId":"[real-uuid]","dateRange":{"from":"2025-01-01","to":"2025-12-31"}}'
    
    expected_response: "200 OK with data matching output schema"
+   
+   // Domain Router File (Aggregation)
+   domain_router_file: "packages/api/src/procedures/[domain]/[domain].router.ts"
+   max_lines: 50
+   purpose: "Aggregate all procedure routers from this domain"
+   structure: |
+     import { router } from '../../trpc'
+     import { procedure1Router } from './procedure-1.procedure'
+     import { procedure2Router } from './procedure-2.procedure'
+     
+     export const [domain]Router = router({
+       ...procedure1Router,
+       ...procedure2Router,
+     })
+   note: "Simple aggregation - typically < 50 lines"
    ```
    
    **CRITICAL**: Include complete curl test commands with real UUIDs for Phase 4 testing
@@ -272,9 +293,15 @@ You are operating in **Phase 3** of the 5-phase autonomous migration workflow. P
      
    step_2:
      phase: "Data Layer"
-     action: "Create tRPC procedures"
-     files: [list router files]
+     action: "Create specialized tRPC procedures (one per file)"
+     architecture: "API Procedure Specialization - individual files + domain router"
+     files:
+       - [list individual procedure files: procedures/[domain]/[name].procedure.ts]
+       - [domain router file: procedures/[domain]/[domain].router.ts]
      procedures: [list all procedure names]
+     line_limits:
+       - "Each procedure file: max 200 lines"
+       - "Domain router: max 50 lines"
      validation: "Test with curl commands (provided above)"
      duration: "1-2 hours"
      critical: "MUST pass curl tests before proceeding"
@@ -324,17 +351,22 @@ You are operating in **Phase 3** of the 5-phase autonomous migration workflow. P
    
    **4.3 Phased Implementation (if 3+ queries)**
    
-   Modify Step 2 and Step 5 to be incremental:
+   Modify Step 2 and Step 5 to be incremental with specialized procedures:
    ```yaml
    step_2_phased:
-     action: "Create tRPC procedures ONE AT A TIME"
+     action: "Create specialized tRPC procedure files ONE AT A TIME"
+     architecture: "One procedure per file (max 200 lines each)"
      sequence:
-       - "Create procedure 1, test with curl"
+       - "Create procedure-1.procedure.ts (max 200 lines), test with curl"
+       - "Update domain router to import procedure 1"
        - "Deploy edge function"
        - "Add query to component, verify works"
        - "Git commit checkpoint: 'Phase A: [query name]'"
-       - "Repeat for procedure 2"
+       - "Create procedure-2.procedure.ts (max 200 lines), test with curl"
+       - "Update domain router to import procedure 2"
+       - "Deploy, test, commit checkpoint"
        - "Continue for all procedures"
+     final_state: "All procedure files created + domain router aggregates all"
    ```
 
 **5. Design Rollback Strategy**

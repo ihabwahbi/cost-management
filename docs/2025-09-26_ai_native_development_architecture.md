@@ -33,13 +33,14 @@ Invocation N+1:
 
 ### **1.3. Target Architecture: ANDA (Living Blueprint)**
 
-The workflow systematically migrates codebases to adopt three pillars:
+The workflow systematically migrates codebases to adopt four foundational pillars:
 
 1. **Type-Safe Data Layer**: PostgreSQL → Drizzle ORM → tRPC → React (end-to-end types)
 2. **Smart Component Cells**: Self-contained components with manifests, pipelines, and behavioral assertions
-3. **Architectural Ledger**: Immutable history of all changes for AI agent context
+3. **Specialized Procedure Architecture**: One procedure per file (≤200 lines), domain routers for aggregation (≤50 lines), no monolithic API files
+4. **Architectural Ledger**: Immutable history of all changes with architecture health metrics for AI agent context
 
-**Ultimate Goal:** 100% ANDA adoption where every component is a Cell, every data query flows through tRPC, and the codebase maintains absolute leanness optimized for AI agent development.
+**Ultimate Goal:** 100% ANDA adoption where every component is a Cell, every data query flows through specialized tRPC procedures, every architecture violation is detected early, and the codebase maintains absolute leanness optimized for AI agent development.
 
 ### **1.4. System Goals & Principles**
 
@@ -260,12 +261,14 @@ analysis-report:
         fields: ["id", "costBreakdownId", "poNumber", "actualCost"]
     
     trpcProcedures:
-      - name: "budget.getOverview"
+      - file: "procedures/budget/get-overview.procedure.ts"
         input: { projectId: "uuid", dateRange: { from: "Date", to: "Date" }}
         output: "CostOverview[]"
-      - name: "budget.getBreakdown"
+      - file: "procedures/budget/get-breakdown.procedure.ts"
         input: { projectId: "uuid" }
         output: "CostBreakdownItem[]"
+      - file: "procedures/budget/budget.router.ts"
+        purpose: "Aggregates budget procedures"
     
     cellStructure:
       location: "components/cells/budget-overview/"
@@ -351,13 +354,12 @@ migration-plan:
     
     2:
       phase: "Data Layer"
-      action: "Create tRPC procedures"
+      action: "Create specialized tRPC procedures"
       files:
-        - "packages/api/src/routers/budget.ts"
-      procedures:
-        - "budget.getOverview"
-        - "budget.getBreakdown"
-      validation: "Test with curl, verify types"
+        - "packages/api/src/procedures/budget/get-overview.procedure.ts"
+        - "packages/api/src/procedures/budget/get-breakdown.procedure.ts"
+        - "packages/api/src/procedures/budget/budget.router.ts"
+      validation: "Each procedure is in its own file. Test with curl."
     
     3:
       phase: "Cell Creation"
@@ -451,6 +453,7 @@ Execute Plan (Zero Deviation):
 **Critical Rules:**
 
 * **NO partial implementations** - Complete or rollback
+* **NO monolithic API routers** - one procedure, one file
 * **NO keeping old code** "just in case"
 * **NO feature flags** or conditional logic
 * **Complete replacement** is the only acceptable outcome
@@ -510,11 +513,12 @@ implementation-report:
   timestamp: "2025-10-02T14:45:00Z"
   
   filesCreated:
-    - "packages/db/src/schema/cost-breakdown.ts"
-    - "packages/api/src/routers/budget.ts"
-    - "components/cells/budget-overview/component.tsx"
-    - "components/cells/budget-overview/manifest.json"
-    - "components/cells/budget-overview/pipeline.yaml"
+      - "packages/api/src/procedures/budget/get-overview.procedure.ts"
+      - "packages/api/src/procedures/budget/get-breakdown.procedure.ts"
+      - "packages/api/src/procedures/budget/budget.router.ts"
+      - "components/cells/budget-overview/component.tsx"
+      - "components/cells/budget-overview/manifest.json"
+      - "components/cells/budget-overview/pipeline.yaml"
   
   filesModified:
     - "app/dashboard/page.tsx"
@@ -537,18 +541,21 @@ implementation-report:
   ledgerUpdated: true
 ```
 
-### **2.6. Phase 5: Validation & Learning (MigrationValidator)**
+### **2.6. Phase 5: Validation & Architecture Health Monitoring (MigrationValidator)**
 
-**Primary Agent:** `MigrationValidator`  
-**Mission:** Ensure migration succeeded and capture learnings for next run
+**Primary Agent:** `MigrationValidator` (Architecture Health Monitor)  
+**Mission:** Dual-level responsibility - validate THIS migration succeeded AND assess SYSTEM-WIDE architecture health
 
-**Validation Protocol:**
+**REVOLUTIONARY TRANSFORMATION:** Phase 5 is now an Architecture Health Monitor that operates on two critical levels:
+
+**Dual-Level Validation Protocol:**
 
 ```yaml
-Comprehensive Verification:
+LEVEL 1: Migration Validation (Did THIS migration work?)
+  
   1. Technical Validation:
      - TypeScript compiles with zero errors
-     - All tests pass
+     - All tests pass (≥80% coverage)
      - Build succeeds
      - No console errors
      - No `any` types introduced
@@ -565,33 +572,81 @@ Comprehensive Verification:
      - API contracts maintained
      - Database queries optimized
   
-  4. Architectural Validation:
+  4. Architectural Validation (Cell-specific):
      - Cell structure complete
      - Manifest defines all assertions
      - Pipeline gates configured
      - Old component deleted
      - Ledger updated
+
+LEVEL 2: Architecture Health Assessment (Is the SYSTEM healthy?)
+
+  1. ANDA Pillar Integrity Scan:
+     - Type Safety: Scan for `any` types, direct DB calls
+     - Cell Quality: Check manifests, assertions, pipeline coverage
+     - Ledger Completeness: Verify all migrations documented
   
-  5. Learning Capture:
-     - Document any issues encountered
-     - Note patterns that worked well
-     - Update success metrics
-     - Prepare insights for next run
+  2. Specialized Procedure Architecture Compliance:
+     - Scan all procedure files for 200-line limit violations
+     - Check domain routers for 50-line limit compliance
+     - Detect MONOLITHIC FILES (>500 lines) - architectural emergency
+     - Verify M1-M4 mandate compliance
+  
+  3. Anti-Pattern Detection:
+     - Parallel component implementations (-v2, -fixed, -worldclass)
+     - Large non-Cell components
+     - Feature flags (conditional architecture)
+     - Categorize by severity (Critical/High/Medium/Low)
+  
+  4. Trend Analysis:
+     - Compare with last 5 migrations
+     - Detect consecutive degradations (early warning system)
+     - Identify improving/stable/degrading metrics
+     - Project future architecture state
+  
+  5. Architecture Health Score Calculation:
+     - Weighted formula: (type_safety*25% + procedure_compliance*25% + 
+                          cell_quality*20% + ledger*15% + navigability*10%)
+     - Apply anti-pattern penalties (-5 points each)
+     - Determine status: Excellent (≥90) / Good (75-89) / Fair (60-74) / Poor (<60)
+     - Apply trend modifiers (degrading trends lower thresholds)
+  
+  6. Strategic Recommendations Generation:
+     - Transform findings into actionable improvement roadmap
+     - Prioritize: Urgent / High / Medium / Low
+     - Provide specific remediation steps with effort estimates
+     - Systemic fixes for degrading trends
+  
+  7. Learning Capture:
+     - Document migration patterns that worked
+     - Note pitfalls encountered
+     - Extract architecture learnings
+     - Update success metrics for next run
 ```
 
-**Failure Recovery:**
+**Failure Recovery & Architecture Governance:**
 
 ```yaml
-If ANY Validation Fails:
+If Migration Validation Fails (Level 1):
   1. Immediately halt
   2. git revert migration commit
   3. Generate detailed failure report
   4. Update ledger with failure details
   5. Exit workflow
   
+If Architecture Health POOR (<60) or CRITICAL Issues (Level 2):
+  1. Complete migration validation first
+  2. Generate architecture health report
+  3. ⚠️ PAUSE MIGRATIONS - Display critical warning
+  4. Provide refactoring roadmap
+  5. Exit with status: "Architecture refactoring required before continuing"
+  
 Next Invocation:
   - Learns from failure report
-  - May retry with different approach
+  - Checks architecture health status
+  - If health restored (≥60): Resume migrations
+  - If health still poor: Requires manual architecture refactoring
+  - May retry failed migration with different approach
   - Or selects different migration target
 ```
 
@@ -608,9 +663,10 @@ ACCESSIBILITY_STANDARD: "WCAG_AA"
 REQUIRE_ZERO_REGRESSIONS: true
 ```
 
-**Output:** Validation Report + Ledger Entry
+**Output:** Dual-Level Reports + Enhanced Ledger Entry
 
 ```yaml
+# LEVEL 1: Migration Validation Report
 validation-report:
   migrationId: "mig_20251002_143000_budgetOverview"
   status: "SUCCESS"
@@ -635,18 +691,52 @@ validation-report:
       ledgerUpdated: "✓ Entry created"
   
   learnings:
-    - "Date memoization prevented infinite render loops"
-    - "tRPC types eliminated 3 potential runtime errors"
-    - "Cell manifest made implicit requirements explicit"
-  
-  metrics:
-    duration: "15 minutes"
-    filesChanged: 18
-    linesAdded: 450
-    linesRemoved: 320
-    netImprovement: "+130 lines of typed, tested code"
+    migration:
+      - "Date memoization prevented infinite render loops"
+      - "tRPC types eliminated 3 potential runtime errors"
+      - "Cell manifest made implicit requirements explicit"
+    architecture:
+      - "Specialized procedure pattern maintained granularity"
+      - "No monolithic files detected - architecture healthy"
 
-# Ledger Entry Created:
+# LEVEL 2: Architecture Health Report (NEW)
+architecture-health-report:
+  timestamp: "2025-10-02T14:45:00Z"
+  healthScore: 92
+  status: "EXCELLENT"
+  trend: "STABLE"
+  
+  anda_pillars:
+    type_safety_integrity: 95
+    cell_quality_score: 88
+    ledger_completeness: 100
+  
+  specialized_architecture:
+    procedure_compliance: 100  # All procedures ≤200 lines
+    router_compliance: 100      # All routers ≤50 lines
+    monolithic_file_count: 0    # 🟢 No architectural emergencies
+  
+  anti_patterns:
+    critical: 0
+    high: 0
+    medium: 1  # One large non-Cell component identified
+    low: 0
+    total_debt: 0  # Within threshold (max: 3)
+  
+  trends:
+    direction: "stable"
+    degrading_metrics: []
+    consecutive_warnings: 0
+  
+  recommendations:
+    count: 1
+    urgent: 0
+    high: 0
+    medium: 1
+    low: 0
+    next_action: "Continue migrations confidently"
+
+# Enhanced Ledger Entry with Architecture Metrics:
 ledger-entry:
   iterationId: "mig_20251002_143000_budgetOverview"
   timestamp: "2025-10-02T14:45:00Z"
@@ -659,7 +749,13 @@ ledger-entry:
         path: "components/cells/budget-overview"
       - type: "trpc-procedure"
         id: "budget.getOverview"
-        path: "packages/api/src/routers/budget.ts"
+        path: "packages/api/src/procedures/budget/get-overview.procedure.ts"
+      - type: "trpc-procedure"
+        id: "budget.getBreakdown"
+        path: "packages/api/src/procedures/budget/get-breakdown.procedure.ts"
+      - type: "domain-router"
+        id: "budget.router"
+        path: "packages/api/src/procedures/budget/budget.router.ts"
     
     modified:
       - "app/dashboard/page.tsx"
@@ -679,6 +775,28 @@ ledger-entry:
     duration: 900000
     validationStatus: "SUCCESS"
     adoptionProgress: "18/250 components migrated (7.2%)"
+    
+    # NEW: Architecture Health Metrics
+    architecture_metrics:
+      health_score: 92
+      anda_pillars:
+        type_safety_integrity: 95
+        cell_quality_score: 88
+        ledger_completeness: 100
+      specialized_architecture:
+        procedure_compliance: 100
+        router_compliance: 100
+        monolithic_file_count: 0
+      anti_patterns:
+        critical_count: 0
+        high_count: 0
+        total_debt: 0
+      trends:
+        direction: "stable"
+        degrading_metrics_count: 0
+        consecutive_warnings: 0
+      architecture_status: "healthy"
+      recommendations_count: 1
 ```
 
 ---
@@ -690,10 +808,10 @@ ledger-entry:
 | Agent | Phase | Core Mission | Key Tools |
 |-------|-------|--------------|-----------|
 | **MigrationScout** | 1 | Autonomous feature discovery and selection | `ledger-query`, `grep`, `glob`, `supabase` |
-| **MigrationAnalyst** | 2 | Deep component and data flow analysis | `codebase-analyzer`, `database-schema-analyzer` |
-| **MigrationArchitect** | 3 | Surgical migration plan creation | `write`, `read`, `pattern-analyzer` |
-| **MigrationExecutor** | 4 | Exclusive implementation authority | `edit`, `write`, `tRPC`, `drizzle` |
-| **MigrationValidator** | 5 | Validation and learning capture | `test-runner`, `lighthouse`, `ledger-write` |
+| **MigrationAnalyst** | 2 | Deep component and data flow analysis with specialized procedure architecture awareness | `codebase-analyzer`, `database-schema-analyzer` |
+| **MigrationArchitect** | 3 | Surgical migration plan creation with specialized procedure specifications | `write`, `read`, `pattern-analyzer` |
+| **MigrationExecutor** | 4 | Exclusive implementation authority enforcing specialized procedure architecture | `edit`, `write`, `tRPC`, `drizzle` |
+| **MigrationValidator** | 5 | **Architecture Health Monitor** - Dual-level validation (migration + system-wide health) | `bash`, `grep`, `test-runner`, `architecture-scanner`, `ledger-write` |
 
 ### **3.2. Specialized Subagents**
 
@@ -890,15 +1008,71 @@ const { data } = trpc.query.useQuery({
 })
 ```
 
+**Pattern 4: API Procedure Specialization (CRITICAL)**
+
+```yaml
+✓ DO - Specialized Procedure Architecture:
+  M1 - One Procedure, One File:
+    - Create separate file for each tRPC procedure
+    - File naming: [action]-[entity].procedure.ts
+    - Example: get-overview.procedure.ts, update-budget.procedure.ts
+  
+  M2 - Strict File Size Limits:
+    - Procedure files: MAX 200 lines
+    - Domain routers: MAX 50 lines
+    - If approaching limit, split into smaller procedures
+  
+  M3 - No Parallel Implementations:
+    - Single source of truth in packages/api
+    - No duplicate logic in Edge Functions
+    - No alternative implementations
+  
+  M4 - Explicit Naming:
+    - Action verbs: get-, update-, create-, delete-
+    - Entity names: budget, user, project
+    - NEVER: index.ts, main.ts, handler.ts, api.ts
+  
+  Domain Router Pattern:
+    - Simple aggregation only: import + mergeRouters()
+    - NO business logic in routers
+    - Example:
+      ```typescript
+      // budget.router.ts (≤50 lines)
+      import { getOverviewRouter } from './get-overview.procedure'
+      import { getBreakdownRouter } from './get-breakdown.procedure'
+      
+      export const budgetRouter = mergeRouters(
+        getOverviewRouter,
+        getBreakdownRouter
+      )
+      ```
+
+✗ DON'T - Anti-Patterns to Eliminate:
+  - Monolithic router files (>500 lines) - ARCHITECTURAL EMERGENCY
+  - Multiple procedures in one file
+  - Business logic in domain routers
+  - Generic file names (index.ts, api.ts)
+  - Parallel implementations in multiple locations
+```
+
 ### **5.2. Anti-Patterns to Eliminate**
 
-| Anti-Pattern | Detection Command | Resolution |
-|--------------|-------------------|------------|
-| **Version Suffixes** | `find . -name "*-v2.tsx" -o -name "*-fixed.tsx"` | Delete and consolidate |
-| **Direct DB Access** | `grep -r "supabase.from" --include="*.tsx"` | Replace with tRPC |
-| **Missing Types** | `grep -r ": any" --include="*.ts"` | Add proper types |
-| **Orphaned Components** | `grep -L "import.*ComponentName"` | Delete immediately |
-| **Parallel Implementations** | Manual review | Choose best, delete rest |
+| Anti-Pattern | Detection Command | Resolution | Severity |
+|--------------|-------------------|------------|----------|
+| **Monolithic Files** | `find packages/api -name "*.ts" -exec wc -l {} + \| awk '$1 > 500'` | Split into specialized procedures | 🔴🔴🔴 CRITICAL |
+| **Procedure File Violations** | `find packages/api/src/procedures -name "*.procedure.ts" -exec wc -l {} + \| awk '$1 > 200'` | Refactor into smaller procedures | 🔴 HIGH |
+| **Router Complexity** | `find packages/api -name "*.router.ts" -exec wc -l {} + \| awk '$1 > 50'` | Remove business logic, keep aggregation only | 🔴 HIGH |
+| **Parallel Implementations** | `grep -r "supabase.from\|sql\`" supabase/functions/trpc/` | Consolidate to packages/api | 🔴 CRITICAL |
+| **Version Suffixes** | `find . -name "*-v2.tsx" -o -name "*-fixed.tsx" -o -name "*-worldclass.tsx"` | Delete and consolidate | 🔴 CRITICAL |
+| **Direct DB Access** | `grep -r "supabase\.from" apps/web/components --include="*.tsx"` | Replace with tRPC procedures | 🔴 HIGH |
+| **Missing Types** | `grep -r ": any" --include="*.ts"` | Add proper Zod schemas and types | 🟡 MEDIUM |
+| **Large Non-Cell Components** | `find apps/web/components -name "*.tsx" ! -path "*/cells/*" -exec wc -l {} + \| awk '$1 > 300'` | Migrate to Cell structure | 🟡 MEDIUM |
+| **Feature Flags** | `grep -r "FEATURE_FLAG\|featureFlag\|enableFeature" --include="*.ts"` | Replace with explicit architecture | 🟡 LOW |
+
+**Detection Frequency:**
+- **Every Migration (Phase 5)**: Architecture Health Monitor scans for ALL anti-patterns
+- **Severity Categories**: Critical → High → Medium → Low
+- **Architecture Debt Threshold**: Max 3 Critical+High anti-patterns before PAUSE
 
 ---
 
@@ -1006,7 +1180,7 @@ PHASE 4: MIGRATION IMPLEMENTATION (15 min)
 
 MigrationExecutor:
   ✓ Create Drizzle schemas (2 min)
-  ✓ Implement tRPC procedures (3 min)
+  ✓ Implement specialized tRPC procedures (4 min)
   ✓ Test endpoints with curl (1 min)
   ✓ Create Cell structure (2 min)
   ✓ Implement component (5 min)
@@ -1015,30 +1189,69 @@ MigrationExecutor:
   ✓ DELETE old component (1 min)
   ✓ Commit changes (1 min)
 
-  Files Created: 6
+  Files Created: 8
   Files Modified: 14
   Files Deleted: 1
   Commit: abc123def "Migrate BudgetOverview to Cell architecture"
 
 ═══════════════════════════════════════════════════════════
-PHASE 5: VALIDATION & LEARNING (2 min)
+PHASE 5: VALIDATION & ARCHITECTURE HEALTH MONITORING (3 min)
 ═══════════════════════════════════════════════════════════
 
-MigrationValidator:
+MigrationValidator (Architecture Health Monitor):
+
+LEVEL 1: Migration Validation
   ✓ TypeScript: Zero errors
   ✓ Tests: 87% coverage (target: 80%)
   ✓ Build: Production build successful
   ✓ Performance: 105% of baseline (target: ≤110%)
+  ✓ Cell Structure: Complete with manifest
+  ✓ Old Component: Deleted
   ✓ Ledger: Entry created
 
-  STATUS: ✓ SUCCESS
+  MIGRATION STATUS: ✓ SUCCESS
+
+LEVEL 2: Architecture Health Assessment
+  
+  ANDA Pillar Integrity:
+    ✓ Type Safety: 95% coverage (5% any types)
+    ✓ Cell Quality: 88% (manifests, pipelines complete)
+    ✓ Ledger Completeness: 100%
+  
+  Specialized Procedure Architecture:
+    ✓ Procedure Compliance: 100% (all files ≤200 lines)
+    ✓ Router Compliance: 100% (all routers ≤50 lines)
+    ✓ Monolithic Files: 0 detected
+  
+  Anti-Pattern Detection:
+    ✓ Critical: 0 | High: 0 | Medium: 1 | Low: 0
+    ✓ Architecture Debt: 0/3 (within threshold)
+  
+  Trend Analysis:
+    → Overall: STABLE (compared to last 5 migrations)
+    → No degrading metrics detected
+    → No consecutive warnings
+  
+  Architecture Health Score: 92/100 - EXCELLENT 🟢
+  
+  Recommendations: 1 medium-priority item
+  Next Action: Continue migrations confidently
+
+  ARCHITECTURE STATUS: ✓ HEALTHY
   ADOPTION: 6/250 components migrated (2.4% → 2.8%)
+
+Reports Generated:
+  - Migration Validation: thoughts/shared/validations/2025-10-02_14-45_budget-overview_validation.md
+  - Architecture Health: thoughts/shared/architecture-health/2025-10-02_architecture-health.md
 
 ═══════════════════════════════════════════════════════════
 WORKFLOW COMPLETE
 ═══════════════════════════════════════════════════════════
 
-Result: BudgetOverview successfully migrated to Cell architecture
+Result: 
+  ✓ Migration: BudgetOverview successfully migrated to Cell architecture
+  ✓ Architecture: System health excellent, no refactoring needed
+  
 Next: Run workflow again to migrate next component
 ```
 
@@ -1060,17 +1273,27 @@ Architecture Adoption:
 Type Safety:
   Type Coverage: 87%
   Any Types: 23
-  Target: 100% coverage, 0 any types
-
-Data Layer:
   Direct DB Calls: 17
-  tRPC Procedures: 8
-  Target: 0 direct calls
+  Target: 100% coverage, 0 any types, 0 direct calls
+
+Specialized Procedure Architecture:
+  Procedure Compliance: 100% (all ≤200 lines)
+  Router Compliance: 100% (all ≤50 lines)
+  Monolithic Files: 0
+  Target: 100% compliance, 0 monolithic files
+
+Architecture Health:
+  Current Score: 92/100
+  Status: EXCELLENT
+  Trend: STABLE
+  Anti-Pattern Debt: 0/3 (threshold)
+  Target: Maintain ≥90 (excellent)
 
 Velocity:
   Average Migration Time: 21 minutes
   Migrations per Week: 15
   Estimated Completion: 17 weeks
+  Health Assessment Time: +2 min per migration
 ```
 
 ### **8.2. Quality Metrics**
@@ -1090,41 +1313,100 @@ Code Quality:
   Linting Errors: 0
   TypeScript Errors: 0
   Dead Code: Reduced by 15%
+
+Architecture Health Metrics (NEW):
+  ANDA Pillars:
+    - Type Safety Integrity: 95/100
+    - Cell Quality Score: 88/100
+    - Ledger Completeness: 100/100
+  
+  Specialized Architecture:
+    - Procedure File Compliance: 100%
+    - Router Complexity Compliance: 100%
+    - Monolithic File Count: 0
+  
+  Anti-Patterns:
+    - Critical Severity: 0
+    - High Severity: 0
+    - Total Debt: 0/3 (well within threshold)
+  
+  Trend Analysis:
+    - Overall Trajectory: STABLE
+    - Degrading Metrics: 0
+    - Consecutive Warnings: 0
+    - Health improving over last 5 migrations
 ```
 
 ---
 
 ## **9. Conclusion**
 
-The Autonomous ANDA Migration Workflow represents a paradigm shift in AI-driven codebase transformation. By eliminating upfront planning overhead and enabling autonomous, incremental migration execution, the system achieves:
+The Autonomous ANDA Migration Workflow represents a paradigm shift in AI-driven codebase transformation. By combining autonomous migration execution with revolutionary **Architecture Health Monitoring**, the system achieves both immediate value delivery and long-term architectural integrity:
 
 **Key Benefits:**
 
 1. **Zero Planning Overhead** - Start migrating immediately
 2. **Continuous Value Delivery** - Each run completes a working migration
 3. **Autonomous Operation** - No human decisions required
-4. **Adaptive Learning** - Improves with each invocation
-5. **Predictable Progress** - Clear metrics and velocity tracking
-6. **100% ANDA Adoption** - Systematic path to AI-optimized codebase
+4. **Dual-Level Quality Assurance** - Validates migration AND system-wide architecture health
+5. **Proactive Governance** - Detects drift from ANDA principles BEFORE it compounds
+6. **Early Warning System** - Catches monolithic files at migration 5, not migration 50
+7. **Adaptive Learning** - Improves with each invocation through ledger intelligence
+8. **Predictable Progress** - Clear metrics and velocity tracking with architecture health scores
+9. **Architecture Debt Prevention** - Can PAUSE migrations if health drops below threshold
+10. **100% ANDA Adoption** - Systematic path to AI-optimized codebase with maintained quality
+
+**Revolutionary Phase 5 - Architecture Health Monitor:**
+
+Phase 5 operates on **dual-level responsibility**:
+- **Level 1**: Validates THIS migration succeeded (technical, functional, integration, architectural)
+- **Level 2**: Assesses SYSTEM-WIDE architecture health (ANDA pillars, specialized procedures, anti-patterns, trends)
+
+This prevents the architectural debt that would make future agent work unreliable. The health monitor can **PAUSE migrations** if architecture quality drops below 60/100, requiring refactoring before continuing.
 
 **Operational Model:**
 
 ```bash
-# Simple, repeatable invocation
+# Simple, repeatable invocation with dual-level validation
 $ run-anda-migration
 → Discovers, selects, migrates one feature
-→ Updates ledger, exits
+→ Validates migration success (Level 1)
+→ Assesses architecture health (Level 2)
+→ Updates ledger with architecture metrics, exits
 
 # Run again (minutes, hours, or days later)
 $ run-anda-migration
-→ Learns from ledger, selects next target
+→ Learns from ledger + architecture trends
+→ Selects next target
 → Migrates different feature
+→ Architecture Health: 92/100 - EXCELLENT
+
+# If architecture degrades
+$ run-anda-migration
+→ Migration succeeds
+→ Architecture Health: 55/100 - POOR
+→ ⚠️ PAUSE MIGRATIONS - Refactor architecture first
+→ Provides refactoring roadmap
+
+# After refactoring
+$ run-anda-migration
+→ Architecture Health: 88/100 - GOOD
+→ Resume migrations confidently
 
 # Continue until complete
 $ run-anda-migration
 → "100% ANDA adoption achieved!"
+→ "Architecture health maintained at EXCELLENT throughout"
 ```
 
-This workflow transforms codebases into Living Blueprints where AI agents can navigate with perfect clarity, understand requirements through explicit manifests, and operate with complete type safety from database to UI.
+**Architecture Governance Principles:**
 
-**The goal:** A codebase where every component is a Cell, every data flow is typed, every change is documented, and AI agents can develop with maximum effectiveness.
+1. **Early Detection Prevents Disasters** - Catching monolithic files at migration 5 vs migration 50
+2. **Proactive Over Reactive** - Recommend refactoring BEFORE issues compound
+3. **Trend-Based Intelligence** - 3 consecutive degradations trigger systemic fixes
+4. **Agent-Optimal Architecture** - Every decision optimizes for AI agent navigability
+5. **Dual-Level Responsibility** - Each migration either improves or degrades overall quality
+
+This workflow transforms codebases into Living Blueprints where AI agents can navigate with perfect clarity, understand requirements through explicit manifests, operate with complete type safety from database to UI, and rely on maintained architectural integrity through continuous health monitoring.
+
+**The goal:** A codebase where every component is a Cell, every data flow is typed through specialized procedures, every change is documented with architecture metrics, architecture health is continuously monitored, and AI agents can develop with maximum effectiveness in a system that prevents long-term degradation.

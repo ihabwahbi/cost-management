@@ -504,6 +504,177 @@ return <div>{data.totalBudget}</div>
 
 ---
 
+## Specialized Procedure Architecture Patterns
+
+### Pattern: Creating New tRPC Procedure (M1-M4 Compliance)
+
+**CRITICAL**: All new procedures MUST follow API Procedure Specialization Architecture.
+
+```yaml
+Step 1: Create Procedure File
+  Location: packages/api/src/procedures/[domain]/
+  Naming: [action]-[entity].procedure.ts
+  Example: get-kpi-metrics.procedure.ts
+  
+  ✅ DO:
+    - One procedure per file (M1)
+    - Keep file ≤200 lines (M2)
+    - Use explicit action verbs: get-, create-, update-, delete-
+    - Export router segment for domain composition
+  
+  ✗ DON'T:
+    - Multiple procedures in one file
+    - Generic names: index.ts, api.ts, handler.ts
+    - Business logic in routers
+
+Step 2: Implement Procedure
+```
+
+```typescript
+// packages/api/src/procedures/dashboard/get-kpi-metrics.procedure.ts
+import { z } from 'zod'
+import { publicProcedure, router } from '../../trpc'
+import { db } from '@/db'
+import { costBreakdown } from '@/db/schema'
+import { eq } from 'drizzle-orm'
+
+export const getKPIMetricsRouter = router({
+  getKPIMetrics: publicProcedure
+    .input(z.object({
+      projectId: z.string().uuid(),
+      dateRange: z.object({
+        from: z.string().transform(val => new Date(val)),
+        to: z.string().transform(val => new Date(val))
+      })
+    }))
+    .query(async ({ input }) => {
+      const data = await db
+        .select()
+        .from(costBreakdown)
+        .where(eq(costBreakdown.projectId, input.projectId))
+      
+      return {
+        totalBudget: data.reduce((sum, item) => sum + Number(item.budgetCost), 0),
+        itemCount: data.length
+      }
+    })
+})
+
+// File size: 35 lines ✅ (well under 200-line limit)
+```
+
+```yaml
+Step 3: Update Domain Router
+  Location: packages/api/src/procedures/[domain]/[domain].router.ts
+  Purpose: Simple aggregation only, NO business logic
+  Max Size: 50 lines (enforced)
+```
+
+```typescript
+// packages/api/src/procedures/dashboard/dashboard.router.ts
+import { router } from '../../trpc'
+import { getKPIMetricsRouter } from './get-kpi-metrics.procedure'
+import { getRecentActivityRouter } from './get-recent-activity.procedure'
+// ... other procedure imports
+
+export const dashboardRouter = router({
+  ...getKPIMetricsRouter,
+  ...getRecentActivityRouter,
+  // Simple merge only - NO logic here
+})
+
+// File size: 15 lines ✅ (well under 50-line limit)
+```
+
+```yaml
+Step 4: Update Main App Router
+  Location: packages/api/src/index.ts
+```
+
+```typescript
+import { dashboardRouter } from './procedures/dashboard/dashboard.router'
+
+export const appRouter = router({
+  dashboard: dashboardRouter,
+  // ... other domain routers
+})
+```
+
+```yaml
+Step 5: Validate Architecture Compliance
+```
+
+```bash
+# Check procedure file size (MUST be ≤200 lines)
+wc -l packages/api/src/procedures/dashboard/get-kpi-metrics.procedure.ts
+
+# Check domain router size (MUST be ≤50 lines)
+wc -l packages/api/src/procedures/dashboard/dashboard.router.ts
+
+# Verify no parallel implementations exist (M3)
+ls supabase/functions/trpc/index.ts 2>/dev/null && echo "❌ VIOLATION: Parallel implementation exists"
+
+# Verify one procedure per file (M1)
+grep -c "publicProcedure" packages/api/src/procedures/dashboard/get-kpi-metrics.procedure.ts
+# Should output: 1
+```
+
+### Pattern: Detecting Monolithic Files (Architecture Emergency)
+
+```bash
+# Find monolithic API files (>500 lines) - ARCHITECTURAL EMERGENCY
+find packages/api/src -name "*.ts" -exec wc -l {} + | awk '$1 > 500 { print "🔴🔴🔴 EMERGENCY:", $2, "has", $1, "lines" }'
+
+# Find procedure file violations (>200 lines)
+find packages/api/src/procedures -name "*.procedure.ts" -exec wc -l {} + | awk '$1 > 200 { print "🔴 VIOLATION:", $2, "has", $1, "lines" }'
+
+# Find router complexity violations (>50 lines)
+find packages/api/src/procedures -name "*.router.ts" -exec wc -l {} + | awk '$1 > 50 { print "🔴 VIOLATION:", $2, "has", $1, "lines" }'
+```
+
+**If violations found:**
+1. **STOP** creating new procedures
+2. **REFACTOR** monolithic files into specialized procedures
+3. **DELETE** `supabase/functions/trpc/index.ts` if it exists (M3 violation)
+4. Resume development only after architecture health restored
+
+### Pattern: Testing Specialized Procedures
+
+```bash
+# Test procedure directly with curl before client implementation
+curl -X POST https://your-project.supabase.co/functions/v1/trpc/dashboard.getKPIMetrics \
+  -H "Content-Type: application/json" \
+  -d '{
+    "0": {
+      "json": {
+        "projectId": "94d1eaad-4ada-4fb6-b872-212b6cd6007a",
+        "dateRange": {
+          "from": "2025-01-01T00:00:00Z",
+          "to": "2025-12-31T23:59:59Z"
+        }
+      }
+    }
+  }'
+```
+
+**Expected Response:**
+```json
+{
+  "0": {
+    "result": {
+      "data": {
+        "json": {
+          "totalBudget": 1750000,
+          "itemCount": 42
+        }
+      }
+    }
+  }
+}
+```
+
+---
+
 ## Reference: Working Examples
 
 **Simple Cell (1 query):**
@@ -514,9 +685,11 @@ return <div>{data.totalBudget}</div>
 - File: `apps/web/components/cells/pl-command-center/component.tsx`
 - Demonstrates: Multiple queries, tRPC batching, complex calculations
 
-**tRPC Procedures:**
-- File: `supabase/functions/trpc/index.ts`
-- Demonstrates: Procedure structure, Zod validation, Drizzle queries
+**tRPC Procedures (Specialized Architecture):**
+- Location: `packages/api/src/procedures/[domain]/`
+- Example: `packages/api/src/procedures/dashboard/get-kpi-metrics.procedure.ts`
+- Demonstrates: One procedure per file (M1), Zod validation, Drizzle queries, ≤200 lines
+- **NOTE**: The file `supabase/functions/trpc/index.ts` violates M3 (No Parallel Implementations) and should be DELETED if it exists
 
 ---
 

@@ -24,10 +24,19 @@
 
 ---
 
-## Phase 1: tRPC Procedure Development
+## Phase 1: tRPC Specialized Procedure Development (M1-M4 Compliance)
 
-### 2. Write tRPC Procedures
-- [ ] Create procedures in appropriate router file (`packages/api/src/routers/`)
+### 2. Create Specialized Procedure File (M1: One Procedure, One File)
+
+**CRITICAL**: Follow API Procedure Specialization Architecture mandates (M1-M4).
+
+- [ ] Determine domain for procedure (dashboard, po-mapping, budget, etc.)
+- [ ] Create procedure file: `packages/api/src/procedures/[domain]/[action]-[entity].procedure.ts`
+  - Example: `packages/api/src/procedures/dashboard/get-kpi-metrics.procedure.ts`
+  - Example: `packages/api/src/procedures/budget/update-forecast.procedure.ts`
+- [ ] **Verify**: ONE procedure per file (M1 mandate)
+- [ ] **Verify**: Explicit action verb in filename: get-, create-, update-, delete- (M4 mandate)
+- [ ] **Verify**: File size will stay under 200 lines (M2 mandate)
 - [ ] Add Zod input validation schemas
 - [ ] **CRITICAL**: Use `z.string()` for dates, NOT `z.date()`
   ```typescript
@@ -56,12 +65,42 @@
 - [ ] Test with edge cases (empty data, invalid IDs, null values)
 - [ ] **Document curl commands** for future testing
 
-### 4. Deploy Edge Function
-- [ ] Update `supabase/functions/trpc/index.ts` with new procedures
-- [ ] Deploy: `supabase functions deploy trpc --no-verify-jwt`
+### 4. Update Domain Router & Deploy
+
+**IMPORTANT**: No parallel implementations (M3 mandate). All procedures live in `packages/api`.
+
+- [ ] Update domain router: `packages/api/src/procedures/[domain]/[domain].router.ts`
+  ```typescript
+  // Example: dashboard.router.ts
+  import { router } from '../../trpc'
+  import { getKPIMetricsRouter } from './get-kpi-metrics.procedure'
+  // Import your new procedure router
+  import { getYourNewProcedureRouter } from './get-your-new-procedure.procedure'
+  
+  export const dashboardRouter = router({
+    ...getKPIMetricsRouter,
+    ...getYourNewProcedureRouter, // Add here
+  })
+  ```
+- [ ] **Verify**: Domain router file is ≤50 lines (architecture mandate)
+- [ ] **Verify**: Router contains ONLY imports and merges, NO business logic
+- [ ] Build and test locally: `pnpm build`
+- [ ] Deploy updated API to edge function
 - [ ] Wait 30 seconds for cold start
 - [ ] Re-test all procedures via curl after deployment
-- [ ] **DO NOT touch client code until edge function is verified**
+- [ ] **DO NOT touch client code until procedures verified**
+
+**ARCHITECTURE CHECK**:
+```bash
+# Verify domain router size (MUST be ≤50 lines)
+wc -l packages/api/src/procedures/[domain]/[domain].router.ts
+
+# Verify your procedure file size (MUST be ≤200 lines)
+wc -l packages/api/src/procedures/[domain]/your-procedure.procedure.ts
+
+# Verify no parallel implementation exists (M3)
+[ ! -f supabase/functions/trpc/index.ts ] && echo "✅ M3 Compliant" || echo "🔴 VIOLATION: Delete supabase/functions/trpc/index.ts"
+```
 
 ---
 
@@ -153,6 +192,85 @@ const { data } = trpc.dashboard.getProcedure.useQuery(
   }
 );
 ```
+
+---
+
+## Phase 2.5: Architecture Compliance Validation (M1-M4 Mandates)
+
+**MANDATORY**: Verify all API Procedure Specialization Architecture mandates before proceeding.
+
+### Architecture Mandate Checklist
+
+- [ ] **M1: One Procedure, One File**
+  ```bash
+  # Verify procedure file contains exactly ONE publicProcedure
+  grep -c "publicProcedure" packages/api/src/procedures/[domain]/your-procedure.procedure.ts
+  # Output should be: 1
+  ```
+
+- [ ] **M2: Strict File Size Limit (≤200 lines)**
+  ```bash
+  # Check procedure file size
+  wc -l packages/api/src/procedures/[domain]/your-procedure.procedure.ts
+  # Output MUST be ≤200
+  
+  # If approaching limit, extract helpers or split into smaller procedures
+  ```
+
+- [ ] **M3: No Parallel Implementations**
+  ```bash
+  # Verify deprecated parallel implementation does NOT exist
+  if [ -f supabase/functions/trpc/index.ts ]; then
+    echo "🔴🔴🔴 CRITICAL VIOLATION: supabase/functions/trpc/index.ts exists"
+    echo "This file violates M3 (No Parallel Implementations)"
+    echo "DELETE this file immediately"
+    exit 1
+  else
+    echo "✅ M3 Compliant: No parallel implementations"
+  fi
+  ```
+
+- [ ] **M4: Explicit Naming Conventions**
+  ```bash
+  # Verify filename follows [action]-[entity].procedure.ts pattern
+  # ✅ GOOD: get-kpi-metrics.procedure.ts, update-budget.procedure.ts
+  # ❌ BAD: index.ts, api.ts, handler.ts, dashboard.ts
+  ```
+
+- [ ] **Domain Router Compliance (≤50 lines)**
+  ```bash
+  # Check domain router size
+  wc -l packages/api/src/procedures/[domain]/[domain].router.ts
+  # Output MUST be ≤50
+  
+  # Verify router contains ONLY imports and merges
+  grep -E "(publicProcedure|\.query|\.mutation|business logic)" packages/api/src/procedures/[domain]/[domain].router.ts
+  # Should return nothing (no business logic in routers)
+  ```
+
+### Architecture Health Check
+
+Run comprehensive architecture validation:
+
+```bash
+# Find any monolithic files (>500 lines) - ARCHITECTURAL EMERGENCY
+find packages/api/src -name "*.ts" -exec wc -l {} + | awk '$1 > 500 { print "🔴🔴🔴 EMERGENCY:", $2 }'
+
+# Find procedure file violations (>200 lines)
+find packages/api/src/procedures -name "*.procedure.ts" -exec wc -l {} + | awk '$1 > 200 { print "🔴 VIOLATION:", $2 }'
+
+# Find router violations (>50 lines)
+find packages/api/src/procedures -name "*.router.ts" -exec wc -l {} + | awk '$1 > 50 { print "🔴 VIOLATION:", $2 }'
+
+# Count procedures per file (should always be 1)
+find packages/api/src/procedures -name "*.procedure.ts" -exec sh -c 'count=$(grep -c "publicProcedure" "$1"); if [ "$count" -ne 1 ]; then echo "🔴 M1 VIOLATION: $1 has $count procedures"; fi' _ {} \;
+```
+
+**If ANY violations found:**
+1. 🛑 STOP development immediately
+2. 🔧 REFACTOR to fix violations
+3. ✅ Re-run validation checks
+4. ➡️ Only proceed when ALL checks pass
 
 ---
 
@@ -409,8 +527,10 @@ After completing Cell development, answer for continuous improvement:
 
 ## References
 
+- [API Procedure Specialization Architecture](./2025-10-03_api_procedure_specialization_architecture.md) - **REQUIRED READING**: M1-M4 mandates for all API development
+- [AI Native Development Architecture](./2025-09-26_ai_native_development_architecture.md) - Pattern 4: API Procedure Specialization (Section 5.1)
+- [Living Blueprint Architecture](./ai-native-codebase-architecture.md) - Section 2.1 (Monorepo Structure with specialized procedures)
 - [Story 1.3 Complete Incident & Resolution](./stories/1.3-COMPLETE-INCIDENT-AND-RESOLUTION.md) - Comprehensive analysis of issues and resolution
-- [Living Blueprint Architecture](./living-blueprint-architecture.md) - See Part 11 (Pitfalls), Part 13 (Complex Cells), Appendix C (Checklist)
-- [tRPC Debugging Guide](./trpc-debugging-guide.md) - Step-by-step debugging workflow
+- [tRPC Debugging Guide](./trpc-debugging-guide.md) - Step-by-step debugging workflow with specialized procedure patterns
 - [React Query Docs - Important Defaults](https://tanstack.com/query/latest/docs/react/guides/important-defaults)
 - [tRPC Docs - Data Transformers](https://trpc.io/docs/server/data-transformers)

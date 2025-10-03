@@ -90,15 +90,19 @@ const { data } = trpc.getPLMetrics.useQuery({
   }
 })
 
-// ✅ CORRECT - Memoized, stable reference
-const dateRange = useMemo(() => ({
-  from: new Date(),
-  to: new Date()
-}), []) // Empty deps = created once, never recreated
+// ✅ CORRECT - Memoized with ISO string conversion
+const dateRange = useMemo(() => {
+  const from = new Date();
+  const to = new Date();
+  return {
+    from: from.toISOString(),  // Convert to ISO string for tRPC HTTP serialization
+    to: to.toISOString()
+  };
+}, []) // Empty deps = created once, never recreated
 
 const { data } = trpc.getPLMetrics.useQuery({
   projectId,
-  dateRange  // Stable reference
+  dateRange  // Stable reference with ISO strings
 })
 ```
 
@@ -445,12 +449,15 @@ const dateRange = useMemo(() => {
   to.setMonth(to.getMonth() + 6)
   to.setHours(23, 59, 59, 999)  // Normalize to end of day
   
-  return { from, to }
+  return { 
+    from: from.toISOString(),  // Convert to ISO string for tRPC HTTP serialization
+    to: to.toISOString()       // Convert to ISO string for tRPC HTTP serialization
+  }
 }, [])  // Empty deps = computed once
 
 const { data } = trpc.getPLTimeline.useQuery({
   projectId,
-  dateRange
+  dateRange  // Now contains ISO strings, not Date objects
 })
 ```
 
@@ -721,7 +728,14 @@ curl -X POST https://your-project.supabase.co/functions/v1/trpc/dashboard.getKPI
 const { data } = trpc.useQuery({ dateRange: { from: new Date(), to: new Date() } })
 
 // After (CORRECT):
-const dateRange = useMemo(() => ({ from: new Date(), to: new Date() }), [])
+const dateRange = useMemo(() => {
+  const from = new Date();
+  const to = new Date();
+  return { 
+    from: from.toISOString(),  // Convert to ISO string for tRPC
+    to: to.toISOString() 
+  };
+}, [])
 const { data } = trpc.useQuery({ dateRange })
 ```
 

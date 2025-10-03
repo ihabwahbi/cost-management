@@ -65,7 +65,10 @@ export function PLCommandCenter({ projectId, onViewGapAnalysis }: PLCommandCente
     to.setMonth(to.getMonth() + 6);
     to.setHours(23, 59, 59, 999); // Normalize to end of day
     
-    return { from, to };
+    return { 
+      from: from.toISOString(),  // Convert to ISO string for HTTP serialization
+      to: to.toISOString()       // Convert to ISO string for HTTP serialization
+    };
   }, []);
 
   // BA-001, BA-002, BA-003, BA-004: Fetch P&L metrics via tRPC

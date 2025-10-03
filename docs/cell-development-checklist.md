@@ -102,6 +102,56 @@ wc -l packages/api/src/procedures/[domain]/your-procedure.procedure.ts
 [ ! -f supabase/functions/trpc/index.ts ] && echo "✅ M3 Compliant" || echo "🔴 VIOLATION: Delete supabase/functions/trpc/index.ts"
 ```
 
+### 4.5 Client Update Validation (When Modifying Existing Procedures)
+
+**CRITICAL**: If you modify an existing procedure's input/output schema, you MUST update all client usages.
+
+- [ ] **Identify all client usages of modified procedure**
+  ```bash
+  # Search for all uses of the procedure
+  grep -r "procedureName.useQuery\|procedureName.useMutation" apps/web/components
+  ```
+
+- [ ] **Review each client for schema compatibility**
+  - Check if input format matches new schema
+  - Verify Date objects converted to ISO strings (if using dates)
+  - Confirm all required fields are present
+
+- [ ] **Update incompatible clients**
+  ```typescript
+  // Example: If procedure schema changed from z.date() to z.string().transform()
+  
+  // OLD (incompatible):
+  const dateRange = useMemo(() => ({ 
+    from: new Date(), 
+    to: new Date() 
+  }), [])
+  
+  // NEW (compatible):
+  const dateRange = useMemo(() => {
+    const from = new Date();
+    const to = new Date();
+    return { 
+      from: from.toISOString(),  // Convert to ISO string
+      to: to.toISOString() 
+    };
+  }, [])
+  ```
+
+- [ ] **Run TypeScript compilation to verify compatibility**
+  ```bash
+  pnpm type-check
+  # Should pass with zero errors
+  ```
+
+- [ ] **Test all updated clients manually in browser**
+
+**Common Schema Changes Requiring Client Updates**:
+- Date type changes: `z.date()` → `z.string().transform()` (requires `.toISOString()` on client)
+- New required fields: Add field to all client calls
+- Type changes: Update client data handling
+- Renamed fields: Update all client references
+
 ---
 
 ## Phase 2: Client Component Development
@@ -121,7 +171,7 @@ components/cells/[cell-name]/
 
 #### ✅ ALWAYS Memoize Complex Objects
 ```typescript
-// ✅ CORRECT - Memoized date range
+// ✅ CORRECT - Memoized date range with ISO string conversion
 const dateRange = useMemo(() => {
   const now = new Date();
   const from = new Date(now);
@@ -132,12 +182,15 @@ const dateRange = useMemo(() => {
   to.setMonth(to.getMonth() + 6);
   to.setHours(23, 59, 59, 999);
   
-  return { from, to };
+  return { 
+    from: from.toISOString(),  // Convert to ISO string for HTTP serialization
+    to: to.toISOString()       // Convert to ISO string for HTTP serialization
+  };
 }, []); // Empty deps = computed once
 
 const { data } = trpc.dashboard.getPLTimeline.useQuery({
   projectId,
-  dateRange, // Stable reference
+  dateRange, // Stable reference with ISO strings
 });
 ```
 

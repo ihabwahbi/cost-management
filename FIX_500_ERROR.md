@@ -1,10 +1,23 @@
 # 🔧 Fix: 500 Internal Server Error on PO Mapping Page
 
-## 🔴 Root Cause
+## 🔴 Root Causes (Two Issues Found)
 
+### Issue #1: Missing DATABASE_URL
 **Missing `DATABASE_URL` environment variable in `apps/web/.env.local`**
 
 When the PO Mapping page tries to load existing mappings via tRPC, the database client fails to initialize because it cannot find the required `DATABASE_URL` connection string.
+
+### Issue #2: URL Encoding in Password (CRITICAL)
+**Special characters in password must be URL-encoded**
+
+If your password contains special characters like `@`, `#`, `$`, `&`, etc., they **MUST** be URL-encoded in the connection string:
+
+- `@` → `%40`
+- `#` → `%23`
+- `$` → `%24`
+- `&` → `%26`
+
+**Example:** Password `Y@seenH@li` becomes `Y%40seenH%40li` in the URL
 
 ---
 
@@ -34,6 +47,23 @@ GET http://localhost:3000/api/trpc/poMapping.getExistingMappings?batch=1&...
 
 ## ✅ Solution
 
+### Quick Fix (Automated)
+
+We've created an auto-fix script:
+
+```bash
+./check-and-fix-env.sh
+```
+
+This script will:
+- ✅ Check if DATABASE_URL exists
+- ✅ Detect unencoded special characters
+- ✅ Automatically fix URL encoding (with backup)
+- ✅ Verify configuration
+- ✅ Show next steps
+
+### Manual Fix
+
 ### Step 1: Get Database Connection String
 
 Go to your Supabase project dashboard:
@@ -48,45 +78,49 @@ Go to your Supabase project dashboard:
    postgresql://postgres:[YOUR-PASSWORD]@db.bykrhpaqaxhyfrqfvbus.supabase.co:5432/postgres
    ```
 
-### Step 2: Add to Environment File
+### Step 2: Add to Environment File (with URL Encoding)
 
-Add the `DATABASE_URL` to your `.env.local` file:
+**IMPORTANT:** URL-encode special characters in your password!
 
 ```bash
 # Option A: Manual edit
 # Open apps/web/.env.local and add:
+# REMEMBER: Encode special characters (@→%40, #→%23, etc.)
 
-DATABASE_URL=postgresql://postgres:[YOUR-PASSWORD]@db.bykrhpaqaxhyfrqfvbus.supabase.co:5432/postgres
+DATABASE_URL=postgresql://postgres:[YOUR-URL-ENCODED-PASSWORD]@db.bykrhpaqaxhyfrqfvbus.supabase.co:5432/postgres
 ```
 
+**Example with password `Y@seenH@li`:**
 ```bash
-# Option B: Using command (replace YOUR_PASSWORD)
-cat >> apps/web/.env.local << 'EOL'
+# ❌ WRONG (will fail):
+DATABASE_URL=postgresql://postgres:Y@seenH@li@db.bykrhpaqaxhyfrqfvbus.supabase.co:5432/postgres
 
-# Database URL for Drizzle ORM (server-side only)
-DATABASE_URL=postgresql://postgres:YOUR_PASSWORD@db.bykrhpaqaxhyfrqfvbus.supabase.co:5432/postgres
-EOL
+# ✅ CORRECT (@ encoded as %40):
+DATABASE_URL=postgresql://postgres:Y%40seenH%40li@db.bykrhpaqaxhyfrqfvbus.supabase.co:5432/postgres
 ```
 
 ### Step 3: Validate Environment
 
-Run the validation helper:
+Run the auto-fix/validation script:
 
 ```bash
-./check-env.sh
+./check-and-fix-env.sh
 ```
+
+This will:
+- Check if DATABASE_URL exists
+- Verify URL encoding is correct
+- Auto-fix if needed (creates backup first)
+- Show configuration summary
 
 Expected output:
 ```
-🔍 Environment Variables Check
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📄 Checking: apps/web/.env.local
-
-✅ NEXT_PUBLIC_SUPABASE_URL is set
-✅ NEXT_PUBLIC_SUPABASE_ANON_KEY is set
 ✅ DATABASE_URL is set
+✅ Password is properly URL-encoded
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📋 Configuration Summary:
+  Supabase URL: ✅ https://...
+  Database URL: ✅ Set with URL-encoded password
 ```
 
 ### Step 4: Restart Development Server
@@ -154,16 +188,51 @@ Supabase PostgreSQL Database
 
 - [ ] DATABASE_URL added to apps/web/.env.local
 - [ ] Connection string includes your actual password
-- [ ] ./check-env.sh shows all ✅
-- [ ] Dev server restarted
+- [ ] **Special characters in password are URL-encoded (@→%40, etc.)**
+- [ ] ./check-and-fix-env.sh shows all ✅
+- [ ] Dev server restarted (**CRITICAL - env vars only load on startup**)
 - [ ] PO Mapping page loads without errors
 - [ ] Console shows no 500 errors
+
+## 🐛 Troubleshooting
+
+### Issue: Still getting 500 errors after adding DATABASE_URL
+
+**Check #1: Did you restart the dev server?**
+```bash
+# Stop server: Ctrl+C
+# Start server: npm run dev
+```
+Environment variables are only loaded when Next.js starts!
+
+**Check #2: Is your password URL-encoded?**
+```bash
+./check-and-fix-env.sh
+# This will auto-detect and fix encoding issues
+```
+
+**Check #3: Check Next.js server logs**
+Look for the actual error in your terminal where `npm run dev` is running.
+
+### Common URL Encoding Issues
+
+| Character | URL Encoded | Example Password | Encoded Version |
+|-----------|-------------|------------------|-----------------|
+| `@` | `%40` | `P@ssw0rd` | `P%40ssw0rd` |
+| `#` | `%23` | `Pass#123` | `Pass%23123` |
+| `$` | `%24` | `P$ssw0rd` | `P%24ssw0rd` |
+| `&` | `%26` | `P&ssword` | `P%26ssword` |
+| `%` | `%25` | `P%ssword` | `P%25ssword` |
+| `:` | `%3A` | `P:ssword` | `P%3Assword` |
+| `/` | `%2F` | `P/ssword` | `P%2Fssword` |
 
 ---
 
 ## 📝 Related Commits
 
 - `089e1a4` - Add DATABASE_URL validation and improved documentation
+- `b64fd1e` - Add comprehensive fix guide for 500 error issue
+- `16830d8` - Add auto-fix script for DATABASE_URL password encoding
 
 ---
 

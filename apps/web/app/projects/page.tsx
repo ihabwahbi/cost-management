@@ -8,6 +8,7 @@ import { ForecastWizard } from "@/components/forecast-wizard"
 import { VersionHistoryTimeline } from "@/components/version-history-timeline"
 import { VersionComparison } from "@/components/version-comparison"
 import { useToast } from "@/hooks/use-toast"
+import { trpc } from "@/lib/trpc"
 import { LocalStorageService } from "@/lib/local-storage-service"
 import { Button } from "@/components/ui/button"
 import { InlineEdit } from "@/components/inline-edit"
@@ -67,6 +68,28 @@ const SPEND_TYPE_OPTIONS = ["Operational", "Maintenance", "Capital", "Emergency"
 export default function ProjectsPage() {
   const { toast } = useToast()
   const router = useRouter()
+  
+  // tRPC mutation for creating forecast versions
+  const createForecast = trpc.forecasts.createForecastVersion.useMutation({
+    onSuccess: (data, variables) => {
+      const projectId = variables.projectId
+      loadForecastVersions(projectId)
+      setActiveVersion(prev => ({ ...prev, [projectId]: data.versionNumber }))
+      loadVersionCostBreakdown(projectId, data.versionNumber)
+      
+      toast({
+        title: "Forecast created",
+        description: `Version ${data.versionNumber} saved successfully`,
+      })
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to save forecast",
+        description: error.message,
+        variant: "destructive"
+      })
+    }
+  })
   const [searchTerm, setSearchTerm] = useState("")
   const [projects, setProjects] = useState<Project[]>([])
   // Auto-expand first project for better UX
@@ -1350,142 +1373,7 @@ export default function ProjectsPage() {
     }
   }
 
-  const saveForecastVersionWithChanges = async (
-    projectId: string, 
-    reason: string, 
-    changes: Record<string, number>,
-    newEntries: any[]
-  ) => {
-    if (!reason?.trim()) {
-      toast({
-        variant: "destructive",
-        title: "Validation Error",
-        description: "Please provide a reason for this forecast.",
-      })
-      return
-    }
 
-    setSavingForecast(true)
-
-    try {
-      // Get the next version number
-      const versions = forecastVersions[projectId] || []
-      const nextVersionNumber = versions.length > 0 ? Math.max(...versions.map((v) => v.version_number)) + 1 : 1
-
-      // Allow new entries in forecasts by creating them in cost_breakdown
-      // These will be available in this and future versions, but not in earlier versions
-      const savedNewEntries = []
-      
-      if (newEntries.length > 0) {
-        console.log(`Processing ${newEntries.length} new entries for forecast version ${nextVersionNumber}`)
-        
-        for (const newEntry of newEntries) {
-          const cleanEntry = cleanEntryForDatabase(newEntry, projectId)
-          
-          console.log('Saving new forecast entry to database:', cleanEntry)
-          
-          const savedEntry = await retryOperation(async () => {
-            const { data, error } = await supabase
-              .from("cost_breakdown")
-              .insert([cleanEntry])
-              .select()
-              .single()
-              
-            if (error) throw error
-            return data
-          }, 2, 500)
-          
-          savedNewEntries.push(savedEntry)
-        }
-        
-        console.log(`Added ${savedNewEntries.length} new entries to cost_breakdown`)
-      }
-
-      // Create the forecast version
-      const { data: versionData, error: versionError } = await supabase
-        .from("forecast_versions")
-        .insert({
-          project_id: projectId,
-          version_number: nextVersionNumber,
-          reason_for_change: reason,
-          created_by: "current_user",
-        })
-        .select()
-        .single()
-
-      if (versionError) throw versionError
-
-      // Create forecast entries using the changes passed directly from wizard
-      const currentCosts = (costBreakdowns[projectId] || []).filter(
-        cost => cost.id && !cost.id.startsWith('temp_')
-      )
-      
-      console.log('Creating forecast with changes:', changes)
-      console.log('Current costs:', currentCosts.length)
-      console.log('New entries saved:', savedNewEntries.length)
-      
-      // Include both existing (possibly modified) and new entries
-      const allForecastEntries = [
-        ...currentCosts.map((cost) => ({
-          forecast_version_id: versionData.id,
-          cost_breakdown_id: cost.id,
-          forecasted_cost: changes[cost.id] !== undefined ? changes[cost.id] : cost.budget_cost,
-        })),
-        ...savedNewEntries.map((entry) => ({
-          forecast_version_id: versionData.id,
-          cost_breakdown_id: entry.id,
-          forecasted_cost: entry.budget_cost,
-        }))
-      ]
-      
-      console.log('Saving forecast entries:', allForecastEntries.length)
-
-      if (allForecastEntries.length > 0) {
-        const { error: forecastError } = await supabase.from("budget_forecasts").insert(allForecastEntries)
-
-        if (forecastError) throw forecastError
-      }
-
-      // Refresh data - load the new version that was just created
-      await loadForecastVersions(projectId)
-      
-      // Set active version to the new one and load its data
-      console.log(`Setting active version to ${nextVersionNumber} after save from wizard`)
-      setActiveVersion(prev => ({ ...prev, [projectId]: nextVersionNumber }))
-      
-      // Small delay to ensure state is updated
-      await new Promise(resolve => setTimeout(resolve, 100))
-      
-      await loadVersionCostBreakdown(projectId, nextVersionNumber)
-
-      // Clear all state
-      setIsForecasting(null)
-      setForecastChanges({})
-      setForecastReason("")
-      setForecastNewEntries(new Set())
-      setStagedNewEntries((prev) => ({ ...prev, [projectId]: [] }))
-      
-      // Clear localStorage backup after successful save
-      LocalStorageService.clearBackup()
-      
-      // Show success notification
-      toast({
-        title: "Forecast Saved",
-        description: `Version ${nextVersionNumber} has been created successfully`,
-      })
-      
-    } catch (error: any) {
-      console.error("Error saving forecast:", error)
-      
-      toast({
-        variant: "destructive",
-        title: "Error Saving Forecast",
-        description: error?.message || "Failed to save forecast. Please try again.",
-      })
-    } finally {
-      setSavingForecast(false)
-    }
-  }
 
   const saveForecastVersion = async (projectId: string, reason: string) => {
     if (!reason?.trim()) {
@@ -2856,20 +2744,19 @@ export default function ProjectsPage() {
           currentCosts={costBreakdowns[showForecastWizard] || []}
           stagedEntries={stagedNewEntries[showForecastWizard] || []}
           onSave={async (changes, newEntries, reason) => {
-            // Save the forecast with the changes passed directly from wizard
-            await saveForecastVersionWithChanges(showForecastWizard, reason, changes, newEntries)
-            
-            // Close wizard
+            await createForecast.mutateAsync({
+              projectId: showForecastWizard!,
+              reason,
+              changes,
+              newEntries: newEntries.map(e => ({
+                subBusinessLine: e.sub_business_line,
+                costLine: e.cost_line,
+                spendType: e.spend_type,
+                spendSubCategory: e.spend_sub_category,
+                budgetCost: e.budget_cost,
+              })),
+            })
             setShowForecastWizard(null)
-          }}
-          onAddEntry={(entry) => {
-            addNewCostEntry(entry as any)
-          }}
-          onUpdateEntry={(entry) => {
-            updateCostItem(entry)
-          }}
-          onDeleteEntry={(id) => {
-            deleteCostEntry(id)
           }}
         />
       )}

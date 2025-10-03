@@ -2,6 +2,7 @@ import { router } from './trpc';
 import { testRouter } from './routers/test';
 import { dashboardRouter } from './procedures/dashboard/dashboard.router';
 import { poMappingRouter } from './routers/po-mapping';
+import { forecastsRouter } from './procedures/forecasts/forecasts.router';
 import { db } from '@cost-mgmt/db';
 import type { Context } from './trpc';
 
@@ -14,6 +15,7 @@ export const appRouter = router({
   test: testRouter,
   dashboard: dashboardRouter,
   poMapping: poMappingRouter,
+  forecasts: forecastsRouter,
   // Future routers will be added here:
   // projects: projectsRouter,
   // costBreakdown: costBreakdownRouter,

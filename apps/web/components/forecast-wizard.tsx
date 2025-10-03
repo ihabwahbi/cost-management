@@ -80,9 +80,6 @@ interface ForecastWizardProps {
     newEntries: CostBreakdown[],
     reason: string
   ) => Promise<void>
-  onAddEntry: (entry: Omit<CostBreakdown, 'id'>) => void
-  onUpdateEntry: (entry: CostBreakdown) => void
-  onDeleteEntry: (id: string) => void
 }
 
 type WizardStep = 
@@ -126,9 +123,6 @@ export function ForecastWizard({
   currentCosts,
   stagedEntries,
   onSave,
-  onAddEntry,
-  onUpdateEntry,
-  onDeleteEntry,
 }: ForecastWizardProps) {
   const [currentStep, setCurrentStep] = useState<WizardStep>("review")
   const [forecastChanges, setForecastChanges] = useState<Record<string, number>>({})

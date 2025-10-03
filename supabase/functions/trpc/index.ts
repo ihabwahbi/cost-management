@@ -147,6 +147,81 @@ function generatePLTimeline(
 
 const dashboardRouter = router({
   /**
+   * Get Main Dashboard Metrics (Global - no project filter)
+   * Consolidates 5 queries for all KPI cards on main dashboard
+   * Returns: unmappedPOs, totalPOValue, activeProjects, budgetVariance, totalBudget, totalActual
+   */
+  getMainMetrics: publicProcedure
+    .input(z.object({}))
+    .query(async ({ ctx }) => {
+      try {
+        // Execute all 5 queries in parallel with Promise.all()
+        const [unmappedResult, poValueResult, projectsResult, budgetResult, actualResult] = 
+          await Promise.all([
+            // Query 1: Unmapped POs (LEFT JOIN to find nulls)
+            ctx.sql`
+              SELECT COUNT(*) as count
+              FROM po_line_items pli
+              LEFT JOIN po_mappings pm ON pli.id = pm.po_line_item_id
+              WHERE pm.id IS NULL
+            `,
+            
+            // Query 2: Total PO value (SUM line_value)
+            ctx.sql`
+              SELECT COALESCE(SUM(line_value), 0) as total
+              FROM po_line_items
+            `,
+            
+            // Query 3: Active projects count
+            ctx.sql`
+              SELECT COUNT(*) as count
+              FROM projects
+            `,
+            
+            // Query 4: Total budget (SUM budget_cost from cost_breakdown)
+            ctx.sql`
+              SELECT COALESCE(SUM(budget_cost), 0) as total
+              FROM cost_breakdown
+            `,
+            
+            // Query 5: Total actual spend (SUM mapped_amount)
+            ctx.sql`
+              SELECT COALESCE(SUM(mapped_amount), 0) as total
+              FROM po_mappings
+            `,
+          ]);
+        
+        // Extract values with null safety
+        const unmappedPOs = Number(unmappedResult[0]?.count || 0);
+        const totalPOValue = Number(poValueResult[0]?.total || 0);
+        const activeProjects = Number(projectsResult[0]?.count || 0);
+        const totalBudget = Number(budgetResult[0]?.total || 0);
+        const totalActual = Number(actualResult[0]?.total || 0);
+        
+        // Calculate variance with division-by-zero protection
+        const budgetVariance = totalBudget > 0 
+          ? ((totalActual - totalBudget) / totalBudget) * 100 
+          : 0;
+        
+        return {
+          unmappedPOs,
+          totalPOValue,
+          activeProjects,
+          budgetVariance,
+          totalBudget,
+          totalActual,
+        };
+      } catch (error) {
+        console.error('[getMainMetrics] Failed:', error);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Failed to fetch main dashboard metrics. Please try again.',
+          cause: error,
+        });
+      }
+    }),
+
+  /**
    * Get KPI Metrics for a project
    * Returns budget total, committed amount, and variance
    */

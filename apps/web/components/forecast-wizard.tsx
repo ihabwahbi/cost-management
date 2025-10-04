@@ -1,15 +1,8 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
+import { useWizardNavigation } from "@/hooks/use-wizard-navigation"
+import { WizardShell } from "@/components/ui/wizard/wizard-shell"
 import {
   Card,
   CardContent,
@@ -19,7 +12,6 @@ import {
 } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
-import { Progress } from "@/components/ui/progress"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import {
@@ -39,11 +31,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { Button } from "@/components/ui/button"
 import {
   CheckCircle2,
-  Circle,
-  ArrowLeft,
-  ArrowRight,
   TrendingUp,
   TrendingDown,
   AlertCircle,
@@ -124,7 +114,20 @@ export function ForecastWizard({
   stagedEntries,
   onSave,
 }: ForecastWizardProps) {
-  const [currentStep, setCurrentStep] = useState<WizardStep>("review")
+  // Wizard navigation using extracted hook
+  const steps = ["review", "modify", "add-reason", "preview", "confirm"] as const
+  const {
+    currentStep,
+    goNext,
+    goBack,
+    canGoBack,
+    canGoForward,
+    progress,
+    currentStepIndex,
+  } = useWizardNavigation({
+    steps,
+    initialStep: "review" as WizardStep,
+  })
   const [forecastChanges, setForecastChanges] = useState<Record<string, number>>({})
   const [localStagedEntries, setLocalStagedEntries] = useState<CostBreakdown[]>([])
   const [forecastReason, setForecastReason] = useState("")
@@ -178,16 +181,14 @@ export function ForecastWizard({
     }
   }, [projectId])
 
-  const steps: { key: WizardStep; label: string; icon: React.ReactNode }[] = [
-    { key: "review", label: "Review Budget", icon: <Eye className="w-4 h-4" /> },
-    { key: "modify", label: "Modify Assumptions", icon: <Edit3 className="w-4 h-4" /> },
-    { key: "add-reason", label: "Add Reason", icon: <FileText className="w-4 h-4" /> },
-    { key: "preview", label: "Preview Changes", icon: <Calculator className="w-4 h-4" /> },
-    { key: "confirm", label: "Confirm & Save", icon: <Save className="w-4 h-4" /> },
+  // Step labels for wizard shell
+  const stepLabels = [
+    { label: "Review Budget", icon: <Eye className="w-4 h-4" /> },
+    { label: "Modify Assumptions", icon: <Edit3 className="w-4 h-4" /> },
+    { label: "Add Reason", icon: <FileText className="w-4 h-4" /> },
+    { label: "Preview Changes", icon: <Calculator className="w-4 h-4" /> },
+    { label: "Confirm & Save", icon: <Save className="w-4 h-4" /> },
   ]
-
-  const currentStepIndex = steps.findIndex(s => s.key === currentStep)
-  const progressPercentage = ((currentStepIndex + 1) / steps.length) * 100
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-US", {
@@ -225,19 +226,8 @@ export function ForecastWizard({
     return Object.keys(forecastChanges).length + localStagedEntries.length
   }
 
-  const handleNext = () => {
-    const stepIndex = steps.findIndex(s => s.key === currentStep)
-    if (stepIndex < steps.length - 1) {
-      setCurrentStep(steps[stepIndex + 1].key)
-    }
-  }
-
-  const handleBack = () => {
-    const stepIndex = steps.findIndex(s => s.key === currentStep)
-    if (stepIndex > 0) {
-      setCurrentStep(steps[stepIndex - 1].key)
-    }
-  }
+  // Navigation handlers are now provided by useWizardNavigation hook
+  // goNext() and goBack() replace handleNext() and handleBack()
 
   const handleSave = async () => {
     setIsSaving(true)
@@ -247,11 +237,10 @@ export function ForecastWizard({
       // Clear draft after successful save
       localStorage.removeItem(`forecast-draft-${projectId}`)
       
-      // Reset state
+      // Reset state (note: currentStep managed by hook, will reset on next open)
       setForecastChanges({})
       setLocalStagedEntries([])
       setForecastReason("")
-      setCurrentStep("review")
       
       onClose()
     } catch (error) {
@@ -934,72 +923,28 @@ export function ForecastWizard({
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl w-[95vw] h-[90vh] flex flex-col overflow-hidden">
-        <DialogHeader className="flex-shrink-0">
-          <DialogTitle>Create New Forecast - {projectName}</DialogTitle>
-          <DialogDescription>
-            Follow the steps to create a new forecast version with tracked changes
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="flex-1 flex flex-col min-h-0">
-          {/* Progress indicator */}
-          <div className="space-y-2 flex-shrink-0 pb-4">
-            <Progress value={progressPercentage} className="h-2" />
-            <div className="flex justify-between">
-              {steps.map((step, index) => (
-                <div
-                  key={step.key}
-                  className={`flex items-center gap-1 text-xs ${
-                    index <= currentStepIndex
-                      ? "text-primary font-medium"
-                      : "text-muted-foreground"
-                  }`}
-                >
-                  {index <= currentStepIndex ? (
-                    <CheckCircle2 className="w-3 h-3" />
-                  ) : (
-                    <Circle className="w-3 h-3" />
-                  )}
-                  <span className="hidden sm:inline">{step.label}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Step content */}
-          <div className="flex-1 overflow-y-auto min-h-0">
-            {renderStepContent()}
-          </div>
-        </div>
-
-        <DialogFooter className="flex justify-between flex-shrink-0 mt-4">
-          <div className="flex gap-2">
-            {currentStepIndex > 0 && (
-              <Button variant="outline" onClick={handleBack} disabled={isSaving}>
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back
-              </Button>
-            )}
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={onClose} disabled={isSaving}>
-              Cancel
-            </Button>
-            {currentStep === "confirm" ? (
-              <Button onClick={handleSave} disabled={isSaving || !canProceed()}>
-                {isSaving ? "Saving..." : "Save Forecast"}
-              </Button>
-            ) : (
-              <Button onClick={handleNext} disabled={!canProceed()}>
-                Next
-                <ArrowRight className="w-4 h-4 ml-2" />
-              </Button>
-            )}
-          </div>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <WizardShell
+      isOpen={isOpen}
+      onClose={onClose}
+      title={`Create New Forecast - ${projectName}`}
+      description="Follow the steps to create a new forecast version with tracked changes"
+      currentStep={currentStepIndex}
+      totalSteps={stepLabels.length}
+      progress={progress}
+      canGoBack={canGoBack}
+      canGoForward={canGoForward}
+      onBack={goBack}
+      onNext={goNext}
+      nextLabel="Next"
+      backLabel="Back"
+      nextDisabled={!canProceed()}
+      isSaving={isSaving}
+      isConfirmStep={currentStep === "confirm"}
+      onConfirm={handleSave}
+      confirmLabel="Save Forecast"
+      stepLabels={stepLabels}
+    >
+      {renderStepContent()}
+    </WizardShell>
   )
 }

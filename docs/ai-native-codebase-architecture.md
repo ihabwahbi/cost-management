@@ -210,15 +210,111 @@ export function BudgetWaterfall({ projectId }: { projectId: string }) {
 
 A **Cell** is a self-contained directory that encapsulates every aspect of a single piece of functionality—not just the UI component, but also its state, data dependencies, tests, and its "user manual" (the manifest).
 
+#### What Qualifies as a Cell?
+
+**Definition:** Any component that represents discrete functionality with behavioral requirements.
+
+**Cells Include:**
+- Data-bound components (dashboards, charts, tables)
+- User interaction flows (wizards, multi-step forms)
+- Business logic components (calculators, validators)
+- Feature modules (authentication, search, filtering)
+- Complex modals with internal state and logic
+- Any component with testable behavioral assertions
+
+**NOT Cells (use components/ui/):**
+- Pure UI primitives (buttons, inputs, badges)
+- Layout components (containers, grids)
+- Generic wrappers without business logic
+- shadcn/ui components
+
+**Decision Tree:**
+```
+Does this component perform a user-facing operation with business logic?
+  ↓ YES → Is it testable with behavioral requirements?
+            ↓ YES → Create as Cell
+            ↓ NO → Re-evaluate (likely should be Cell)
+  ↓ NO → Is it a pure UI component (button, input, layout)?
+           ↓ YES → Use components/ui/
+           ↓ NO → Review requirements (probably Cell)
+```
+
+**Common Misclassifications:**
+
+| Component Type | Often Mislabeled As | Correct Classification | Rationale |
+|----------------|---------------------|------------------------|-----------|
+| Multi-step wizard | "Just a modal" | Cell | Has state, logic, and validation flow |
+| Data entry form | "Shared component" | Cell | Business rules and data transformation |
+| Feature dashboard | "Page component" | Cell | Data aggregation and display logic |
+| Interactive chart | "UI component" | Cell | Data processing and user interactions |
+
+**File Size Requirements:**
+- Individual component files: ≤400 lines
+- If functionality exceeds 400 lines, extract into multiple files within Cell directory
+- Cell directory structure supports unlimited complexity through decomposition
+- Complexity is the REASON for structure, not an exemption from it
+
 **Standard Cell Structure:**
 ```
 /components/cells/{cell-name}/
 │
-├── component.tsx          # React component (presentation logic only)
+├── component.tsx          # Main orchestrator (≤400 lines)
+├── components/            # Sub-components if needed
+│   ├── sub-component-a.tsx
+│   └── sub-component-b.tsx
+├── hooks/                 # Custom hooks
+│   └── use-feature-logic.ts
+├── utils/                 # Pure functions
+│   └── calculations.ts
 ├── state.ts               # Local state management (Zustand)
 ├── manifest.json          # Machine-readable API and requirements
-└── pipeline.yaml          # Automated quality gates
+├── pipeline.yaml          # Automated quality gates
+└── __tests__/             # Test files
+    └── component.test.tsx
 ```
+
+**Example: Complex Wizard Cell**
+
+A 1,000-line wizard component MUST be extracted into Cell structure:
+
+```
+Before (Violation):
+components/
+└── forecast-wizard.tsx    # ❌ 1,005 lines - god component
+
+After (Compliant):
+components/cells/forecast-wizard/
+├── component.tsx                 # ✅ 180 lines - orchestrator
+├── steps/                        # Step components
+│   ├── review-step.tsx          # ✅ 120 lines
+│   ├── modify-step.tsx          # ✅ 150 lines
+│   ├── reason-step.tsx          # ✅ 60 lines
+│   ├── preview-step.tsx         # ✅ 220 lines
+│   └── confirm-step.tsx         # ✅ 60 lines
+├── components/                   # Sub-components
+│   ├── entry-form.tsx           # ✅ 115 lines
+│   ├── editable-table.tsx       # ✅ 150 lines
+│   └── progress-bar.tsx         # ✅ 50 lines
+├── hooks/                        # Custom hooks
+│   ├── use-wizard-navigation.ts # ✅ 50 lines
+│   ├── use-calculations.ts      # ✅ 60 lines
+│   └── use-draft-persistence.ts # ✅ 80 lines
+├── utils/                        # Pure functions
+│   ├── calculations.ts          # ✅ 40 lines
+│   └── validation.ts            # ✅ 50 lines
+├── types.ts                      # ✅ 30 lines
+├── manifest.json                 # Behavioral assertions
+├── pipeline.yaml                 # Validation gates
+└── __tests__/
+    └── component.test.tsx
+```
+
+**Result:**
+- Original: 1 file, 1,005 lines
+- Cell: 16 files, avg 68 lines/file, max 220 lines
+- Complexity: Managed through decomposition
+- Maintainability: High (each file focused)
+- AI-Agent Navigability: Excellent (fits in context)
 
 **The Manifest (The Cell's Contract):**
 ```json
@@ -389,6 +485,7 @@ Phase 1: Implementation
   - Write manifest.json with behavioral assertions
   - Write pipeline.yaml with validation gates
   - Implement component with comprehensive tests
+  - Extract to files ≤400 lines each
   - Run automated pipeline validation
   - All gates must pass
 
@@ -413,8 +510,254 @@ Phase 4: Commit
 Phase 5: Verification
   - Confirm old component deleted
   - Confirm no references to old implementation exist
+  - Confirm all files ≤400 lines
   - Confirm all tests pass
   - Migration marked complete
+```
+
+### 4.3. Architectural Mandates
+
+These are hard requirements that cannot be marked "optional" or "deferred":
+
+#### M-CELL-1: All Functionality as Cells
+**Rule:** Every piece of discrete functionality MUST be implemented as a Cell.
+
+**Applies To:**
+- Components with behavioral requirements
+- Multi-step user flows (wizards, forms)
+- Data processing and display logic
+- Feature modules with business rules
+
+**Does NOT Exempt:**
+- ❌ "It's a modal dialog" - modals with logic are Cells
+- ❌ "It's single-use" - single-use components are still Cells
+- ❌ "It's too complex" - complexity requires Cell structure more
+- ❌ "It's tightly coupled to parent" - extract with clear interface
+
+**Enforcement:** Architecture validation MUST reject plans that exempt functionality from Cell structure without valid justification.
+
+---
+
+#### M-CELL-2: Complete Atomic Migrations
+**Rule:** Migrations MUST be complete, atomic transformations in a single commit.
+
+**Required Steps (ALL required, none optional):**
+1. ✅ Create new Cell structure with manifest + pipeline
+2. ✅ Extract all code into files ≤400 lines
+3. ✅ Implement comprehensive tests
+4. ✅ Update all imports and references
+5. ✅ Delete old implementation completely
+6. ✅ Commit as single atomic change
+
+**FORBIDDEN Patterns:**
+- ❌ Marking extraction as "optional phase"
+- ❌ Deferring cleanup to "future sprint"
+- ❌ Partial migrations leaving god components
+- ❌ "Phase 3 (optional)" in migration plans
+- ❌ Keeping old implementation "for reference"
+
+**If Time-Constrained:**
+- Option A: Defer ENTIRE migration (select simpler component)
+- Option B: Allocate sufficient time for complete migration
+- NEVER: Execute partial migration
+
+**Rationale:** Partial migrations create the exact problems this architecture prevents—parallel implementations, god components, and agent confusion.
+
+---
+
+#### M-CELL-3: Zero God Components
+**Rule:** No component file may exceed 400 lines of code.
+
+**Measurement:**
+```bash
+# Scan for violations
+find apps/web/components -name "*.tsx" -exec wc -l {} + | awk '$1 > 400'
+
+# Result MUST be empty (zero files found)
+```
+
+**Enforcement:**
+- Migration plans MUST include extraction strategy for files >400 lines
+- Code reviews MUST reject PRs introducing files >400 lines
+- Automated checks SHOULD fail CI/CD for god components
+- Existing violations MUST be addressed in migration backlog
+
+**Handling Complexity:**
+- Extract sub-components to `components/` subdirectory
+- Move custom logic to `hooks/` subdirectory
+- Move pure functions to `utils/` subdirectory
+- If still >400 lines, decompose Cell into multiple Cells
+
+---
+
+#### M-CELL-4: Explicit Behavioral Contracts
+**Rule:** Every Cell MUST document behavioral requirements in manifest.json.
+
+**Minimum Required:**
+- 3+ behavioral assertions with validation strategies
+- Clear success criteria for each assertion
+- Criticality level (high/medium/low)
+- Test coverage mapping
+
+**Example Violation:**
+```json
+{
+  "behavioralAssertions": []  // ❌ INVALID - no assertions
+}
+```
+
+**Example Compliance:**
+```json
+{
+  "behavioralAssertions": [
+    {
+      "id": "BA-001",
+      "requirement": "Component MUST display loading state during data fetch",
+      "validation": "Unit test: verify spinner renders when isLoading=true",
+      "criticality": "high"
+    }
+  ]
+}
+```
+
+---
+
+### 4.4. Anti-Patterns to Avoid
+
+#### Anti-Pattern 1: Partial Migrations
+**Description:** Completing tRPC migration but leaving component extraction "optional."
+
+**Why It's Wrong:**
+- Creates god components (violates M-CELL-3)
+- Defeats purpose of granular architecture
+- Agents struggle with large, complex files
+- Future maintenance becomes difficult
+
+**Example Violation:**
+```yaml
+Phase 1: API Migration [COMPLETE]
+Phase 2: Parent Refactoring [COMPLETE]
+Phase 3: Component Extraction [OPTIONAL]  # ❌ VIOLATION
+```
+
+**Correct Approach:**
+```yaml
+Phase 1: API Migration
+Phase 2: Parent Refactoring
+Phase 3: Component Extraction  # ✅ REQUIRED
+# All phases complete before marking migration done
+```
+
+---
+
+#### Anti-Pattern 2: Misclassifying Cells as "Shared Components"
+**Description:** Treating functionality as generic component to avoid Cell structure.
+
+**Why It's Wrong:**
+- Business logic escapes architectural constraints
+- No manifest means no behavioral contract
+- No pipeline means no validation gates
+- Agents can't discover requirements
+
+**Example Violation:**
+```
+components/
+├── cells/           # Proper Cells
+└── forecast-wizard.tsx  # ❌ 1,005 lines, complex logic, NO manifest
+```
+
+**Correct Approach:**
+```
+components/
+├── cells/
+│   └── forecast-wizard/
+│       ├── manifest.json      # ✅ Behavioral contract
+│       ├── pipeline.yaml      # ✅ Validation gates
+│       ├── component.tsx      # ✅ ≤400 lines
+│       └── components/        # ✅ Sub-components extracted
+└── ui/              # Only pure UI primitives
+```
+
+---
+
+#### Anti-Pattern 3: "Optional Cleanup" in Plans
+**Description:** Planning to delete old code in a future, unscheduled phase.
+
+**Why It's Wrong:**
+- Violates "No Parallel Implementations" principle
+- Codebase contains duplicate implementations
+- Agents may use wrong implementation
+- Code bloat accumulates over time
+
+**Example Violation:**
+```markdown
+## Cleanup (Future Phase)
+We'll delete the old implementation once new one is stable.
+```
+
+**Correct Approach:**
+```markdown
+## Phase 3: Cleanup (Same Migration)
+- Delete old component
+- Verify no references remain
+- Single atomic commit with new Cell only
+```
+
+---
+
+#### Anti-Pattern 4: File Size Exemptions
+**Description:** Allowing files >400 lines with justifications like "it's complex" or "one-time exception."
+
+**Why It's Wrong:**
+- Complexity is WHY we need <400 line limit
+- Exemptions accumulate, architecture erodes
+- Agents struggle with large context windows
+- Sets precedent for future violations
+
+**Example Violation:**
+```typescript
+// ❌ 1,200 line component
+// "It's complex, so we'll keep it monolithic for now"
+export function ComplexDashboard() {
+  // ... 1,200 lines of tangled logic
+}
+```
+
+**Correct Approach:**
+```typescript
+// ✅ Orchestrator: 180 lines
+export function ComplexDashboard() {
+  return (
+    <>
+      <DashboardHeader />      {/* 80 lines */}
+      <MetricsPanel />         {/* 150 lines */}
+      <ChartsSection />        {/* 200 lines */}
+      <DataTable />            {/* 350 lines */}
+    </>
+  )
+}
+```
+
+---
+
+#### Anti-Pattern 5: Skipping Manifest Creation
+**Description:** Creating Cell directory but omitting manifest.json "temporarily."
+
+**Why It's Wrong:**
+- No behavioral contract means agents don't know requirements
+- Can't validate against assertions
+- Breaks discoverability via ledger
+- "Temporary" becomes permanent
+
+**Enforcement:**
+```bash
+# Cell validation check
+for cell in components/cells/*/; do
+  if [ ! -f "$cell/manifest.json" ]; then
+    echo "❌ VIOLATION: $cell missing manifest.json"
+    exit 1
+  fi
+done
 ```
 
 ## 5. Development Pitfalls & Prevention
@@ -607,6 +950,7 @@ Step 5: Generate Failure Report (After 30 min)
 4. Make Changes
    └─> Modify only the identified Cell
    └─> Update manifest if requirements changed
+   └─> Ensure all files remain ≤400 lines
 
 5. Run Pipeline
    └─> Execute validation gates
@@ -617,7 +961,42 @@ Step 5: Generate Failure Report (After 30 min)
    └─> Link to human prompt
 ```
 
-### 6.2. Ledger Query Operations
+### 6.2. Migration Planning Workflow
+
+When creating migration plans, agents MUST:
+
+```
+1. Read Architecture Document
+   └─> Section 3.2: Cell classification
+   └─> Section 4.3: Architectural mandates
+   └─> Section 4.4: Anti-patterns to avoid
+
+2. Classify Component
+   └─> Apply decision tree
+   └─> Determine if Cell or UI component
+   └─> Document classification rationale
+
+3. Draft Migration Plan
+   └─> Include ALL required phases
+   └─> Plan file extraction strategy (≤400 lines)
+   └─> Schedule old component deletion (same migration)
+   └─> FORBIDDEN: "optional" or "future" language
+
+4. Self-Validate Plan
+   └─> Check against M-CELL-1 through M-CELL-4
+   └─> Search for anti-patterns (Section 4.4)
+   └─> Verify completeness (manifest + pipeline + extraction + deletion)
+   └─> If violations found → Revise (return to step 3)
+
+5. Present Plan
+   └─> Only after self-validation passes
+   └─> Include compliance confirmation
+   └─> Document how each mandate is satisfied
+```
+
+**Critical:** Plans with architectural violations MUST NOT be presented for approval. Agents must self-correct before human review.
+
+### 6.3. Ledger Query Operations
 
 ```typescript
 // Find a Cell by feature description
@@ -637,19 +1016,65 @@ ledger.getRecentChanges({ since: new Date("2025-10-01") })
 → [Latest entries]
 ```
 
-### 6.3. Pre-Implementation Checklist
+### 6.4. Pre-Implementation Checklist
 
 ```yaml
 Before writing ANY code:
+- [ ] Read Section 4.3 (Architectural Mandates)
+- [ ] Read Section 4.4 (Anti-Patterns to Avoid)
 - [ ] Query ledger for reference Cells with similar complexity
 - [ ] Review reference Cell implementation
 - [ ] Identify ALL tRPC procedures needed
 - [ ] Test EACH procedure via curl
 - [ ] Verify existing infrastructure
 - [ ] Read Development Pitfalls section
+- [ ] Confirm migration plan has NO optional phases
 ```
 
-### 6.4. During Implementation Checklist
+### 6.5. Architecture Compliance Validation
+
+Before implementation begins, validate migration plan against architectural mandates:
+
+```yaml
+Cell Classification Validation:
+  - [ ] Does component represent discrete functionality?
+  - [ ] Does it have behavioral requirements?
+  - [ ] If YES to both → MUST be Cell (M-CELL-1)
+  - [ ] Exemptions require explicit justification
+
+Migration Completeness Validation:
+  - [ ] Does plan include manifest.json creation?
+  - [ ] Does plan include pipeline.yaml creation?
+  - [ ] Does plan extract files to ≤400 lines? (M-CELL-3)
+  - [ ] Does plan delete old implementation? (M-CELL-2)
+  - [ ] Is deletion in SAME migration (not optional)?
+
+Forbidden Patterns Check:
+  - [ ] Search plan for "optional" + "phase" → VIOLATION
+  - [ ] Search plan for "future cleanup" → VIOLATION
+  - [ ] Search plan for "temporary exemption" → VIOLATION
+  - [ ] Any file >400 lines without extraction → VIOLATION
+
+Success Criteria:
+  - [ ] All mandates satisfied
+  - [ ] Zero anti-patterns detected
+  - [ ] Plan approved for implementation
+  - [ ] If violations found → Return to planning
+```
+
+**Validation Tools:**
+```bash
+# Check for god components
+find apps/web/components -name "*.tsx" -exec wc -l {} + | awk '$1 > 400 {print "VIOLATION:", $2, "("$1" lines)"}'
+
+# Check for Cells missing manifests
+find components/cells/* -type d -exec test ! -f {}/manifest.json \; -print
+
+# Check for non-Cell components with business logic
+grep -r "useState\|useEffect\|trpc\." apps/web/components/*.tsx | grep -v "/cells/" | grep -v "/ui/"
+```
+
+### 6.6. During Implementation Checklist
 
 ```yaml
 While writing code:
@@ -661,16 +1086,35 @@ While writing code:
 - [ ] Keep component manageable (~400 lines max)
 ```
 
-### 6.5. Validation Checklist
+### 6.7. Validation Checklist
 
 ```yaml
 Before marking complete:
+  
+Functional Validation:
 - [ ] Check Network tab: All requests successful
 - [ ] Check Console: Query states correct
 - [ ] Compare calculations: 100% parity with old
 - [ ] Measure performance: ≤110% of baseline
 - [ ] Run all tests: 80%+ coverage
-- [ ] Verify cleanup: Old component deleted
+
+Architectural Compliance (M-CELL-1 through M-CELL-4):
+- [ ] Component is Cell (has manifest.json + pipeline.yaml)
+- [ ] All files ≤400 lines (M-CELL-3)
+- [ ] Old component deleted (M-CELL-2)
+- [ ] No parallel implementations exist
+- [ ] Behavioral assertions documented (M-CELL-4)
+- [ ] Ledger entry created with replacement documented
+
+File Size Verification:
+- [ ] Run: find components/cells/{cell-name} -name "*.tsx" -exec wc -l {} +
+- [ ] Confirm: All files ≤400 lines
+- [ ] If violations: Extract further before completing
+
+Cleanup Verification:
+- [ ] Run: grep -r "old-component-name" apps/
+- [ ] Confirm: Zero references found
+- [ ] Codebase contains ONLY new Cell implementation
 ```
 
 ## 7. Validation & Success Metrics
@@ -684,17 +1128,32 @@ Before marking complete:
   - TypeScript compilation has zero errors
 
 - **Cell Quality**
-  - All components converted to Cells
-  - Every Cell has `manifest.json`
+  - All components converted to Cells (M-CELL-1)
+  - Every Cell has `manifest.json` (M-CELL-4)
   - Every Cell has `pipeline.yaml`
   - All behavioral assertions have tests
   - All Cells pass pipeline validation
+  - Zero files >400 lines (M-CELL-3)
+
+- **Migration Integrity**
+  - Zero partial migrations (all phases complete)
+  - Zero parallel implementations (M-CELL-2)
+  - Old components deleted immediately upon Cell creation
+  - All migrations are atomic (single commit per migration)
+  - No "optional" phases in any migration plan
 
 - **Ledger Completeness**
   - All Cells documented in ledger
   - All API procedures documented
+  - All replacements tracked with deletion timestamps
   - Ledger query functions work correctly
   - Historical context is preserved
+
+- **Architectural Mandate Compliance**
+  - M-CELL-1: All functionality as Cells (100% compliance)
+  - M-CELL-2: Complete atomic migrations (0 partial migrations)
+  - M-CELL-3: Zero god components (0 files >400 lines)
+  - M-CELL-4: All Cells have behavioral contracts
 
 ### 7.2. Success Metrics
 
@@ -702,10 +1161,39 @@ Before marking complete:
 |--------|--------|-------------------|
 | **Component Drift Incidents** | 0 per sprint | Track duplicate component events |
 | **Type Safety Coverage** | 100% | Count `any` types → should be 0 |
+| **God Components** | 0 files | Files >400 lines (M-CELL-3) |
+| **Partial Migrations** | 0 migrations | Migrations with optional phases (M-CELL-2) |
+| **Cell Mandate Compliance** | 100% | All functionality as Cells (M-CELL-1) |
+| **Manifest Coverage** | 100% | Cells with manifest.json (M-CELL-4) |
+| **Parallel Implementations** | 0 instances | Duplicate implementations exist |
 | **Implicit Requirements** | 0% | Behavioral assertions in manifests |
 | **Feature Location Time** | < 30 seconds | Time from query to location |
 | **Debugging Iteration Count** | < 3 per issue | Average iterations to resolve |
 | **Pipeline Validation Coverage** | 100% | Cells with passing pipelines |
+
+**Critical Metrics (Architecture Health):**
+
+These metrics measure adherence to architectural mandates and MUST remain at target:
+
+```bash
+# M-CELL-3: God Components Check
+find apps/web/components/cells -name "*.tsx" -exec wc -l {} + | awk '$1 > 400'
+# Target: Empty output (zero files)
+
+# M-CELL-1 & M-CELL-4: Cell Structure Compliance
+total_cells=$(find components/cells -maxdepth 1 -type d | wc -l)
+cells_with_manifest=$(find components/cells/*/manifest.json | wc -l)
+compliance_rate=$((cells_with_manifest * 100 / total_cells))
+# Target: 100%
+
+# M-CELL-2: Parallel Implementation Check
+git log --all --grep="optional.*phase" | wc -l
+# Target: 0 (no migrations with optional phases)
+
+# Anti-Pattern Detection
+grep -r "components/.*\.tsx" --include="*.tsx" | grep -v "/cells/" | grep -v "/ui/" | grep "useState\|useEffect" | wc -l
+# Target: 0 (all stateful components are Cells)
+```
 
 ## 8. How Agents Should Approach Migration
 
@@ -750,23 +1238,56 @@ Step 2: Analyze Component
   - Read current implementation
   - Identify data dependencies
   - List behavioral requirements
+  - Count lines of code (determine extraction needs)
 
-Step 3: Create Migration Plan
+Step 3: Cell Classification
+  - Apply decision tree (Section 3.2)
+  - Confirm component qualifies as Cell
+  - If NOT Cell → use components/ui/
+  - If Cell → proceed with migration
+
+Step 4: Create Migration Plan
   - Define new Cell structure
   - Identify needed tRPC procedures
   - Plan test coverage
+  - Plan extraction strategy (all files ≤400 lines)
+  - CRITICAL: Plan must have ZERO optional phases
+  - Include old component deletion in same migration
 
-Step 4: Execute Migration
-  - Follow Cell Migration Workflow
+Step 5: Architecture Compliance Validation
+  - Validate plan against M-CELL-1 through M-CELL-4
+  - Check for anti-patterns (Section 4.4)
+  - Verify no "optional" or "future cleanup" language
+  - Confirm file size limits will be met
+  - If violations found → Revise plan (return to Step 4)
+
+Step 6: Execute Migration
+  - Follow Cell Migration Workflow (Section 4.2)
+  - Create Cell with manifest + pipeline
+  - Extract to files ≤400 lines
   - Ensure complete replacement
   - No parallel implementations
 
-Step 5: Validate & Commit
+Step 7: Validate & Commit
   - Run all pipelines
-  - Delete old code
-  - Update ledger
+  - Verify all files ≤400 lines
+  - Delete old code (same commit)
+  - Update ledger with replacement documented
   - Single atomic commit
+  - Confirm zero architecture violations
 ```
+
+**Compliance Checkpoints:**
+
+At each step, verify architectural compliance:
+
+| Step | Compliance Check | Pass Criteria |
+|------|------------------|---------------|
+| 3 | Cell classification | Correct decision tree application |
+| 4 | Plan completeness | Zero optional phases |
+| 5 | Mandate validation | All M-CELL-1 to M-CELL-4 satisfied |
+| 6 | File size limits | All files ≤400 lines during extraction |
+| 7 | Cleanup completion | Old component deleted in same commit |
 
 ### 8.4. Example: Identifying Next Migration Candidate
 
@@ -886,6 +1407,29 @@ This architecture enables AI agents to:
 - ✅ Make autonomous migration decisions
 - ✅ Maintain codebase leanness (no parallel implementations)
 
-The goal is 100% adoption - every component a Cell, every query through tRPC, every requirement explicit. Agents using this document can autonomously explore codebases, identify migration candidates, and systematically transform them following these patterns.
+### Architectural Mandates: Non-Negotiable
 
-**Remember:** This is not gradual addition - it is complete replacement. Maintain absolute leanness. No v2 suffixes. No feature flags. Clean, single implementations only.
+The four architectural mandates (M-CELL-1 through M-CELL-4) are hard requirements:
+
+1. **M-CELL-1:** All functionality MUST be Cells
+2. **M-CELL-2:** Migrations MUST be complete and atomic
+3. **M-CELL-3:** No files may exceed 400 lines
+4. **M-CELL-4:** All Cells MUST have behavioral contracts
+
+**These are not guidelines—they are constraints.** Migration plans that violate these mandates MUST be rejected and revised. "Optional" extraction phases, "temporary" god components, and "future" cleanup all violate this architecture.
+
+### The Goal: 100% Compliance
+
+Complete codebase adoption where:
+- Every component is a Cell with manifest and pipeline
+- Every API call goes through tRPC procedures
+- Every file is ≤400 lines
+- Every requirement is explicit in manifests
+- Zero parallel implementations exist
+- Codebase maintains absolute leanness
+
+Agents using this document can autonomously explore codebases, identify migration candidates, and systematically transform them following these patterns—but only when architectural mandates are enforced without exception.
+
+**Remember:** This is complete replacement, not gradual addition. Maintain absolute leanness through atomic migrations. No v2 suffixes. No feature flags. No optional phases. Clean, single implementations only.
+
+**Partial compliance is non-compliance.** A codebase is either AI-native or it isn't. Half-migrated components defeat the architecture's purpose.

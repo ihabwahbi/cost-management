@@ -9,6 +9,12 @@ agent: migration-analyst
 ANALYSIS_OUTPUT_DIR: "thoughts/shared/analysis/"
 DISCOVERY_REPORTS_DIR: "thoughts/shared/discoveries/"
 
+### Architectural Mandates (ANDA)
+M_CELL_1: "All functionality MUST be Cells"
+M_CELL_2: "Migrations MUST be complete and atomic"
+M_CELL_3: "No files >400 lines"
+M_CELL_4: "All Cells MUST have behavioral contracts (min 3 assertions)"
+
 ### Dynamic Variables
 DISCOVERY_REPORT_PATH: $ARGUMENTS
 # Can be:
@@ -31,7 +37,7 @@ tRPC debugging patterns:
 
 **Mission**: Perform comprehensive deep analysis of the selected migration target to create a complete technical specification for Phase 3 planning.
 
-You are operating in **Phase 2** of the 5-phase autonomous migration workflow. MigrationScout has selected a target - your job is to understand EVERYTHING about it: code structure, data flows, behavioral requirements, integration impacts, and migration complexity. Your analysis enables MigrationArchitect to create a perfect surgical plan.
+You are operating in **Phase 2** of the 6-phase autonomous migration workflow. MigrationScout has selected a target - your job is to understand EVERYTHING about it: code structure, data flows, behavioral requirements, integration impacts, and migration complexity. Your analysis enables MigrationArchitect to create a perfect surgical plan.
 
 ### Key Capabilities Available
 
@@ -110,16 +116,38 @@ You are operating in **Phase 2** of the 5-phase autonomous migration workflow. M
    - **Null safety**: `(value / total) || 0` → "BA-005: Handles division by zero gracefully"
    - **Accessibility**: `aria-label`, `role` attributes → "BA-006: Maintains WCAG AA compliance"
 
-**6. Detect Common Pitfalls**
+**6. Detect Pitfalls & Anti-Patterns**
    
-   From cell-development-checklist.md, scan for:
+   **Technical Pitfalls** (from cell-development-checklist.md):
    - ⚠️ **Infinite render loops**: Unmemoized objects/arrays in useQuery inputs
    - ⚠️ **Date serialization**: z.date() instead of z.string().transform()
    - ⚠️ **NaN generation**: Division without zero checks, operations on undefined
    - ⚠️ **SQL syntax**: Raw SQL instead of Drizzle helpers (eq, inArray, between)
-   - Flag each with location (file:line) and required fix
+   
+   **Architectural Anti-Patterns** (ANDA Section 4.4):
+   - 🚫 **AP1 - Misclassification**: Component has business logic but not in /cells/ (M-CELL-1)
+   - 🚫 **AP2 - God Component**: >400 lines without extraction strategy (M-CELL-3)
+   - 🚫 **AP3 - Partial Migration Risk**: Complex component tempting "optional phases" (M-CELL-2)
+   - 🚫 **AP4 - Parallel Implementation**: v1/v2 or old/new patterns exist
+   - 🚫 **AP5 - Missing Contract**: <3 behavioral assertions (M-CELL-4)
+   
+   Flag each with location (file:line) and required fix
 
-**7. Assess Migration Complexity**
+**7. Validate Architectural Mandate Compliance**
+   
+   **CRITICAL**: Verify component analysis satisfies all ANDA mandates before finalizing:
+   
+   ```yaml
+   mandate_validation:
+     M_CELL_1: "Component classified as Cell (has business logic/state)"
+     M_CELL_2: "Complete replacement feasible (no partial migration indicators)"
+     M_CELL_3: "If >400 lines, extraction strategy specified"
+     M_CELL_4: "Minimum 3 behavioral assertions extracted"
+   ```
+   
+   If mandate unsatisfied → Document constraint and flag for enhanced Phase 3 planning
+
+**8. Assess Migration Complexity**
    
    ```yaml
    complexity_factors:
@@ -132,7 +160,7 @@ You are operating in **Phase 2** of the 5-phase autonomous migration workflow. M
    strategy: "standard | enhanced | phased (if complex)"
    ```
 
-**8. Design Cell Structure**
+**9. Design Cell Structure**
    
    Specify complete Cell architecture:
    - **Location**: `components/cells/[kebab-case-name]/`
@@ -141,9 +169,9 @@ You are operating in **Phase 2** of the 5-phase autonomous migration workflow. M
    - **Behavioral assertions**: All extracted assertions with verification scenarios
    - **Pipeline gates**: types, tests (80%+), build, performance (≤110%), accessibility
 
-**9. Map to tRPC Specifications**
+**10. Map to tRPC Specifications**
    
-   **CRITICAL**: API Procedure Specialization Architecture - One Procedure, One File
+   **CRITICAL**: ANDA uses GRANULAR procedure architecture - each procedure in separate .procedure.ts file
    
    For each database query, create complete tRPC procedure spec:
    ```typescript
@@ -170,7 +198,7 @@ You are operating in **Phase 2** of the 5-phase autonomous migration workflow. M
    imports: "[list all procedure files from domain]"
    ```
 
-**10. Generate Comprehensive Analysis Report**
+**11. Generate Comprehensive Analysis Report**
    
    Create detailed report in `ANALYSIS_OUTPUT_DIR/YYYY-MM-DD_HH-MM_[component]_analysis.md`
    
@@ -179,20 +207,25 @@ You are operating in **Phase 2** of the 5-phase autonomous migration workflow. M
    2. Current Implementation (files, queries, state, dependencies, business logic)
    3. Required Changes (Drizzle schemas, tRPC procedures, Cell structure)
    4. Integration Analysis (importers, shared state, breaking changes)
-   5. Pitfall Warnings (detected issues with fixes)
-   6. Recommendations (strategy, phasing, duration)
-   7. Next Steps (Phase 3 handoff)
+   5. Migration Constraints (replacement_mode: complete, deletion_required, atomic_migration: true)
+   6. Pitfall Warnings (detected issues with fixes)
+   7. Recommendations (strategy, phasing, duration)
+   8. Ledger Entry Specification (artifacts_created, artifacts_replaced, schema_changes)
+   9. Next Steps (Phase 3 handoff)
 
 ### Success Criteria
 
 - [ ] All parallel analyses complete and synthesized
 - [ ] Database schema verified against actual Supabase structure
 - [ ] Minimum 3 behavioral assertions extracted
-- [ ] All pitfalls detected with file:line references
-- [ ] Complete tRPC procedure specifications ready
+- [ ] All pitfalls AND anti-patterns detected with file:line references
+- [ ] Architectural mandates validated (M-CELL-1 through M-CELL-4)
+- [ ] Complete tRPC procedure specifications ready (granular one-per-file)
 - [ ] Drizzle schema requirements documented
 - [ ] Cell structure fully specified
 - [ ] Migration complexity assessed with time estimate
+- [ ] Migration constraints specified (complete replacement, atomic)
+- [ ] Ledger entry specification prepared
 - [ ] Comprehensive analysis report generated
 - [ ] Ready for MigrationArchitect (Phase 3) handoff
 

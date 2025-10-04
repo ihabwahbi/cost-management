@@ -45,6 +45,9 @@ import {
   Trash2,
   Calculator,
 } from "lucide-react"
+import { NewEntryForm } from "./forecast-wizard/components/new-entry-form"
+import { ForecastEditableTable } from "./forecast-wizard/components/forecast-editable-table"
+import { ChangeSummaryFooter } from "./forecast-wizard/components/change-summary-footer"
 
 interface CostBreakdown {
   id: string
@@ -66,7 +69,7 @@ interface ForecastWizardProps {
   currentCosts: CostBreakdown[]
   stagedEntries: CostBreakdown[]
   onSave: (
-    changes: Record<string, number>,
+    changes: Record<string, number | null>, // null = excluded from forecast
     newEntries: CostBreakdown[],
     reason: string
   ) => Promise<void>
@@ -128,19 +131,10 @@ export function ForecastWizard({
     steps,
     initialStep: "review" as WizardStep,
   })
-  const [forecastChanges, setForecastChanges] = useState<Record<string, number>>({})
+  const [forecastChanges, setForecastChanges] = useState<Record<string, number | null>>({}) // null = excluded
   const [localStagedEntries, setLocalStagedEntries] = useState<CostBreakdown[]>([])
   const [forecastReason, setForecastReason] = useState("")
   const [isSaving, setIsSaving] = useState(false)
-  const [editingItem, setEditingItem] = useState<string | null>(null)
-  const [addingNewEntry, setAddingNewEntry] = useState(false)
-  const [newEntry, setNewEntry] = useState<Partial<CostBreakdown>>({
-    sub_business_line: SUB_BUSINESS_LINE_OPTIONS[0],
-    cost_line: "",
-    spend_type: "",
-    spend_sub_category: "",
-    budget_cost: 0,
-  })
 
   // Initialize with existing staged entries
   useEffect(() => {
@@ -206,7 +200,10 @@ export function ForecastWizard({
   const getTotalForecast = () => {
     const modifiedTotal = currentCosts.reduce((sum, cost) => {
       const newValue = forecastChanges[cost.id]
-      return sum + (newValue !== undefined ? newValue : cost.budget_cost)
+      // null = excluded (contributes $0), undefined = unchanged (use original), number = modified value
+      if (newValue === null) return sum + 0 // Excluded
+      if (newValue === undefined) return sum + cost.budget_cost // Unchanged
+      return sum + newValue // Modified
     }, 0)
     const newEntriesTotal = localStagedEntries.reduce((sum, entry) => sum + entry.budget_cost, 0)
     return modifiedTotal + newEntriesTotal
@@ -223,7 +220,13 @@ export function ForecastWizard({
   }
 
   const getModifiedItemsCount = () => {
-    return Object.keys(forecastChanges).length + localStagedEntries.length
+    // Count only actual modifications (not exclusions)
+    const modifiedCount = Object.entries(forecastChanges).filter(([_, value]) => value !== null).length
+    return modifiedCount + localStagedEntries.length
+  }
+
+  const getExcludedCount = () => {
+    return Object.values(forecastChanges).filter(value => value === null).length
   }
 
   // Navigation handlers are now provided by useWizardNavigation hook
@@ -250,41 +253,31 @@ export function ForecastWizard({
     }
   }
 
-  const handleAddNewEntry = () => {
-    if (
-      newEntry.cost_line &&
-      newEntry.spend_type &&
-      newEntry.spend_sub_category &&
-      newEntry.budget_cost
-    ) {
-      const tempId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-      const entry: CostBreakdown = {
-        id: tempId,
-        project_id: projectId,
-        sub_business_line: newEntry.sub_business_line || SUB_BUSINESS_LINE_OPTIONS[0],
-        cost_line: newEntry.cost_line,
-        spend_type: newEntry.spend_type,
-        spend_sub_category: newEntry.spend_sub_category,
-        budget_cost: newEntry.budget_cost,
-        _tempId: tempId,
-      }
-      
-      setLocalStagedEntries([...localStagedEntries, entry])
-      
-      // Reset form
-      setNewEntry({
-        sub_business_line: SUB_BUSINESS_LINE_OPTIONS[0],
-        cost_line: "",
-        spend_type: "",
-        spend_sub_category: "",
-        budget_cost: 0,
-      })
-      setAddingNewEntry(false)
-    }
+  const handleAddNewEntry = (entry: CostBreakdown) => {
+    setLocalStagedEntries([...localStagedEntries, entry])
   }
 
   const handleDeleteStagedEntry = (id: string) => {
     setLocalStagedEntries(localStagedEntries.filter(e => e.id !== id))
+  }
+
+  const handleResetChange = (id: string) => {
+    const { [id]: _, ...rest } = forecastChanges
+    setForecastChanges(rest)
+  }
+
+  const handleValueChange = (id: string, newValue: number) => {
+    setForecastChanges({
+      ...forecastChanges,
+      [id]: newValue,
+    })
+  }
+
+  const handleExcludeEntry = (id: string) => {
+    setForecastChanges({
+      ...forecastChanges,
+      [id]: null, // null = excluded from forecast
+    })
   }
 
   const canProceed = () => {
@@ -377,277 +370,34 @@ export function ForecastWizard({
 
             <div className="flex justify-between items-center">
               <h3 className="text-lg font-semibold">Cost Items</h3>
-              {!addingNewEntry && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setAddingNewEntry(true)}
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add New Entry
-                </Button>
-              )}
+              <NewEntryForm
+                projectId={projectId}
+                onSubmit={handleAddNewEntry}
+                options={{
+                  costLines: COST_LINE_OPTIONS,
+                  spendTypes: SPEND_TYPE_OPTIONS,
+                  subCategories: [], // Subcategory is free text input
+                  subBusinessLines: SUB_BUSINESS_LINE_OPTIONS,
+                }}
+              />
             </div>
 
-            {addingNewEntry && (
-              <Card className="border-blue-200 bg-blue-50/50">
-                <CardHeader>
-                  <CardTitle className="text-sm">Add New Cost Entry</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label>Sub Business Line</Label>
-                      <Select
-                        value={newEntry.sub_business_line}
-                        onValueChange={(value) =>
-                          setNewEntry({ ...newEntry, sub_business_line: value })
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {SUB_BUSINESS_LINE_OPTIONS.map((option) => (
-                            <SelectItem key={option} value={option}>
-                              {option}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label>Cost Line</Label>
-                      <Select
-                        value={newEntry.cost_line}
-                        onValueChange={(value) =>
-                          setNewEntry({ ...newEntry, cost_line: value })
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select cost line" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {COST_LINE_OPTIONS.map((option) => (
-                            <SelectItem key={option} value={option}>
-                              {option}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label>Spend Type</Label>
-                      <Select
-                        value={newEntry.spend_type}
-                        onValueChange={(value) =>
-                          setNewEntry({ ...newEntry, spend_type: value })
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select spend type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {SPEND_TYPE_OPTIONS.map((option) => (
-                            <SelectItem key={option} value={option}>
-                              {option}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label>Sub Category</Label>
-                      <Input
-                        value={newEntry.spend_sub_category}
-                        onChange={(e) =>
-                          setNewEntry({ ...newEntry, spend_sub_category: e.target.value })
-                        }
-                        placeholder="Enter sub category"
-                      />
-                    </div>
-                    <div>
-                      <Label>Budget Cost</Label>
-                      <Input
-                        type="number"
-                        value={newEntry.budget_cost}
-                        onChange={(e) =>
-                          setNewEntry({
-                            ...newEntry,
-                            budget_cost: parseFloat(e.target.value) || 0,
-                          })
-                        }
-                        placeholder="0.00"
-                      />
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button size="sm" onClick={handleAddNewEntry}>
-                      Add Entry
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => {
-                        setAddingNewEntry(false)
-                        setNewEntry({
-                          sub_business_line: SUB_BUSINESS_LINE_OPTIONS[0],
-                          cost_line: "",
-                          spend_type: "",
-                          spend_sub_category: "",
-                          budget_cost: 0,
-                        })
-                      }}
-                    >
-                      Cancel
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+            <ForecastEditableTable
+              entries={[...currentCosts, ...localStagedEntries]}
+              forecastChanges={forecastChanges}
+              onValueChange={handleValueChange}
+              onResetChange={handleResetChange}
+              onDeleteEntry={handleDeleteStagedEntry}
+              onExcludeEntry={handleExcludeEntry}
+            />
 
-            <div className="relative border rounded-md flex-1 min-h-0">
-              <div className="h-full max-h-[500px] overflow-auto">
-                <Table className="w-full min-w-[800px]">
-                  <TableHeader className="sticky top-0 bg-background z-10 border-b">
-                    <TableRow>
-                      <TableHead className="whitespace-nowrap">Status</TableHead>
-                      <TableHead className="whitespace-nowrap">Cost Line</TableHead>
-                      <TableHead className="whitespace-nowrap">Type</TableHead>
-                      <TableHead className="whitespace-nowrap">Sub Category</TableHead>
-                      <TableHead className="text-right whitespace-nowrap">Original</TableHead>
-                      <TableHead className="text-right whitespace-nowrap">Forecast</TableHead>
-                      <TableHead className="w-20"></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                <TableBody>
-                  {/* Existing cost items */}
-                  {currentCosts.map((cost) => {
-                    const isEditing = editingItem === cost.id
-                    const hasChange = forecastChanges[cost.id] !== undefined
-                    const forecastValue = forecastChanges[cost.id] ?? cost.budget_cost
-                    
-                    return (
-                      <TableRow key={cost.id}>
-                        <TableCell className="whitespace-nowrap">
-                          {hasChange && (
-                            <Badge variant="outline" className="text-xs">
-                              Modified
-                            </Badge>
-                          )}
-                        </TableCell>
-                        <TableCell className="whitespace-nowrap">{cost.cost_line}</TableCell>
-                        <TableCell className="whitespace-nowrap">{cost.spend_type}</TableCell>
-                        <TableCell className="whitespace-nowrap truncate max-w-[150px]" title={cost.spend_sub_category}>
-                          {cost.spend_sub_category}
-                        </TableCell>
-                        <TableCell className="text-right whitespace-nowrap">
-                          {formatCurrency(cost.budget_cost)}
-                        </TableCell>
-                        <TableCell className="text-right whitespace-nowrap p-1">
-                          {isEditing ? (
-                            <Input
-                              type="number"
-                              value={forecastValue}
-                              onChange={(e) =>
-                                setForecastChanges({
-                                  ...forecastChanges,
-                                  [cost.id]: parseFloat(e.target.value) || 0,
-                                })
-                              }
-                              className="w-28 text-right text-sm"
-                              autoFocus
-                              onBlur={() => setEditingItem(null)}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") {
-                                  setEditingItem(null)
-                                }
-                              }}
-                            />
-                          ) : (
-                            <button
-                              onClick={() => setEditingItem(cost.id)}
-                              className="hover:underline text-right w-full"
-                            >
-                              {formatCurrency(forecastValue)}
-                            </button>
-                          )}
-                        </TableCell>
-                        <TableCell className="p-1">
-                          {hasChange && (
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="h-8 px-2 text-xs"
-                              onClick={() => {
-                                const { [cost.id]: _, ...rest } = forecastChanges
-                                setForecastChanges(rest)
-                              }}
-                            >
-                              Reset
-                            </Button>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    )
-                  })}
-                  
-                  {/* Staged new entries */}
-                  {localStagedEntries.map((entry) => (
-                    <TableRow key={entry.id} className="bg-amber-50/50">
-                      <TableCell className="whitespace-nowrap">
-                        <Badge className="text-xs bg-amber-500">New</Badge>
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap">{entry.cost_line}</TableCell>
-                      <TableCell className="whitespace-nowrap">{entry.spend_type}</TableCell>
-                      <TableCell className="whitespace-nowrap truncate max-w-[150px]" title={entry.spend_sub_category}>
-                        {entry.spend_sub_category}
-                      </TableCell>
-                      <TableCell className="text-right whitespace-nowrap">-</TableCell>
-                      <TableCell className="text-right whitespace-nowrap">
-                        {formatCurrency(entry.budget_cost)}
-                      </TableCell>
-                      <TableCell className="p-1">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-8 px-2"
-                          onClick={() => handleDeleteStagedEntry(entry.id)}
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-                </Table>
-              </div>
-            </div>
-
-            <Card className="bg-gray-50">
-              <CardContent className="pt-6">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">
-                    Total Changes: {getModifiedItemsCount()} items
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground">New Total:</span>
-                    <span className="text-lg font-bold">
-                      {formatCurrency(getTotalForecast())}
-                    </span>
-                    {getTotalChange() !== 0 && (
-                      <Badge
-                        variant={getTotalChange() > 0 ? "default" : "destructive"}
-                        className="ml-2"
-                      >
-                        {getTotalChange() > 0 ? "+" : ""}
-                        {formatCurrency(getTotalChange())}
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <ChangeSummaryFooter
+              modifiedCount={Object.entries(forecastChanges).filter(([_, v]) => v !== null).length}
+              newEntriesCount={localStagedEntries.length}
+              excludedCount={getExcludedCount()}
+              totalChange={getTotalChange()}
+              changePercentage={getChangePercentage()}
+            />
           </div>
         )
 
@@ -799,6 +549,29 @@ export function ForecastWizard({
                       {Object.entries(forecastChanges).map(([costId, newValue]) => {
                         const cost = currentCosts.find((c) => c.id === costId)
                         if (!cost) return null
+                        
+                        // Handle excluded entries (newValue === null)
+                        if (newValue === null) {
+                          return (
+                            <div
+                              key={costId}
+                              className="flex justify-between items-center text-sm py-1 opacity-60"
+                            >
+                              <span className="text-muted-foreground">
+                                {cost.cost_line} - {cost.spend_sub_category}
+                              </span>
+                              <div className="flex items-center gap-2">
+                                <span className="text-muted-foreground line-through">
+                                  {formatCurrency(cost.budget_cost)}
+                                </span>
+                                <Badge variant="secondary" className="text-xs">
+                                  Excluded
+                                </Badge>
+                              </div>
+                            </div>
+                          )
+                        }
+                        
                         const change = newValue - cost.budget_cost
                         return (
                           <div

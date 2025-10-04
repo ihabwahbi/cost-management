@@ -8,7 +8,7 @@ export const createForecastVersion = publicProcedure
   .input(z.object({
     projectId: z.string().uuid(),
     reason: z.string().min(10, "Reason must be at least 10 characters").max(500),
-    changes: z.record(z.string().uuid(), z.number().min(0)),
+    changes: z.record(z.string().uuid(), z.number().min(0).nullable()), // null = excluded from forecast
     newEntries: z.array(z.object({
       subBusinessLine: z.string().min(1),
       costLine: z.string().min(1),
@@ -92,12 +92,18 @@ export const createForecastVersion = publicProcedure
         
         // Step 6: Create budget_forecasts for all items
         const forecastsToCreate = existingCosts.map(cost => {
-          // Priority: 1) User changes, 2) Previous forecast, 3) Baseline budget
+          // Priority: 1) User changes (incl. exclusions), 2) Previous forecast, 3) Baseline budget
           let forecastValue: number
           
           if (input.changes[cost.id] !== undefined) {
-            // User explicitly changed this value
-            forecastValue = input.changes[cost.id]
+            // User explicitly changed this value or excluded it
+            if (input.changes[cost.id] === null) {
+              // Excluded from forecast = $0
+              forecastValue = 0
+            } else {
+              // Modified value (TypeScript knows it's not null here due to the if check above)
+              forecastValue = input.changes[cost.id]!
+            }
           } else if (previousForecastData[cost.id] !== undefined) {
             // Use previous forecast version's value (inherits from previous version)
             forecastValue = previousForecastData[cost.id]

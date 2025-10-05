@@ -902,13 +902,13 @@ specialized_procedure_implementation:
       max_lines: 200
       structure: |
         import { z } from 'zod'
-        import { publicProcedure, router } from '../../trpc'
+        import { publicProcedure } from '../../trpc'
         
-        export const [procedureName]Router = router({
-          [procedureName]: publicProcedure
-            .input(z.object({ ... }))
-            .query(async ({ input }) => { ... })
-        })
+        export const [procedureName] = publicProcedure
+          .input(z.object({ ... }))
+          .query(async ({ input }) => { ... })
+      
+      critical: "Export procedure directly - NO router wrapper, NO 'Router' suffix"
         
     step_2_implement_logic:
       - implement_input_schema: "Exact Zod schema from plan"
@@ -919,22 +919,26 @@ specialized_procedure_implementation:
   step_3_create_domain_router:
     location: "TRPC_PROCEDURES_PATH/[domain]/[domain].router.ts"
     max_lines: 50
-    purpose: "Aggregate all procedure routers from domain"
+    purpose: "Aggregate all procedures from domain via direct references"
     structure: |
       import { router } from '../../trpc'
-      import { procedure1Router } from './procedure-1.procedure'
-      import { procedure2Router } from './procedure-2.procedure'
+      import { procedure1 } from './procedure-1.procedure'
+      import { procedure2 } from './procedure-2.procedure'
       
       export const [domain]Router = router({
-        ...procedure1Router,
-        ...procedure2Router,
+        procedure1,
+        procedure2,
       })
+    
+    critical: "Use direct references - NO spread operators"
     
   critical_patterns:
     - dates: "MUST use z.string().transform()"
     - drizzle: "MUST use helpers (eq, inArray, between)"
     - null_safety: "MUST use || 0 for divisions"
     - one_file: "Each procedure in separate file"
+    - direct_export: "Export procedure directly - NO router wrapper, NO 'Router' suffix"
+    - domain_router: "Use direct references - NO spread operators"
     - line_limit: "Max 200 lines per procedure file"
 ```
 ✓ Verify: All procedures in separate files, domain router created
@@ -1449,26 +1453,29 @@ example_standard_migration:
         procedure_1:
           path: "packages/api/src/procedures/budget/get-overview.procedure.ts"
           lines: 145
-          exports: "getOverviewRouter"
+          exports: "getOverview (direct export)"
           procedure_name: "budget.getOverview"
           input_validation:
             - "projectId: UUID ✓"
             - "dateRange: z.string().transform() ✓"
           output: "Overview object with totals"
           drizzle_patterns: "Uses eq(), inArray(), between() ✓"
+          pattern: "Direct export - no router wrapper ✓"
           
         procedure_2:
           path: "packages/api/src/procedures/budget/get-breakdown.procedure.ts"
           lines: 98
-          exports: "getBreakdownRouter"
+          exports: "getBreakdown (direct export)"
           procedure_name: "budget.getBreakdown"
           input: "projectId (UUID)"
           output: "Array of breakdown items"
+          pattern: "Direct export - no router wrapper ✓"
           
         domain_router:
           path: "packages/api/src/procedures/budget/budget.router.ts"
           lines: 12
-          imports: ["getOverviewRouter", "getBreakdownRouter"]
+          imports: ["getOverview", "getBreakdown"]
+          composition: "Direct references - no spread operators ✓"
           exports: "budgetRouter (aggregates both procedures)"
         
         validations:

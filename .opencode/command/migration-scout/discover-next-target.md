@@ -51,7 +51,7 @@ You are operating in **Phase 1** of the 6-phase autonomous migration workflow. Y
    - Task("Find all components NOT in /components/cells/ AND NOT in /components/ui/ that contain database queries, state management, or business logic", subagent_type="codebase-locator")
    - Task("Detect anti-pattern suffixes (-fixed, -v2, -worldclass, -new) and orphaned components with zero imports", subagent_type="component-pattern-analyzer")
    - Task("Identify direct Supabase usage with grep patterns: supabase.from, createClient", subagent_type="codebase-analyzer")
-   - Task("ultrathink: Scan packages/api for specialized procedure architecture violations: monolithic files >500 lines (CRITICAL), procedure files >200 lines (HIGH), router files >50 lines (HIGH), parallel implementations in supabase/functions/trpc/ (CRITICAL)", subagent_type="codebase-analyzer")
+   - Task("ultrathink: Scan packages/api for specialized procedure architecture violations: monolithic files >500 lines (CRITICAL), procedure files >200 lines (HIGH), router files >50 lines (HIGH), parallel implementations in supabase/functions/trpc/ (CRITICAL), router segment pattern (deprecated export pattern with Router suffix and spread operators - HIGH)", subagent_type="codebase-analyzer")
    
    Wait for all FOUR subagent reports, then synthesize results and categorize by severity (CRITICAL > HIGH > MEDIUM > LOW).
 
@@ -66,6 +66,7 @@ You are operating in **Phase 1** of the 6-phase autonomous migration workflow. Y
      - Legacy API routes (routes/, old-routes/): +25 points
      - Procedure violations (>200 lines) / Router complexity (>50 lines): +25 points
      - Type errors: +25 points
+     - Router segment pattern (deprecated export with Router suffix + spread operators): +20 points
      - Non-Cell business logic (logic outside /cells/): +20 points
      - Non-specialized procedures (API files wrong structure): +20 points
      - Edge function candidates (should be procedures): +20 points

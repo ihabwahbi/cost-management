@@ -219,18 +219,19 @@ data_layer_planning:
     domain_router_specification:
       purpose: "Aggregate individual procedures into domain router"
       file: "packages/api/src/procedures/[domain]/[domain].router.ts"
-      critical: "Domain router imports and merges all procedure routers from domain"
+      critical: "Domain router imports procedures directly (NO spread operators)"
+      pattern: "Direct references (NOT router segment merging)"
       structure: |
         import { router } from '../../trpc'
-        import { getProcedure1Router } from './get-procedure-1.procedure'
-        import { getProcedure2Router } from './get-procedure-2.procedure'
+        import { getProcedure1 } from './get-procedure-1.procedure'  // Direct import
+        import { getProcedure2 } from './get-procedure-2.procedure'
         
         export const domainRouter = router({
-          ...getProcedure1Router,
-          ...getProcedure2Router,
+          getProcedure1,    // Direct reference (no spread)
+          getProcedure2,    // Direct reference (no spread)
         })
       max_lines: 50
-      note: "Router should be simple - just imports and composition"
+      note: "Router should be simple - just imports and direct composition (no spread operators)"
           
     validation:
       - check: "All procedures from analysis covered"
@@ -674,15 +675,21 @@ migration_plan_template:
 
 ## tRPC Procedure Specification Format
 
-**CRITICAL**: API Procedure Specialization Architecture - One Procedure, One File
+**CRITICAL**: API Procedure Specialization Architecture - One Procedure, One File (Direct Export Pattern)
 
 ```yaml
 trpc_procedure_specification:
   architecture: "Specialized Procedures (one procedure per file)"
+  pattern: "Direct Procedure Export (NOT router segment export)"
   procedure_name: "router.procedureName"
   file_location: "packages/api/src/procedures/[domain]/[procedure-name].procedure.ts"
   max_lines: 200
   domain_router: "packages/api/src/procedures/[domain]/[domain].router.ts"
+  
+  export_pattern:
+    correct: "export const getProcedure = publicProcedure..."
+    incorrect: "export const getProcedureRouter = router({ getProcedure: ... })"
+    critical: "NO 'Router' suffix, NO router wrapper, direct export only"
   
   input_schema:
     framework: "Zod"
@@ -708,6 +715,8 @@ trpc_procedure_specification:
       })
       
   implementation_notes:
+    - "Export procedure directly (no router wrapper)"
+    - "Import only publicProcedure, NOT router"
     - "Use inArray() for filtering by arrays"
     - "Use between() for date ranges"
     - "Handle null values with || 0 patterns"
@@ -741,33 +750,31 @@ packages/api/src/procedures/
 **Individual Procedure File** (`get-overview.procedure.ts`):
 ```typescript
 import { z } from 'zod'
-import { publicProcedure, router } from '../../trpc'
+import { publicProcedure } from '../../trpc'  // CRITICAL: NO router import
 import { db } from '@/db'
 import { costBreakdown } from '@/db/schema'
 import { eq, between } from 'drizzle-orm'
 
-// CRITICAL: Each procedure exports its own router segment
-export const getOverviewRouter = router({
-  getOverview: publicProcedure
-    .input(z.object({
-      projectId: z.string().uuid(),
-      dateRange: z.object({
-        from: z.string().transform(val => new Date(val)),
-        to: z.string().transform(val => new Date(val))
-      })
-    }))
-    .query(async ({ input }) => {
-      const data = await db
-        .select()
-        .from(costBreakdown)
-        .where(eq(costBreakdown.projectId, input.projectId))
-      
-      return {
-        totalBudget: data.reduce((sum, item) => sum + Number(item.budgetCost), 0),
-        items: data
-      }
+// CRITICAL: Direct procedure export (no router wrapper, no "Router" suffix)
+export const getOverview = publicProcedure
+  .input(z.object({
+    projectId: z.string().uuid(),
+    dateRange: z.object({
+      from: z.string().transform(val => new Date(val)),
+      to: z.string().transform(val => new Date(val))
     })
-})
+  }))
+  .query(async ({ input }) => {
+    const data = await db
+      .select()
+      .from(costBreakdown)
+      .where(eq(costBreakdown.projectId, input.projectId))
+    
+    return {
+      totalBudget: data.reduce((sum, item) => sum + Number(item.budgetCost), 0),
+      items: data
+    }
+  })
 
 // Max 200 lines per file
 ```
@@ -775,13 +782,13 @@ export const getOverviewRouter = router({
 **Domain Router File** (`budget.router.ts`):
 ```typescript
 import { router } from '../../trpc'
-import { getOverviewRouter } from './get-overview.procedure'
-import { getBreakdownRouter } from './get-breakdown.procedure'
+import { getOverview } from './get-overview.procedure'  // Import procedure directly
+import { getBreakdown } from './get-breakdown.procedure'
 
-// CRITICAL: Domain router just aggregates procedure routers
+// CRITICAL: Direct references (NO spread operators)
 export const budgetRouter = router({
-  ...getOverviewRouter,
-  ...getBreakdownRouter,
+  getOverview,    // Direct reference
+  getBreakdown,   // Direct reference
 })
 
 // Router file should be simple - typically < 50 lines

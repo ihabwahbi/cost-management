@@ -276,7 +276,7 @@ import_chain_analysis:
 
 ### From Component to tRPC
 
-**CRITICAL**: ANDA uses GRANULAR procedure architecture - each procedure in separate .procedure.ts file
+**CRITICAL**: ANDA uses GRANULAR procedure architecture - each procedure in separate .procedure.ts file with DIRECT EXPORTS
 
 **Analysis Process**:
 ```typescript
@@ -287,19 +287,20 @@ const { data } = supabase
   .eq('project_id', projectId)
 
 // 2. Map to GRANULAR tRPC procedure specification
-// CRITICAL: Each procedure = own file, domain router aggregates
+// CRITICAL: Each procedure = own file with DIRECT export, domain router aggregates via direct references
 interface TRPCProcedureSpec {
   file: "procedures/[domain]/[specific-action].procedure.ts"  // e.g., get-cost-overview.procedure.ts
-  router_file: "procedures/[domain]/[domain].router.ts"        // Aggregates all domain procedures
+  router_file: "procedures/[domain]/[domain].router.ts"        // Aggregates procedures via direct references
   procedure_name: "domain.specificAction"
+  export_pattern: "export const [procedureName] = publicProcedure..."  // NO router wrapper, NO "Router" suffix
   input: { /* Zod schema - use z.string().transform() for dates */ }
   output: { /* Zod schema */ }
   
   // Example structure:
   // procedures/budget/
-  //   get-overview.procedure.ts    ← ONE procedure
-  //   get-breakdown.procedure.ts   ← ONE procedure
-  //   budget.router.ts             ← Merges above routers
+  //   get-overview.procedure.ts    ← exports: getBudgetOverview
+  //   get-breakdown.procedure.ts   ← exports: getBudgetBreakdown
+  //   budget.router.ts             ← Composes via direct refs: router({ getBudgetOverview, getBudgetBreakdown })
 }
 
 // 3. Document required Drizzle schemas
@@ -318,6 +319,46 @@ interface DrizzleSchemaSpec {
   ]
 }
 ```
+
+### tRPC Procedure Export Pattern (CRITICAL)
+
+**CURRENT PATTERN - Direct Procedure Export (ALL 17 procedures use this):**
+```typescript
+// ✅ CORRECT - Procedure File
+// packages/api/src/procedures/dashboard/get-kpi-metrics.procedure.ts
+import { z } from 'zod'
+import { publicProcedure } from '../../trpc'  // NO router import
+
+export const getKPIMetrics = publicProcedure  // Direct export, NO wrapper, NO "Router" suffix
+  .input(z.object({ ... }))
+  .query(async ({ input }) => { ... })
+
+// ✅ CORRECT - Domain Router
+// packages/api/src/procedures/dashboard/dashboard.router.ts
+import { router } from '../../trpc'
+import { getKPIMetrics } from './get-kpi-metrics.procedure'
+import { getPLMetrics } from './get-pl-metrics.procedure'
+
+export const dashboardRouter = router({
+  getKPIMetrics,    // Direct reference, NO spread operator
+  getPLMetrics,
+})
+```
+
+**DEPRECATED PATTERN - Router Segment Export (NEVER USE):**
+```typescript
+// ❌ WRONG - Router wrapper (deprecated)
+export const getKPIMetricsRouter = router({  // "Router" suffix indicates wrong pattern
+  getKPIMetrics: publicProcedure...
+})
+
+// ❌ WRONG - Spread operators (deprecated)
+export const dashboardRouter = router({
+  ...getKPIMetricsRouter,  // Spread operator indicates wrong pattern
+})
+```
+
+**Reference:** See `docs/2025-10-05_trpc-procedure-pattern-migration-reference.md` for complete migration guide.
 
 ### Critical Patterns from trpc-debugging-guide.md
 
@@ -526,6 +567,14 @@ anti_patterns:
   AP5_missing_contract:
     detect: "Component with <3 extractable behavioral assertions"
     flag: "Insufficient requirements - violates M-CELL-4 (min 3 assertions)"
+    
+  AP6_deprecated_trpc_pattern:
+    detect: "Analysis specifies router wrapper exports or spread operators in tRPC procedures"
+    flag: "Using deprecated pattern - MUST use direct export pattern (see 2025-10-05_trpc-procedure-pattern-migration-reference.md)"
+    markers:
+      - "Export name has 'Router' suffix"
+      - "Specification includes router({ procedureName: ... })"
+      - "Domain router uses spread operators (...)"
 ```
 
 ## Analysis Report Structure
@@ -597,7 +646,8 @@ analysis_report:
           
     trpc_procedures:
       - file: "packages/api/src/procedures/budget/get-overview.procedure.ts"
-        name: "budget.getOverview"
+        name: "budget.getBudgetOverview"
+        export_pattern: "export const getBudgetOverview = publicProcedure..."
         input_schema: |
           z.object({
             projectId: z.string().uuid(),
@@ -615,9 +665,11 @@ analysis_report:
         implementation_notes:
           - "Use between() for date range filtering"
           - "Aggregate with SUM() and handle null values"
+          - "Export procedure directly (NO router wrapper)"
           
       - file: "packages/api/src/procedures/budget/get-breakdown.procedure.ts"
-        name: "budget.getBreakdown"
+        name: "budget.getBudgetBreakdown"
+        export_pattern: "export const getBudgetBreakdown = publicProcedure..."
         input_schema: |
           z.object({
             projectId: z.string().uuid()
@@ -630,10 +682,12 @@ analysis_report:
           }))
           
       - file: "packages/api/src/procedures/budget/budget.router.ts"
-        purpose: "Aggregates all budget procedures into a single router."
+        purpose: "Aggregates all budget procedures via direct composition"
+        export_pattern: "export const budgetRouter = router({ getBudgetOverview, getBudgetBreakdown })"
         implementation_notes:
-          - "Import all *.procedure.ts files from this domain."
-          - "Merge routers using tRPC's mergeRouters() utility."
+          - "Import procedures directly from *.procedure.ts files"
+          - "Use direct references in router (NO spread operators)"
+          - "Example: import { getBudgetOverview } from './get-overview.procedure'"
           
     cell_structure:
       location: "components/cells/budget-overview/"
@@ -878,16 +932,27 @@ trpc_mapping:
     convention: "`packages/api/src/procedures/[domain]/[procedure-name].procedure.ts`"
     output: "Exact file path for the new procedure"
     
-  4_design_output_schema:
+  4_specify_export_pattern:
+    action: "Define direct export pattern (CRITICAL)"
+    pattern: "export const [procedureName] = publicProcedure..."
+    critical: "NO router wrapper, NO 'Router' suffix in export name"
+    validation: "Export name must match procedure purpose exactly"
+    
+  5_design_output_schema:
     action: "Define expected return type with Zod"
     output: "Complete output schema specification"
     
-  5_specify_implementation:
+  6_specify_implementation:
     action: "Document Drizzle query pattern needed"
     reference: "Use patterns from trpc-debugging-guide.md"
     output: "Implementation notes with specific helpers (eq, inArray, between)"
+    
+  7_define_domain_router:
+    action: "Specify how domain router composes procedures"
+    pattern: "router({ procedure1, procedure2, ... })"
+    critical: "Direct references, NO spread operators"
 ```
-✓ Verify: Every query mapped to tRPC procedure spec
+✓ Verify: Every query mapped to tRPC procedure spec with correct export pattern
 
 **3.3 Extract Behavioral Assertions**
 
@@ -1065,6 +1130,8 @@ Ready to proceed to Phase 3? (Y/N)
 - When complex state management identified → Consider if Cell split is better approach
 - When no behavioral assertions extractable → Warning flag - component may lack clear requirements
 - When analysis reveals anti-patterns → Document consolidation opportunities for future migrations
+- When specifying tRPC procedures → ALWAYS use direct export pattern (export const [name] = publicProcedure...), NEVER router wrapper pattern
+- When defining domain routers → ALWAYS use direct references in composition, NEVER spread operators
 
 ## 🔧 Environment-Specific Rules
 
@@ -1097,9 +1164,10 @@ Loading component and launching parallel analysis...
 
 **Database Analysis Complete**:
 - Tables: cost_breakdown, po_mappings
-- 2 tRPC procedures required:
-  - budget.getOverview (with date range)
-  - budget.getBreakdown (simple fetch)
+- 2 tRPC procedures required (direct export pattern):
+  - budget.getBudgetOverview → export const getBudgetOverview = publicProcedure...
+  - budget.getBudgetBreakdown → export const getBudgetBreakdown = publicProcedure...
+- Domain router: router({ getBudgetOverview, getBudgetBreakdown })
 - Drizzle schemas: 2 new schemas needed
 
 **Integration Analysis Complete**:
@@ -1154,7 +1222,13 @@ Launching comprehensive parallel analysis with enhanced delegation...
 
 **Enhanced Database Analysis**:
 - Tables: cost_breakdown, po_mappings, po_line_items, budget_forecasts, promise_dates
-- 5 tRPC procedures required (complex)
+- 5 tRPC procedures required (direct export pattern):
+  - plcommand.getTimeline → export const getTimeline = publicProcedure...
+  - plcommand.getBreakdown → export const getBreakdown = publicProcedure...
+  - plcommand.getForecasts → export const getForecasts = publicProcedure...
+  - plcommand.getPromiseDates → export const getPromiseDates = publicProcedure...
+  - plcommand.getCalculations → export const getCalculations = publicProcedure...
+- Domain router: router({ getTimeline, getBreakdown, getForecasts, getPromiseDates, getCalculations })
 - Data flow traced through 3 transformation layers
 - Schema alignment verified - 1 mismatch detected (promise_dates.forecast_date missing in code model)
 

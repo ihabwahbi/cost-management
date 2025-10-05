@@ -134,7 +134,7 @@ You are operating in **Phase 3** of the 6-phase autonomous migration workflow. P
    
    **2.2 tRPC Procedure Specifications**
    
-   **CRITICAL**: API Procedure Specialization Architecture - One Procedure, One File (Max 200 Lines)
+   **CRITICAL**: API Procedure Specialization Architecture - One Procedure, One File (Direct Export Pattern)
    
    For each procedure from analysis:
    ```typescript
@@ -143,7 +143,20 @@ You are operating in **Phase 3** of the 6-phase autonomous migration workflow. P
    // Individual Procedure File (MANDATORY: One procedure per file)
    file: "packages/api/src/procedures/[domain]/[procedure-name].procedure.ts"
    max_lines: 200
-   exports: "[procedureName]Router (router segment)"
+   export_pattern: "Direct procedure export (NO router wrapper, NO 'Router' suffix)"
+   exports: "[procedureName] (publicProcedure directly)"
+   
+   // CRITICAL: Direct export pattern (NEW - CORRECT)
+   correct_pattern: |
+     export const getProcedure = publicProcedure
+       .input(...)
+       .query(...)
+   
+   // WRONG: Router segment export (OLD - DEPRECATED)
+   incorrect_pattern: |
+     export const getProcedureRouter = router({
+       getProcedure: publicProcedure...
+     })
    
    input_schema: |
      .input(z.object({
@@ -165,6 +178,8 @@ You are operating in **Phase 3** of the 6-phase autonomous migration workflow. P
      })
    
    implementation_notes:
+     - "Export procedure directly (no router wrapper)"
+     - "Import publicProcedure only, NOT router"
      - "Import { eq, inArray, between } from 'drizzle-orm'"
      - "Use between(table.date, fromDate, toDate) for date ranges"
      - "Use leftJoin() for po_mappings relationship"
@@ -178,20 +193,21 @@ You are operating in **Phase 3** of the 6-phase autonomous migration workflow. P
    
    expected_response: "200 OK with data matching output schema"
    
-   // Domain Router File (Aggregation)
+   // Domain Router File (Aggregation with Direct References)
    domain_router_file: "packages/api/src/procedures/[domain]/[domain].router.ts"
    max_lines: 50
-   purpose: "Aggregate all procedure routers from this domain"
+   purpose: "Aggregate all procedures from this domain using direct references"
+   pattern: "Direct composition (NO spread operators)"
    structure: |
      import { router } from '../../trpc'
-     import { procedure1Router } from './procedure-1.procedure'
-     import { procedure2Router } from './procedure-2.procedure'
+     import { procedure1 } from './procedure-1.procedure'  // Direct import
+     import { procedure2 } from './procedure-2.procedure'
      
      export const [domain]Router = router({
-       ...procedure1Router,
-       ...procedure2Router,
+       procedure1,    // Direct reference (no spread)
+       procedure2,    // Direct reference (no spread)
      })
-   note: "Simple aggregation - typically < 50 lines"
+   note: "Simple aggregation - direct references only - typically < 50 lines"
    ```
    
    **CRITICAL**: Include complete curl test commands with real UUIDs for Phase 4 testing
@@ -311,15 +327,21 @@ You are operating in **Phase 3** of the 6-phase autonomous migration workflow. P
      
    step_2:
      phase: "Data Layer"
-     action: "Create specialized tRPC procedures (one per file)"
-     architecture: "API Procedure Specialization - individual files + domain router"
+     action: "Create specialized tRPC procedures (one per file, direct exports)"
+     architecture: "API Procedure Specialization - Direct Export Pattern"
+     pattern: "Each procedure exports directly (NO router wrapper, NO spread operators)"
      files:
        - [list individual procedure files: procedures/[domain]/[name].procedure.ts]
        - [domain router file: procedures/[domain]/[domain].router.ts]
      procedures: [list all procedure names]
+     export_requirements:
+       - "Each procedure: export const [name] = publicProcedure..."
+       - "NO 'Router' suffix in export names"
+       - "Import only publicProcedure (NOT router)"
+       - "Domain router: direct references (NO spread operators)"
      line_limits:
        - "Each procedure file: max 200 lines"
-       - "Domain router: max 50 lines"
+       - "Domain router: max 50 lines (just imports + direct composition)"
      validation: "Test with curl commands (provided above)"
      duration: "1-2 hours"
      critical: "MUST pass curl tests before proceeding"
@@ -369,22 +391,25 @@ You are operating in **Phase 3** of the 6-phase autonomous migration workflow. P
    
    **4.3 Phased Implementation (if 3+ queries)**
    
-   Modify Step 2 and Step 5 to be incremental with specialized procedures:
+   Modify Step 2 and Step 5 to be incremental with specialized procedures (direct export pattern):
    ```yaml
    step_2_phased:
-     action: "Create specialized tRPC procedure files ONE AT A TIME"
-     architecture: "One procedure per file (max 200 lines each)"
+     action: "Create specialized tRPC procedure files ONE AT A TIME (direct exports)"
+     architecture: "One procedure per file (max 200 lines each) - Direct Export Pattern"
+     pattern: "Each procedure exports directly (NO router wrapper)"
      sequence:
-       - "Create procedure-1.procedure.ts (max 200 lines), test with curl"
-       - "Update domain router to import procedure 1"
+       - "Create procedure-1.procedure.ts (max 200 lines, direct export), test with curl"
+       - "Update domain router to import procedure 1 (direct reference, no spread)"
        - "Deploy edge function"
        - "Add query to component, verify works"
        - "Git commit checkpoint: 'Phase A: [query name]'"
-       - "Create procedure-2.procedure.ts (max 200 lines), test with curl"
-       - "Update domain router to import procedure 2"
+       - "Create procedure-2.procedure.ts (max 200 lines, direct export), test with curl"
+       - "Update domain router to import procedure 2 (direct reference, no spread)"
        - "Deploy, test, commit checkpoint"
        - "Continue for all procedures"
-     final_state: "All procedure files created + domain router aggregates all"
+     export_pattern: "export const [name] = publicProcedure... (direct)"
+     router_pattern: "router({ procedure1, procedure2 }) (direct refs, no spread)"
+     final_state: "All procedure files created + domain router aggregates with direct references"
    ```
 
 **5. Design Rollback Strategy**

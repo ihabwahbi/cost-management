@@ -33,6 +33,9 @@ Cell development checklist reference:
 tRPC debugging patterns:
 @docs/trpc-debugging-guide.md
 
+tRPC procedure pattern reference (CRITICAL):
+@docs/2025-10-05_trpc-procedure-pattern-migration-reference.md
+
 ## Instructions
 
 **Mission**: Perform comprehensive deep analysis of the selected migration target to create a complete technical specification for Phase 3 planning.
@@ -123,6 +126,7 @@ You are operating in **Phase 2** of the 6-phase autonomous migration workflow. M
    - ⚠️ **Date serialization**: z.date() instead of z.string().transform()
    - ⚠️ **NaN generation**: Division without zero checks, operations on undefined
    - ⚠️ **SQL syntax**: Raw SQL instead of Drizzle helpers (eq, inArray, between)
+   - ⚠️ **Wrong tRPC pattern**: Router wrapper exports or spread operators (use direct exports only)
    
    **Architectural Anti-Patterns** (ANDA Section 4.4):
    - 🚫 **AP1 - Misclassification**: Component has business logic but not in /cells/ (M-CELL-1)
@@ -171,19 +175,20 @@ You are operating in **Phase 2** of the 6-phase autonomous migration workflow. M
 
 **10. Map to tRPC Specifications**
    
-   **CRITICAL**: ANDA uses GRANULAR procedure architecture - each procedure in separate .procedure.ts file
+   **CRITICAL**: ANDA uses GRANULAR procedure architecture - each procedure in separate .procedure.ts file with DIRECT EXPORTS (no router wrappers)
    
    For each database query, create complete tRPC procedure spec:
    ```typescript
-   // Individual Procedure File
+   // Individual Procedure File (Direct Export Pattern)
    file: "packages/api/src/procedures/[domain]/[procedure-name].procedure.ts"
    procedure_name: "domain.action"
    max_lines: 200
-   exports: "[procedureName]Router"
+   export_pattern: "export const [procedureName] = publicProcedure..."  // NO "Router" suffix, NO wrapper
    
    input_schema: "Complete Zod schema with transforms"
    output_schema: "Complete Zod schema with types"
    implementation_notes: [
+     "Export procedure directly (NO router wrapper)",
      "Use between() for date ranges",
      "Use inArray() for ID lists",
      "Use leftJoin() for relationships",
@@ -191,11 +196,12 @@ You are operating in **Phase 2** of the 6-phase autonomous migration workflow. M
    ]
    drizzle_schemas: "List all required schema files"
    
-   // Domain Router (Aggregation)
+   // Domain Router (Direct Composition)
    domain_router_file: "packages/api/src/procedures/[domain]/[domain].router.ts"
-   purpose: "Aggregates all [domain] procedure routers"
+   purpose: "Aggregates all [domain] procedures via direct references"
    max_lines: 50
-   imports: "[list all procedure files from domain]"
+   composition_pattern: "router({ procedure1, procedure2, ... })"  // Direct refs, NO spread operators
+   imports: "import { procedureName } from './procedure-file.procedure'"
    ```
 
 **11. Generate Comprehensive Analysis Report**
@@ -205,13 +211,17 @@ You are operating in **Phase 2** of the 6-phase autonomous migration workflow. M
    **Required sections**:
    1. Metadata (timestamp, target, discovery reference)
    2. Current Implementation (files, queries, state, dependencies, business logic)
-   3. Required Changes (Drizzle schemas, tRPC procedures, Cell structure)
+   3. Required Changes (Drizzle schemas, tRPC procedures with DIRECT export pattern, Cell structure)
    4. Integration Analysis (importers, shared state, breaking changes)
    5. Migration Constraints (replacement_mode: complete, deletion_required, atomic_migration: true)
    6. Pitfall Warnings (detected issues with fixes)
    7. Recommendations (strategy, phasing, duration)
    8. Ledger Entry Specification (artifacts_created, artifacts_replaced, schema_changes)
    9. Next Steps (Phase 3 handoff)
+   
+   **CRITICAL for tRPC specifications**: All procedure specs MUST include:
+   - `export_pattern: "export const [procedureName] = publicProcedure..."`
+   - Domain router pattern: `router({ procedure1, procedure2 })`  (direct refs, no spread)
 
 ### Success Criteria
 
@@ -220,7 +230,9 @@ You are operating in **Phase 2** of the 6-phase autonomous migration workflow. M
 - [ ] Minimum 3 behavioral assertions extracted
 - [ ] All pitfalls AND anti-patterns detected with file:line references
 - [ ] Architectural mandates validated (M-CELL-1 through M-CELL-4)
-- [ ] Complete tRPC procedure specifications ready (granular one-per-file)
+- [ ] Complete tRPC procedure specifications ready (granular one-per-file with DIRECT export pattern)
+- [ ] All tRPC procedures use direct exports (NO router wrappers, NO "Router" suffix)
+- [ ] Domain router uses direct composition (NO spread operators)
 - [ ] Drizzle schema requirements documented
 - [ ] Cell structure fully specified
 - [ ] Migration complexity assessed with time estimate
@@ -288,4 +300,4 @@ Ready to proceed to Phase 3: Migration Planning? (Y/N)
 
 ### Remember
 
-You are the **comprehensive intelligence layer** that transforms a selected target into a complete technical specification. Every query must map to a tRPC procedure. Every behavior must become an assertion. Every pitfall must be flagged. Your analysis determines whether Phase 4 succeeds or requires rework. Completeness over speed - missing a dependency costs more than thorough analysis upfront.
+You are the **comprehensive intelligence layer** that transforms a selected target into a complete technical specification. Every query must map to a tRPC procedure using the **direct export pattern** (NO router wrappers, NO spread operators). Every behavior must become an assertion. Every pitfall must be flagged. Your analysis determines whether Phase 4 succeeds or requires rework. Completeness over speed - missing a dependency costs more than thorough analysis upfront.

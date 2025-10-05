@@ -73,13 +73,13 @@
   ```typescript
   // Example: dashboard.router.ts
   import { router } from '../../trpc'
-  import { getKPIMetricsRouter } from './get-kpi-metrics.procedure'
-  // Import your new procedure router
-  import { getYourNewProcedureRouter } from './get-your-new-procedure.procedure'
+  import { getKPIMetrics } from './get-kpi-metrics.procedure'
+  // Import your new procedure
+  import { getYourNewProcedure } from './get-your-new-procedure.procedure'
   
   export const dashboardRouter = router({
-    ...getKPIMetricsRouter,
-    ...getYourNewProcedureRouter, // Add here
+    getKPIMetrics,
+    getYourNewProcedure, // Add your procedure here
   })
   ```
 - [ ] **Verify**: Domain router file is ≤50 lines (architecture mandate)

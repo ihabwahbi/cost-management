@@ -395,6 +395,55 @@ procedure_architecture_criteria:
     threshold: "MONOLITHIC_FILE_THRESHOLD (500)"
     severity: "CRITICAL - architectural emergency"
     flag: "Files violating specialized architecture"
+    
+  # tRPC Procedure Export Pattern Validation (from migration reference doc)
+  pattern_compliance:
+    context: "Direct export pattern is current standard (100% of existing procedures)"
+    deprecated_pattern: "Router segment exports with spread operators"
+    
+    check_1_direct_exports:
+      name: "No router segment exports in procedures"
+      check: "Procedure files export procedures directly, not wrapped in router()"
+      scan: "grep 'export const.*Router = router({' packages/api/src/procedures/**/*.procedure.ts"
+      expected: "No matches"
+      violation: "Using deprecated router segment export pattern"
+      severity: "HIGH"
+      command: "find packages/api/src/procedures -name '*.procedure.ts' -exec grep -l 'export const.*Router = router({' {} \\;"
+      
+    check_2_export_naming:
+      name: "Export names match procedure names (no Router suffix)"
+      check: "Export name = procedure name exactly"
+      pattern: "export const getProcedure = publicProcedure"
+      anti_pattern: "export const getProcedureRouter = publicProcedure"
+      violation: "Export name has Router suffix or doesn't match file"
+      severity: "HIGH"
+      note: "File get-kpi-metrics.procedure.ts should export getKPIMetrics, NOT getKPIMetricsRouter"
+      
+    check_3_domain_router_composition:
+      name: "Domain routers use direct composition (no spread operators)"
+      check: "Domain routers reference procedures directly"
+      scan: "grep '\\.\\.\\.\\|spread' packages/api/src/procedures/**/*.router.ts"
+      expected: "No matches"
+      violation: "Using deprecated spread operator composition"
+      severity: "HIGH"
+      command: "find packages/api/src/procedures -name '*.router.ts' -exec grep -l '\\.\\.\\.' {} \\;"
+      correct_pattern: "router({ getProcedure1, getProcedure2 })"
+      deprecated_pattern: "router({ ...getProcedure1Router, ...getProcedure2Router })"
+      
+    check_4_import_hygiene:
+      name: "Procedure files don't import router unnecessarily"
+      check: "Only publicProcedure imported in procedure files"
+      scan: "grep \"import.*router.*from.*trpc\" packages/api/src/procedures/**/*.procedure.ts"
+      expected: "No matches (router only in domain routers)"
+      violation: "Procedure file imports router unnecessarily"
+      severity: "MEDIUM"
+      note: "Only domain routers (*.router.ts) should import router function"
+      
+    impact:
+      explicitness: "Direct exports make export name = procedure name (ANDA principle)"
+      navigability: "Simpler for agents - no wrapper unwrapping needed"
+      consistency: "100% of existing procedures follow this pattern"
+      code_savings: "5-6 lines per procedure, 111 lines total project"
 ```
 
 ## Architecture Health Scoring
@@ -450,6 +499,9 @@ anti_pattern_categories:
     - procedure_violations: "Files >200 lines"
     - router_complexity: "Routers >50 lines or with business logic"
     - missing_manifests: "Cells without manifest.json"
+    - deprecated_router_segment_exports: "Procedure files using router segment pattern"
+    - deprecated_spread_operators: "Domain routers using spread operator composition"
+    - incorrect_export_naming: "Export names with Router suffix or mismatches"
     impact: "Address before next migration"
     debt_points: 3
     
@@ -457,6 +509,7 @@ anti_pattern_categories:
     - missing_types: "`any` usage"
     - large_non_cell_components: ">300 lines outside Cell structure"
     - incomplete_manifests: "<3 behavioral assertions"
+    - unnecessary_router_imports: "Procedure files importing router function"
     impact: "Address within 3 migrations"
     debt_points: 1
     
@@ -1832,6 +1885,9 @@ workflow_status:
 - When specialized architecture violated → Document specifically which mandate and why it matters
 - When type safety <90% → Prioritize type coverage improvements in recommendations
 - When degrading trends detected → Use ultrathink to analyze root causes and systemic solutions
+- When deprecated tRPC router segment pattern detected → Flag as HIGH severity, recommend immediate migration to direct export pattern
+- When spread operators found in domain routers → Flag as HIGH severity violation of current architecture standard
+- When procedure export names have "Router" suffix → Flag as naming inconsistency, recommend alignment with direct export pattern
 
 ## 🔧 Environment-Specific Rules
 

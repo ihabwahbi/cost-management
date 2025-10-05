@@ -1529,18 +1529,19 @@ const { data } = trpc.query.useQuery({
     - NEVER: index.ts, main.ts, handler.ts, api.ts
   
   Domain Router Pattern:
-    - Simple aggregation only: import + mergeRouters()
+    - Simple aggregation only: import + router()
     - NO business logic in routers
     - Example:
       ```typescript
       // budget.router.ts (≤50 lines)
-      import { getOverviewRouter } from './get-overview.procedure'
-      import { getBreakdownRouter } from './get-breakdown.procedure'
+      import { router } from '../../trpc'
+      import { getOverview } from './get-overview.procedure'
+      import { getBreakdown } from './get-breakdown.procedure'
       
-      export const budgetRouter = mergeRouters(
-        getOverviewRouter,
-        getBreakdownRouter
-      )
+      export const budgetRouter = router({
+        getOverview,
+        getBreakdown
+      })
       ```
 
 ✗ DON'T - Anti-Patterns to Eliminate:

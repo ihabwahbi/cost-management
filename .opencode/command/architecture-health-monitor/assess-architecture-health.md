@@ -254,10 +254,82 @@ Current ledger for historical metrics:
    router_compliance = (compliant_routers / total_routers) * 100
    specialized_architecture_score = (procedure_compliance + router_compliance) / 2
    
-   Penalties:
-   - Each monolithic file (>500 lines): -20 points
-   - Each parallel implementation: -30 points
-   ```
+    Penalties:
+    - Each monolithic file (>500 lines): -20 points
+    - Each parallel implementation: -30 points
+    ```
+    
+    **3.4 tRPC Procedure Export Pattern Validation**
+    
+    [REQUEST ENHANCEMENT: "Validating tRPC procedure export patterns. Consider 'ultrathink' if pattern violations detected for comprehensive migration strategy."]
+    
+    **CONTEXT**: All 17 existing procedures use direct export pattern. Router segment pattern is deprecated (see docs/2025-10-05_trpc-procedure-pattern-migration-reference.md).
+    
+    **Check 1: No Router Segment Exports**
+    ```bash
+    echo "Checking for deprecated router segment exports in procedure files..."
+    ROUTER_SEGMENT_EXPORTS=$(find packages/api/src/procedures -name '*.procedure.ts' -exec grep -l 'export const.*Router = router({' {} \; 2>/dev/null | wc -l)
+    
+    if [ "$ROUTER_SEGMENT_EXPORTS" -gt 0 ]; then
+      echo "🔴 HIGH SEVERITY: $ROUTER_SEGMENT_EXPORTS procedure files using deprecated router segment pattern"
+      find packages/api/src/procedures -name '*.procedure.ts' -exec grep -l 'export const.*Router = router({' {} \; 2>/dev/null
+    else
+      echo "✓ All procedure files use direct export pattern"
+    fi
+    ```
+    
+    **Check 2: No Spread Operators in Domain Routers**
+    ```bash
+    echo "Checking for deprecated spread operators in domain routers..."
+    SPREAD_OPERATORS=$(find packages/api/src/procedures -name '*.router.ts' -exec grep -l '\.\.\.' {} \; 2>/dev/null | wc -l)
+    
+    if [ "$SPREAD_OPERATORS" -gt 0 ]; then
+      echo "🔴 HIGH SEVERITY: $SPREAD_OPERATORS domain routers using deprecated spread operator pattern"
+      find packages/api/src/procedures -name '*.router.ts' -exec grep -l '\.\.\.' {} \; 2>/dev/null
+    else
+      echo "✓ All domain routers use direct composition"
+    fi
+    ```
+    
+    **Check 3: Export Name Consistency**
+    ```bash
+    echo "Checking for Router suffix in export names (should not exist)..."
+    ROUTER_SUFFIX_EXPORTS=$(find packages/api/src/procedures -name '*.procedure.ts' -exec grep -l 'export const.*Router\s*=' {} \; 2>/dev/null | wc -l)
+    
+    if [ "$ROUTER_SUFFIX_EXPORTS" -gt 0 ]; then
+      echo "🔴 HIGH SEVERITY: $ROUTER_SUFFIX_EXPORTS procedure files have Router suffix in export names"
+      find packages/api/src/procedures -name '*.procedure.ts' -exec grep -H 'export const.*Router\s*=' {} \; 2>/dev/null
+    else
+      echo "✓ All procedure exports follow naming convention (no Router suffix)"
+    fi
+    ```
+    
+    **Check 4: Import Hygiene (Procedures Don't Import Router)**
+    ```bash
+    echo "Checking that procedure files don't import router unnecessarily..."
+    UNNECESSARY_IMPORTS=$(find packages/api/src/procedures -name '*.procedure.ts' -exec grep -l "import.*router.*from.*trpc" {} \; 2>/dev/null | wc -l)
+    
+    if [ "$UNNECESSARY_IMPORTS" -gt 0 ]; then
+      echo "⚠️ MEDIUM SEVERITY: $UNNECESSARY_IMPORTS procedure files import router unnecessarily"
+      find packages/api/src/procedures -name '*.procedure.ts' -exec grep -l "import.*router.*from.*trpc" {} \; 2>/dev/null
+    else
+      echo "✓ Procedure files only import publicProcedure (router only in domain routers)"
+    fi
+    ```
+    
+    **Calculate Pattern Compliance Score:**
+    ```
+    pattern_violations_high = router_segment_exports + spread_operators + router_suffix_exports
+    pattern_violations_medium = unnecessary_imports
+    
+    pattern_compliance_percentage = ((total_procedures - pattern_violations_high) / total_procedures) * 100
+    
+    Status:
+    - 100%: Perfect compliance with direct export pattern
+    - <100%: Pattern violations detected - migration to direct export pattern needed
+    ```
+    
+    ✓ Verify: tRPC procedure export pattern compliance assessed
 
 **4. Anti-Pattern Detection**
    
@@ -290,14 +362,18 @@ Current ledger for historical metrics:
        - parallel_implementations: [count from Step 4.1]
        - direct_db_calls: [count from Step 2]
        
-     high:
-       - procedure_violations: [count from Step 3]
-       - router_violations: [count from Step 3]
-       - missing_manifests: [count from Step 2]
-       
-     medium:
-       - large_non_cell_components: [count from Step 4.2]
-       - insufficient_assertions: [count from Step 2]
+      high:
+        - procedure_violations: [count from Step 3]
+        - router_violations: [count from Step 3]
+        - missing_manifests: [count from Step 2]
+        - deprecated_router_segment_exports: [count from Step 3.4]
+        - deprecated_spread_operators: [count from Step 3.4]
+        - incorrect_export_naming: [count from Step 3.4]
+        
+      medium:
+        - large_non_cell_components: [count from Step 4.2]
+        - insufficient_assertions: [count from Step 2]
+        - unnecessary_router_imports: [count from Step 3.4]
        
      low:
        - feature_flags: [if detected]
@@ -497,15 +573,43 @@ Current ledger for historical metrics:
      effort: "Estimated hours"
      benefit: "Expected improvement"
    
-   examples:
-     monolithic_files:
-       priority: "URGENT"
-       recommendation: "Split using specialized procedure pattern"
-       
-     missing_manifests:
-       priority: "MEDIUM"
-       recommendation: "Create manifests with ≥3 behavioral assertions"
-   ```
+    examples:
+      monolithic_files:
+        priority: "URGENT"
+        recommendation: "Split using specialized procedure pattern"
+        
+      missing_manifests:
+        priority: "MEDIUM"
+        recommendation: "Create manifests with ≥3 behavioral assertions"
+        
+      deprecated_router_segment_exports:
+        priority: "HIGH"
+        recommendation: "Migrate to direct export pattern (see docs/2025-10-05_trpc-procedure-pattern-migration-reference.md)"
+        impact: "Violates current architecture standard, adds unnecessary complexity"
+        effort: "0.5 hours per file (straightforward refactor)"
+        benefit: "Aligns with 100% of existing procedures, improves agent navigability"
+        
+      deprecated_spread_operators:
+        priority: "HIGH"
+        recommendation: "Convert domain routers to direct composition pattern"
+        impact: "Using deprecated pattern, inconsistent with codebase"
+        effort: "0.25 hours per router (simple removal of spread operators)"
+        benefit: "Simplifies router composition, maintains consistency"
+        
+      incorrect_export_naming:
+        priority: "HIGH"
+        recommendation: "Remove Router suffix from export names to match direct export pattern"
+        impact: "Export name doesn't match procedure name (violates explicitness)"
+        effort: "0.25 hours per file (rename export and update imports)"
+        benefit: "Export name = procedure name (ANDA explicitness principle)"
+        
+      unnecessary_router_imports:
+        priority: "MEDIUM"
+        recommendation: "Remove router import from procedure files (only needed in domain routers)"
+        impact: "Importing unused functionality, adds confusion"
+        effort: "0.1 hours per file (remove one import line)"
+        benefit: "Cleaner imports, clearer separation of concerns"
+    ```
    
    **8.2 Generate Recommendations for Degrading Trends**
    

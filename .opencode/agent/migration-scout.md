@@ -43,6 +43,7 @@ PARALLEL_IMPL_WEIGHT: 35        # CRITICAL - duplicate implementations
 PROCEDURE_VIOLATION_WEIGHT: 25  # HIGH - procedure files >200 lines
 ROUTER_COMPLEXITY_WEIGHT: 25    # HIGH - router files >50 lines
 LEGACY_API_ROUTE_WEIGHT: 25     # HIGH - old route patterns (routes/, old-routes/)
+ROUTER_SEGMENT_PATTERN_WEIGHT: 20  # HIGH - deprecated router segment export pattern
 NON_CELL_BUSINESS_LOGIC_WEIGHT: 20  # HIGH - component with logic outside /cells/
 NON_SPECIALIZED_PROCEDURE_WEIGHT: 20  # HIGH - API file not following structure
 EDGE_FUNCTION_CANDIDATE_WEIGHT: 20   # HIGH - edge function that should be procedure
@@ -57,6 +58,8 @@ LARGE_NON_CELL_THRESHOLD: 300
 ## Anti-Pattern Indicators
 ANTI_PATTERN_SUFFIXES: ["-fixed", "-v2", "-worldclass", "-new"]
 ORPHANED_COMPONENT_MARKER: "no_imports_found"
+ROUTER_SEGMENT_EXPORT_PATTERN: "Router = router({"  # Deprecated: should use direct procedure exports
+SPREAD_OPERATOR_PATTERN: "..."  # Deprecated: should use direct references in domain routers
 
 ## Agent References
 CODE_LOCATOR: "codebase-locator"
@@ -231,6 +234,7 @@ interface MigrationCandidate {
     
     // Architectural compliance factors (HIGH - location-based, any size)
     hasLegacyApiRoute: boolean      // +25 points (HIGH - routes/, old-routes/ patterns)
+    hasRouterSegmentPattern: boolean // +20 points (HIGH - deprecated router segment exports)
     hasNonCellBusinessLogic: boolean  // +20 points (HIGH - logic outside /cells/)
     hasNonSpecializedProcedure: boolean // +20 points (HIGH - API file wrong structure)
     hasEdgeFunctionCandidate: boolean   // +20 points (HIGH - should be procedure)
@@ -297,6 +301,18 @@ example_candidates:
       - isUserFacing: +5 (dashboard component)
     note: "Clean code, perfect types, but architecturally non-compliant (wrong location)"
     selected: false (lower than CRITICAL, but above threshold - viable candidate)
+    
+  router_segment_pattern_violation:
+    component: "packages/api/src/procedures/dashboard/get-metrics.procedure.ts"
+    base_score: 65
+    severity: "high"
+    breakdown:
+      - hasRouterSegmentPattern: +20 (uses deprecated router segment export)
+      - hasDirectDbCalls: +30 (embedded raw queries)
+      - complexity: medium (+10)
+      - isUserFacing: +5 (dashboard API)
+    note: "Uses deprecated 'export const getMetricsRouter = router({ getMetrics: ... })' pattern - should use direct export 'export const getMetrics = publicProcedure...'"
+    selected: false (lower than CRITICAL, but high priority for pattern compliance)
 ```
 
 ## Anti-Pattern Detection
@@ -329,6 +345,31 @@ grep -r "createClient" apps/web/components/ --include="*.tsx"
 ```
 
 **Action**: High priority for migration (+30 points)
+
+### Router Segment Pattern Detection
+Deprecated tRPC procedure export pattern (should use direct exports):
+```bash
+# Detection: Router segment exports in procedure files (DEPRECATED)
+find packages/api/src/procedures -name "*.procedure.ts" \
+  -exec grep -l "export const.*Router = router({" {} \;
+
+# Detection: Spread operators in domain routers (DEPRECATED)
+find packages/api/src/procedures -name "*.router.ts" \
+  -exec grep -l "\.\.\." {} \;
+
+# Detection: "Router" suffix in procedure exports
+grep -r "export const.*Router = " packages/api/src/procedures/ --include="*.procedure.ts"
+```
+
+**Pattern Details**:
+- **OLD (Deprecated)**: `export const getProcedureRouter = router({ getProcedure: publicProcedure... })`
+- **NEW (Current)**: `export const getProcedure = publicProcedure...`
+- **OLD Router Composition**: `router({ ...getProcedureRouter })`
+- **NEW Router Composition**: `router({ getProcedure })`
+
+**Action**: High priority architectural violation (+20 points) - migrate to direct export pattern
+
+**Reference**: See `docs/2025-10-05_trpc-procedure-pattern-migration-reference.md` for complete pattern migration guide
 
 ### Specialized Procedure Architecture Violations
 
@@ -572,7 +613,11 @@ scoring_process:
     method: "Check if procedure file >200 lines or router >50 lines"
     points: +25 (HIGH)
     
-  6_check_type_safety:
+  6_check_router_segment_pattern:
+    method: "grep 'export const.*Router = router({' in procedure files or '\\.\\.\\.' in router files"
+    points: +20 (HIGH - deprecated router segment export pattern)
+    
+  7_check_type_safety:
     method: "grep for ': any' in component file"
     points: +25 if found
     

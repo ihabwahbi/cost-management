@@ -540,34 +540,33 @@ Step 2: Implement Procedure
 ```typescript
 // packages/api/src/procedures/dashboard/get-kpi-metrics.procedure.ts
 import { z } from 'zod'
-import { publicProcedure, router } from '../../trpc'
+import { publicProcedure } from '../../trpc'
 import { db } from '@/db'
 import { costBreakdown } from '@/db/schema'
 import { eq } from 'drizzle-orm'
 
-export const getKPIMetricsRouter = router({
-  getKPIMetrics: publicProcedure
-    .input(z.object({
-      projectId: z.string().uuid(),
-      dateRange: z.object({
-        from: z.string().transform(val => new Date(val)),
-        to: z.string().transform(val => new Date(val))
-      })
-    }))
-    .query(async ({ input }) => {
-      const data = await db
-        .select()
-        .from(costBreakdown)
-        .where(eq(costBreakdown.projectId, input.projectId))
-      
-      return {
-        totalBudget: data.reduce((sum, item) => sum + Number(item.budgetCost), 0),
-        itemCount: data.length
-      }
+// Export procedure directly (not wrapped in router)
+export const getKPIMetrics = publicProcedure
+  .input(z.object({
+    projectId: z.string().uuid(),
+    dateRange: z.object({
+      from: z.string().transform(val => new Date(val)),
+      to: z.string().transform(val => new Date(val))
     })
-})
+  }))
+  .query(async ({ input }) => {
+    const data = await db
+      .select()
+      .from(costBreakdown)
+      .where(eq(costBreakdown.projectId, input.projectId))
+    
+    return {
+      totalBudget: data.reduce((sum, item) => sum + Number(item.budgetCost), 0),
+      itemCount: data.length
+    }
+  })
 
-// File size: 35 lines ✅ (well under 200-line limit)
+// File size: 30 lines ✅ (well under 200-line limit)
 ```
 
 ```yaml
@@ -580,22 +579,32 @@ Step 3: Update Domain Router
 ```typescript
 // packages/api/src/procedures/dashboard/dashboard.router.ts
 import { router } from '../../trpc'
-import { getKPIMetricsRouter } from './get-kpi-metrics.procedure'
-import { getRecentActivityRouter } from './get-recent-activity.procedure'
+import { getKPIMetrics } from './get-kpi-metrics.procedure'
+import { getRecentActivity } from './get-recent-activity.procedure'
 // ... other procedure imports
 
 export const dashboardRouter = router({
-  ...getKPIMetricsRouter,
-  ...getRecentActivityRouter,
-  // Simple merge only - NO logic here
+  getKPIMetrics,
+  getRecentActivity,
+  // Simple aggregation only - NO business logic
 })
 
-// File size: 15 lines ✅ (well under 50-line limit)
+// File size: 12 lines ✅ (well under 50-line limit)
 ```
 
+**Procedure Export Pattern:**
+
+Each procedure file exports the procedure directly (not wrapped in a router):
+
+- ✅ **Simpler code**: Fewer lines per procedure
+- ✅ **Explicit naming**: Export name matches procedure name exactly
+- ✅ **Direct composition**: Domain routers reference procedures directly
+- ✅ **Better for AI agents**: Less indirection, easier to trace
+
+All procedures follow this pattern. New procedures must use this approach.
+
 ```yaml
-Step 4: Update Main App Router
-  Location: packages/api/src/index.ts
+Step 5: Validate Architecture Compliance
 ```
 
 ```typescript

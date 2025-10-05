@@ -326,60 +326,58 @@ You are operating in **Phase 4** of the 6-phase autonomous migration workflow. P
      mandate: "MAX 200 LINES per procedure file"
      source: "migration_plan.data_layer_specifications.trpc_procedures"
      
-     required_imports:
-       zod: "{ z }"
-       trpc: "{ publicProcedure, router } from '../../trpc'"
-       database: "{ db } from '@/db'"
-       schema: "{ table } from '@/db/schema'"
-       drizzle_helpers: "{ eq, inArray, between, and } from 'drizzle-orm'"
-       error_handling: "{ TRPCError } from '@trpc/server'"
-     
-     export_pattern:
-       name: "[procedureName]Router"
-       type: "router segment"
-       critical: "Each procedure exports its own router for aggregation"
-     
-     router_structure:
-       wrapper: "router({})"
-       
-       procedure_definition:
-         name: "[procedureName]"
-         type: "publicProcedure"
-         
-         input_schema:
-           validation: "z.object({})"
-           fields:
-             projectId:
-               type: "z.string().uuid()"
-               
-             dateRange:
-               type: "z.object({})"
-               critical: "ALWAYS use z.string().transform() for dates"
-               fields:
-                 from: "z.string().transform(val => new Date(val))"
-                 to: "z.string().transform(val => new Date(val))"
-         
-         query_handler:
-           type: "async ({ input }) => {}"
-           destructuring: "const { projectId, dateRange } = input"
-           
-           database_query:
-             method: "db.select().from(table).where()"
-             critical: "Use Drizzle helpers from plan"
-             where_clause:
-               function: "and()"
-               conditions:
-                 - "eq(table.projectId, projectId)"
-                 - "between(table.date, dateRange.from, dateRange.to)"
-           
-           null_safety:
-             pattern: "(item.amount || 0)"
-             critical: "ALWAYS handle null values in aggregations"
-             example: "const total = data.reduce((sum, item) => sum + (item.amount || 0), 0)"
-           
-           return_value:
-             structure: "{ data, total }"
-             description: "Match output schema from plan"
+      required_imports:
+        zod: "{ z }"
+        trpc: "{ publicProcedure } from '../../trpc'"
+        database: "{ db } from '@/db'"
+        schema: "{ table } from '@/db/schema'"
+        drizzle_helpers: "{ eq, inArray, between, and } from 'drizzle-orm'"
+        error_handling: "{ TRPCError } from '@trpc/server'"
+      
+      export_pattern:
+        name: "[procedureName]"
+        type: "direct procedure export"
+        critical: "Export procedure directly - no router wrapper, no 'Router' suffix"
+        note: "Domain router will compose procedures via direct references"
+      
+      procedure_structure:
+        export_statement: "export const [procedureName] = publicProcedure"
+        no_wrapper: "Do NOT wrap in router({})"
+        
+        input_schema:
+          validation: ".input(z.object({}))"
+          fields:
+            projectId:
+              type: "z.string().uuid()"
+              
+            dateRange:
+              type: "z.object({})"
+              critical: "ALWAYS use z.string().transform() for dates"
+              fields:
+                from: "z.string().transform(val => new Date(val))"
+                to: "z.string().transform(val => new Date(val))"
+        
+        query_handler:
+          type: ".query(async ({ input }) => {})"
+          destructuring: "const { projectId, dateRange } = input"
+          
+          database_query:
+            method: "db.select().from(table).where()"
+            critical: "Use Drizzle helpers from plan"
+            where_clause:
+              function: "and()"
+              conditions:
+                - "eq(table.projectId, projectId)"
+                - "between(table.date, dateRange.from, dateRange.to)"
+          
+          null_safety:
+            pattern: "(item.amount || 0)"
+            critical: "ALWAYS handle null values in aggregations"
+            example: "const total = data.reduce((sum, item) => sum + (item.amount || 0), 0)"
+          
+          return_value:
+            structure: "{ data, total }"
+            description: "Match output schema from plan"
      
      enforcement:
        line_limit: "200 lines maximum"
@@ -387,47 +385,49 @@ You are operating in **Phase 4** of the 6-phase autonomous migration workflow. P
        export_router_segment: "Required for domain aggregation"
    ```
    
-   **Then create domain router to aggregate procedures**:
-   ```yaml
-   domain_router_file:
-     location: "packages/api/src/procedures/[domain]/[domain].router.ts"
-     mandate: "MAX 50 LINES - aggregation only, NO business logic"
-     
-     required_imports:
-       trpc: "{ router } from '../../trpc'"
-       procedures:
-         - "{ procedure1Router } from './procedure-1.procedure'"
-         - "{ procedure2Router } from './procedure-2.procedure'"
-         note: "Import all procedure routers from domain"
-     
-     export_pattern:
-       name: "[domain]Router"
-       type: "aggregated router"
-       
-     router_structure:
-       wrapper: "router({})"
-       aggregation_method: "Object spread"
-       content:
-         - "...procedure1Router"
-         - "...procedure2Router"
-       note: "Spread all procedure routers - no business logic"
-     
-     characteristics:
-       typical_length: "< 50 lines"
-       purpose: "Simple aggregation only"
-       prohibition: "NO query logic, NO data transformation"
-       benefit: "Keeps routers small and maintainable"
-   ```
+    **Then create domain router to aggregate procedures**:
+    ```yaml
+    domain_router_file:
+      location: "packages/api/src/procedures/[domain]/[domain].router.ts"
+      mandate: "MAX 50 LINES - aggregation only, NO business logic"
+      
+      required_imports:
+        trpc: "{ router } from '../../trpc'"
+        procedures:
+          - "{ procedure1 } from './procedure-1.procedure'"
+          - "{ procedure2 } from './procedure-2.procedure'"
+          note: "Import all procedures from domain (direct imports, no 'Router' suffix)"
+      
+      export_pattern:
+        name: "[domain]Router"
+        type: "aggregated router"
+        
+      router_structure:
+        wrapper: "router({})"
+        aggregation_method: "Direct object references"
+        content:
+          - "procedure1,"
+          - "procedure2,"
+        note: "Direct references to procedures - NO spread operators"
+        critical: "Each procedure name becomes a key in the router object"
+      
+      characteristics:
+        typical_length: "< 50 lines"
+        purpose: "Simple aggregation only"
+        prohibition: "NO query logic, NO data transformation, NO spread operators"
+        benefit: "Keeps routers small and maintainable"
+    ```
    
-   **Critical Patterns**:
-   - ✓ **Architecture**: One procedure per file (max 200 lines), domain router for aggregation (max 50 lines)
-   - ✓ **Dates**: ALWAYS `z.string().transform()` (NOT `z.date()`)
-   - ✓ **Drizzle**: ALWAYS use helpers (eq, inArray, between)
-   - ✓ **Null safety**: ALWAYS use `|| 0` for divisions/aggregations
-   - ✓ **Exports**: Each procedure file exports `[procedureName]Router`
-   - ✓ **MANDATE**: Each procedure file ≤200 lines (architectural requirement)
-   - ✓ **MANDATE**: Domain router ≤50 lines (aggregation only)
-   - ✓ **MANDATE**: All Cell files ≤400 lines (no god components)
+    **Critical Patterns**:
+    - ✓ **Architecture**: One procedure per file (max 200 lines), domain router for aggregation (max 50 lines)
+    - ✓ **Dates**: ALWAYS `z.string().transform()` (NOT `z.date()`)
+    - ✓ **Drizzle**: ALWAYS use helpers (eq, inArray, between)
+    - ✓ **Null safety**: ALWAYS use `|| 0` for divisions/aggregations
+    - ✓ **Exports**: Each procedure file exports procedure directly (NO router wrapper, NO 'Router' suffix)
+    - ✓ **Domain Router**: Use direct references (NO spread operators)
+    - ✓ **MANDATE**: Each procedure file ≤200 lines (architectural requirement)
+    - ✓ **MANDATE**: Domain router ≤50 lines (aggregation only)
+    - ✓ **MANDATE**: All Cell files ≤400 lines (no god components)
    
    **Validation Checkpoint**: `pnpm type-check packages/api`
    - Expected: Zero TypeScript errors

@@ -23,6 +23,13 @@ MIN_BEHAVIORAL_ASSERTIONS: 3  # M-CELL-4 requirement
 MAX_PROCEDURE_LINES: 200  # Specialized architecture
 MAX_DOMAIN_ROUTER_LINES: 50  # Domain router limit
 
+### tRPC Procedure Pattern Validation
+TRPC_PROCEDURES_PATH: "packages/api/src/procedures"
+DEPRECATED_ROUTER_SEGMENT_PATTERN: "export const.*Router = router\\(\\{"  # OLD pattern (forbidden)
+DEPRECATED_SPREAD_PATTERN: "\\.\\.\\."  # Spread operators in routers (forbidden)
+CORRECT_EXPORT_PATTERN: "export const [a-z][a-zA-Z]* = publicProcedure"  # NEW pattern (required)
+TRPC_PATTERN_REFERENCE: "docs/2025-10-05_trpc-procedure-pattern-migration-reference.md"
+
 ### Dynamic Variables
 IMPLEMENTATION_REPORT_PATH: $ARGUMENTS
 # Can be:
@@ -240,6 +247,35 @@ Cell development checklist for validation criteria:
    find packages/api/src/procedures -name "*.router.ts" -exec wc -l {} +
    # All must be ≤50 lines
    ```
+   
+   **tRPC Procedure Pattern Compliance** (if migration created/modified tRPC procedures):
+   ```bash
+   # CRITICAL: Verify correct pattern usage (direct exports, NOT router segments)
+   
+   # Check 1: No deprecated router segment exports in procedure files
+   find packages/api/src/procedures -name "*.procedure.ts" -exec grep -l "export const.*Router = router({" {} \;
+   # Expected: NO results
+   # If found: VIOLATION - Using deprecated router segment pattern
+   
+   # Check 2: No deprecated spread operators in domain routers
+   find packages/api/src/procedures -name "*.router.ts" -exec grep -l "\.\.\." {} \;
+   # Expected: NO results
+   # If found: VIOLATION - Using deprecated spread operator pattern
+   
+   # Check 3: Verify direct exports in new procedure files
+   # Manually inspect new procedures to confirm:
+   # - Export pattern: export const getProcedure = publicProcedure...
+   # - NO "Router" suffix in export names
+   # - Only imports publicProcedure (not router function)
+   # - Domain routers use direct references (no spread operators)
+   ```
+   
+   **Pattern Violations** (HIGH severity):
+   - Router segment pattern → Document violation, recommend correction
+   - Spread operators in routers → Document violation, recommend direct references
+   - "Router" suffix in exports → Document naming violation
+   
+   **Reference**: See TRPC_PATTERN_REFERENCE for correct patterns and examples
 
 **3. Measure Performance Against Baseline**
    
@@ -598,6 +634,17 @@ Request format: *"[Specific complexity detected]. Please include 'ultrathink' in
 - NEVER skip ledger update
 - Document both successes AND failures
 - Include learnings for continuous improvement
+
+**tRPC Procedure Pattern Enforcement**:
+- ALL new procedures MUST use direct export pattern (NOT router segments)
+- Correct: `export const getProcedure = publicProcedure...`
+- FORBIDDEN: `export const getProcedureRouter = router({ getProcedure: ... })`
+- Domain routers MUST use direct references (NO spread operators)
+- Correct: `router({ getProcedure1, getProcedure2 })`
+- FORBIDDEN: `router({ ...getProcedure1Router, ...getProcedure2Router })`
+- Export names MUST NOT have "Router" suffix
+- Reference TRPC_PATTERN_REFERENCE for full pattern details
+- Pattern violations = HIGH severity (document and recommend correction)
 
 ### Output Format
 

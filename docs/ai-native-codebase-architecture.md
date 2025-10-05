@@ -138,39 +138,55 @@ export type NewCostBreakdown = typeof costBreakdown.$inferInsert
 ```typescript
 // packages/api/src/procedures/budget/get-waterfall-data.procedure.ts
 import { z } from 'zod'
-import { publicProcedure, router } from '../trpc'
+import { publicProcedure } from '../../trpc'
 import { db } from '@/db'
 import { costBreakdown } from '@/db/schema'
 import { eq } from 'drizzle-orm';
 
-// Each procedure is in its own file and exports a router segment.
-export const getWaterfallDataRouter = router({
-  getWaterfallData: publicProcedure
-    .input(z.object({
-      projectId: z.string().uuid(),
-      dateRange: z.object({
-        from: z.string().transform((val) => new Date(val)),
-        to: z.string().transform((val) => new Date(val)),
-      })
-    }))
-    .query(async ({ input }) => {
-      const data = await db
-        .select()
-        .from(costBreakdown)
-        .where(eq(costBreakdown.projectId, input.projectId))
-      
-      return {
-        items: data.map(item => ({
-          category: item.spendType,
-          budgeted: Number(item.budgetCost),
-          actual: 0, // Placeholder
-          variance: 0
-        }))
-      }
+// Each procedure is in its own file and exports the procedure directly.
+export const getWaterfallData = publicProcedure
+  .input(z.object({
+    projectId: z.string().uuid(),
+    dateRange: z.object({
+      from: z.string().transform((val) => new Date(val)),
+      to: z.string().transform((val) => new Date(val)),
     })
+  }))
+  .query(async ({ input }) => {
+    const data = await db
+      .select()
+      .from(costBreakdown)
+      .where(eq(costBreakdown.projectId, input.projectId))
+    
+    return {
+      items: data.map(item => ({
+        category: item.spendType,
+        budgeted: Number(item.budgetCost),
+        actual: 0, // Placeholder
+        variance: 0
+      }))
+    }
+  })
+
+// Procedures are composed in domain router via direct references
+```
+
+**Domain Router (Composition Layer):**
+```typescript
+// packages/api/src/procedures/budget/budget.router.ts
+import { router } from '../../trpc'
+import { getWaterfallData } from './get-waterfall-data.procedure'
+import { getBudgetSummary } from './get-budget-summary.procedure'
+// Import other budget procedures...
+
+// Simple aggregation via direct references
+export const budgetRouter = router({
+  getWaterfallData,
+  getBudgetSummary,
+  // Add other procedures here
 })
 
-// These segments are then composed in a domain router, e.g., budget.router.ts
+// File size: ~15 lines (well under 50-line limit for routers)
 ```
 
 **Frontend Integration:**

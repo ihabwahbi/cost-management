@@ -13,7 +13,7 @@ const mockInvalidate = vi.fn()
 vi.mock('@/lib/trpc', () => ({
   trpc: {
     costBreakdown: {
-      getCostBreakdownByProject: {
+      getCostBreakdownByVersion: {
         useQuery: (...args: any[]) => mockUseQuery(...args),
       },
       updateCostEntry: {
@@ -28,7 +28,7 @@ vi.mock('@/lib/trpc', () => ({
     },
     useUtils: () => ({
       costBreakdown: {
-        getCostBreakdownByProject: {
+        getCostBreakdownByVersion: {
           invalidate: mockInvalidate,
         },
       },

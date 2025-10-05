@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client"
 import { EntryStatusIndicator } from "@/components/entry-status-indicator"
 import { UnsavedChangesBar } from "@/components/unsaved-changes-bar"
 import { ForecastWizard } from "@/components/cells/forecast-wizard/component"
+import { CostBreakdownTableCell } from "@/components/cells/cost-breakdown-table-cell/component"
 import { VersionHistoryTimeline } from "@/components/version-history-timeline"
 import { VersionComparison } from "@/components/version-comparison"
 import { useToast } from "@/hooks/use-toast"
@@ -70,6 +71,7 @@ export default function ProjectsPage() {
   const router = useRouter()
   
   // tRPC mutation for creating forecast versions
+  const utils = trpc.useUtils()
   const createForecast = trpc.forecasts.createForecastVersion.useMutation({
     onSuccess: (data, variables) => {
       const projectId = variables.projectId
@@ -134,6 +136,12 @@ export default function ProjectsPage() {
   const [isInitialBudgetMode, setIsInitialBudgetMode] = useState<string | null>(null)
   const [unsavedChangesCount, setUnsavedChangesCount] = useState<{ [projectId: string]: number }>({})
   const [showForecastWizard, setShowForecastWizard] = useState<string | null>(null)
+  // ===================================================================
+  // TEMPORARY: Forecast wizard data bridge
+  // TODO Phase 4: Refactor ForecastWizard to query data directly via tRPC
+  // This state is ONLY for forecast wizard - Cell manages its own data
+  // ===================================================================
+  const [forecastWizardData, setForecastWizardData] = useState<Record<string, any[]>>({})
   
   // Bulk operations state
   const [selectedEntries, setSelectedEntries] = useState<Set<string>>(new Set())
@@ -685,6 +693,43 @@ export default function ProjectsPage() {
       // Clear loading flag
       const loadKey = `${projectId}-${versionNumber}`
       loadingVersionRef.current.delete(loadKey)
+    }
+  }
+  // Load data for forecast wizard when it opens
+  const loadForecastWizardData = async (projectId: string) => {
+    try {
+      const version = activeVersion[projectId] ?? 'latest'
+      console.log('[Forecast Wizard] Loading data:', { projectId, version })
+      
+      // Query versioned data (returns camelCase)
+      const data = await utils.costBreakdown.getCostBreakdownByVersion.fetch({
+        projectId,
+        versionNumber: version
+      })
+      
+      // Transform to snake_case for wizard compatibility
+      const transformedData = data?.map(item => ({
+        id: item.id,
+        project_id: item.projectId,
+        sub_business_line: item.subBusinessLine,
+        cost_line: item.costLine,
+        spend_type: item.spendType,
+        spend_sub_category: item.spendSubCategory,
+        budget_cost: item.budgetCost,
+      })) || []
+      
+      console.log('[Forecast Wizard] Data transformed:', { 
+        projectId, 
+        itemCount: transformedData.length,
+        firstItem: transformedData[0]
+      })
+      
+      setForecastWizardData(prev => ({
+        ...prev,
+        [projectId]: transformedData
+      }))
+    } catch (error) {
+      console.error('[Forecast Wizard] Error loading cost data:', error)
     }
   }
 
@@ -1285,20 +1330,31 @@ export default function ProjectsPage() {
   }
 
   const handleVersionChange = async (projectId: string, version: string) => {
-    console.log(`Version change requested: ${version} for project ${projectId}`)
+    console.log(`[Version Change] Project: ${projectId}, Version: ${version}`)
+    
     const versionNumber = version === "latest" ? "latest" : Number.parseInt(version)
     
-    // Don't reload if already on this version (handle both number and string comparison)
+    // Don't reload if already on this version
     const currentVersion = activeVersion[projectId]
     if (currentVersion === versionNumber || 
-        (currentVersion?.toString() === versionNumber?.toString())) {
-      console.log(`Already on version ${versionNumber}, skipping reload`)
+        currentVersion?.toString() === versionNumber?.toString()) {
+      console.log(`[Version Change] Already on version ${versionNumber}, skipping`)
       return
     }
     
-    console.log(`Switching from version ${activeVersion[projectId]} to ${versionNumber}`)
-    setActiveVersion(prev => ({ ...prev, [projectId]: versionNumber }))
-    await loadVersionCostBreakdown(projectId, versionNumber)
+    console.log(`[Version Change] Switching from ${currentVersion} to ${versionNumber}`)
+    
+    // Update version state - Cell will auto-refresh via prop change
+    setActiveVersion(prev => ({ 
+      ...prev, 
+      [projectId]: versionNumber 
+    }))
+    
+    // Also update forecast wizard data if wizard is open for this project
+    if (showForecastWizard === projectId) {
+      console.log(`[Version Change] Updating forecast wizard data`)
+      await loadForecastWizardData(projectId)
+    }
   }
 
   const updateCostItem = async (costItem: CostBreakdown) => {
@@ -1527,8 +1583,13 @@ export default function ProjectsPage() {
     }
   }
 
-  const startForecasting = (projectId: string) => {
-    // Use wizard instead of inline mode
+  const startForecasting = async (projectId: string) => {
+    // Load data FIRST before opening wizard
+    console.log('[startForecasting] Loading data for:', projectId)
+    await loadForecastWizardData(projectId)
+    
+    // THEN open wizard with loaded data
+    console.log('[startForecasting] Opening wizard')
     setShowForecastWizard(projectId)
     setIsForecasting(projectId)
     setForecastChanges({})
@@ -2239,346 +2300,10 @@ export default function ProjectsPage() {
                         <p className="mt-2 text-sm text-gray-600">Loading version data...</p>
                       </div>
                     ) : (
-                      <>
-                        {(!costBreakdowns[project.id] || costBreakdowns[project.id].length === 0) &&
-                        !isInitialBudgetMode ? (
-                          <div className="text-center py-8 bg-gray-50 rounded-lg">
-                            <p className="text-gray-600 mb-4">No budget has been created for this project yet.</p>
-                            <p className="text-sm text-gray-500">Click "Create Initial Budget" to get started.</p>
-                          </div>
-                        ) : costBreakdowns[project.id] && costBreakdowns[project.id].length > 0 ? (
-                          <div className="overflow-x-auto">
-                            <table className="w-full border-collapse border border-gray-300">
-                              <thead>
-                                <tr className="bg-gray-50">
-                                  {(isForecasting === project.id || isInitialBudgetMode === project.id) && (
-                                    <th className="border border-gray-300 px-2 py-2 text-center">
-                                      <input
-                                        type="checkbox"
-                                        onChange={(e) => handleSelectAll(project.id, e.target.checked)}
-                                        checked={costBreakdowns[project.id]?.length > 0 && 
-                                                costBreakdowns[project.id].every(c => selectedEntries.has(c.id))}
-                                        className="w-4 h-4"
-                                      />
-                                    </th>
-                                  )}
-                                  <th className="border border-gray-300 px-4 py-2 text-left">Status</th>
-                                  <th className="border border-gray-300 px-4 py-2 text-left">Cost Line</th>
-                                  <th className="border border-gray-300 px-4 py-2 text-left">Spend Type</th>
-                                  <th className="border border-gray-300 px-4 py-2 text-left">Sub Category</th>
-                                  <th className="border border-gray-300 px-4 py-2 text-left">Budget Cost</th>
-                                  <th className="border border-gray-300 px-4 py-2 text-center">Actions</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {costBreakdowns[project.id].map((cost) => (
-                                  <tr key={cost.id} className={getRowClassName(cost)}>
-                                    {(isForecasting === project.id || isInitialBudgetMode === project.id) && (
-                                      <td className="border border-gray-300 px-2 py-2 text-center">
-                                        <input
-                                          type="checkbox"
-                                          checked={selectedEntries.has(cost.id)}
-                                          onChange={() => toggleEntrySelection(cost.id)}
-                                          className="w-4 h-4"
-                                        />
-                                      </td>
-                                    )}
-                                    {editingCost === cost.id &&
-                                    (isForecasting === project.id || isInitialBudgetMode === project.id) ? (
-                                      <>
-                                        <td className="border border-gray-300 px-4 py-2">
-                                          <EntryStatusIndicator 
-                                            id={cost.id} 
-                                            modified={cost._modified}
-                                            saving={savingCosts.has(cost.id)}
-                                          />
-                                        </td>
-                                        <td className="border border-gray-300 px-4 py-2">
-                                          <select
-                                            value={editingValues?.cost_line || ""}
-                                            onChange={(e) =>
-                                              setEditingValues(
-                                                editingValues ? { ...editingValues, cost_line: e.target.value } : null,
-                                              )
-                                            }
-                                            className="w-full px-2 py-1 border border-gray-300 rounded"
-                                          >
-                                            <option value="">Select cost line</option>
-                                            {COST_LINE_OPTIONS.map((option) => (
-                                              <option key={option} value={option}>
-                                                {option}
-                                              </option>
-                                            ))}
-                                          </select>
-                                        </td>
-                                        <td className="border border-gray-300 px-4 py-2">
-                                          <select
-                                            value={editingValues?.spend_type || ""}
-                                            onChange={(e) =>
-                                              setEditingValues(
-                                                editingValues ? { ...editingValues, spend_type: e.target.value } : null,
-                                              )
-                                            }
-                                            className="w-full px-2 py-1 border border-gray-300 rounded"
-                                          >
-                                            <option value="">Select spend type</option>
-                                            {SPEND_TYPE_OPTIONS.map((option) => (
-                                              <option key={option} value={option}>
-                                                {option}
-                                              </option>
-                                            ))}
-                                          </select>
-                                        </td>
-                                        <td className="border border-gray-300 px-4 py-2">
-                                          <input
-                                            type="text"
-                                            value={editingValues?.spend_sub_category || ""}
-                                            onChange={(e) =>
-                                              setEditingValues(
-                                                editingValues
-                                                  ? { ...editingValues, spend_sub_category: e.target.value }
-                                                  : null,
-                                              )
-                                            }
-                                            className="w-full px-2 py-1 border border-gray-300 rounded"
-                                          />
-                                        </td>
-                                        <td className="border border-gray-300 px-4 py-2">
-                                          <input
-                                            type="number"
-                                            value={editingValues?.budget_cost || ""}
-                                            onChange={(e) =>
-                                              setEditingValues(
-                                                editingValues
-                                                  ? { ...editingValues, budget_cost: Number(e.target.value) }
-                                                  : null,
-                                              )
-                                            }
-                                            className="w-full px-2 py-1 border border-gray-300 rounded text-right"
-                                          />
-                                        </td>
-                                        <td className="border border-gray-300 px-4 py-2 text-center">
-                                          <div className="flex gap-1 justify-center">
-                                            <button
-                                              onClick={saveEditing}
-                                              disabled={savingCosts.has(cost.id)}
-                                              className="bg-green-600 text-white px-2 py-1 rounded text-xs hover:bg-green-700 disabled:opacity-50 transition-colors"
-                                            >
-                                              {savingCosts.has(cost.id) ? "..." : "Save"}
-                                            </button>
-                                            <button
-                                              onClick={cancelEditing}
-                                              className="bg-gray-500 text-white px-2 py-1 rounded text-xs hover:bg-gray-600 transition-colors"
-                                            >
-                                              Cancel
-                                            </button>
-                                          </div>
-                                        </td>
-                                      </>
-                                    ) : (
-                                      <>
-                                        <td className="border border-gray-300 px-4 py-2">
-                                          <EntryStatusIndicator 
-                                            id={cost.id} 
-                                            modified={cost._modified}
-                                            saving={savingCosts.has(cost.id)}
-                                          />
-                                        </td>
-                                        <td className="border border-gray-300 px-4 py-2">{cost.cost_line}</td>
-                                        <td className="border border-gray-300 px-4 py-2">{cost.spend_type}</td>
-                                        <td className="border border-gray-300 px-4 py-2">{cost.spend_sub_category}</td>
-                                        <td className="border border-gray-300 px-4 py-2 text-right">
-                                          {isForecasting === project.id ? (
-                                            <InlineEdit
-                                              value={forecastChanges[cost.id] ?? cost.budget_cost}
-                                              onSave={(newValue) => updateForecastChange(cost.id, Number(newValue))}
-                                              type="number"
-                                              formatter={(val) => formatCurrency(val)}
-                                              validator={(val) => {
-                                                const num = Number(val)
-                                                if (isNaN(num) || num < 0) return "Value must be a positive number"
-                                                return true
-                                              }}
-                                              className="text-right"
-                                            />
-                                          ) : (
-                                            formatCurrency(cost.budget_cost)
-                                          )}
-                                        </td>
-                                        <td className="border border-gray-300 px-4 py-2 text-center">
-                                          {(isForecasting === project.id || isInitialBudgetMode === project.id) && (
-                                            <div className="flex gap-1 justify-center">
-                                              <button
-                                                onClick={() => startEditing(cost)}
-                                                className="bg-blue-600 text-white px-2 py-1 rounded text-xs hover:bg-blue-700 transition-colors"
-                                              >
-                                                Edit
-                                              </button>
-                                              <button
-                                                onClick={() => {
-                                                  if (confirm("Are you sure you want to delete this cost entry?")) {
-                                                    deleteCostEntry(cost.id)
-                                                  }
-                                                }}
-                                                disabled={deletingCost === cost.id}
-                                                className="bg-red-600 text-white px-2 py-1 rounded text-xs hover:bg-red-700 disabled:opacity-50 transition-colors"
-                                              >
-                                                {deletingCost === cost.id ? "..." : "Delete"}
-                                              </button>
-                                            </div>
-                                          )}
-                                        </td>
-                                      </>
-                                    )}
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        ) : null}
-
-                        {(isForecasting === project.id || isInitialBudgetMode === project.id) && (
-                          <div className="mt-4">
-                            {addingNewCost === project.id ? (
-                              <div className="bg-gray-50 p-4 rounded-lg">
-                                <h5 className="font-semibold mb-3">Add New Cost Entry</h5>
-                                <div className="grid grid-cols-4 gap-3 mb-3">
-                                  <select
-                                    value={newCostValues?.cost_line || ""}
-                                    onChange={(e) =>
-                                      setNewCostValues(
-                                        newCostValues
-                                          ? { ...newCostValues, cost_line: e.target.value }
-                                          : {
-                                              project_id: project.id,
-                                              sub_business_line: project.sub_business_line,
-                                              cost_line: e.target.value,
-                                              spend_type: "",
-                                              spend_sub_category: "",
-                                              budget_cost: 0,
-                                            },
-                                      )
-                                    }
-                                    className="px-3 py-2 border border-gray-300 rounded-md"
-                                  >
-                                    <option value="">Select cost line</option>
-                                    {COST_LINE_OPTIONS.map((option) => (
-                                      <option key={option} value={option}>
-                                        {option}
-                                      </option>
-                                    ))}
-                                  </select>
-                                  <select
-                                    value={newCostValues?.spend_type || ""}
-                                    onChange={(e) =>
-                                      setNewCostValues(
-                                        newCostValues
-                                          ? { ...newCostValues, spend_type: e.target.value }
-                                          : {
-                                              project_id: project.id,
-                                              sub_business_line: project.sub_business_line,
-                                              cost_line: "",
-                                              spend_type: e.target.value,
-                                              spend_sub_category: "",
-                                              budget_cost: 0,
-                                            },
-                                      )
-                                    }
-                                    className="px-3 py-2 border border-gray-300 rounded-md"
-                                  >
-                                    <option value="">Select spend type</option>
-                                    {SPEND_TYPE_OPTIONS.map((option) => (
-                                      <option key={option} value={option}>
-                                        {option}
-                                      </option>
-                                    ))}
-                                  </select>
-                                  <input
-                                    type="text"
-                                    placeholder="Sub Category"
-                                    value={newCostValues?.spend_sub_category || ""}
-                                    onChange={(e) =>
-                                      setNewCostValues(
-                                        newCostValues
-                                          ? { ...newCostValues, spend_sub_category: e.target.value }
-                                          : {
-                                              project_id: project.id,
-                                              sub_business_line: project.sub_business_line,
-                                              cost_line: "",
-                                              spend_type: "",
-                                              spend_sub_category: e.target.value,
-                                              budget_cost: 0,
-                                            },
-                                      )
-                                    }
-                                    className="px-3 py-2 border border-gray-300 rounded-md"
-                                  />
-                                  <input
-                                    type="number"
-                                    placeholder="Budget Cost"
-                                    value={newCostValues?.budget_cost || ""}
-                                    onChange={(e) =>
-                                      setNewCostValues(
-                                        newCostValues
-                                          ? { ...newCostValues, budget_cost: Number(e.target.value) }
-                                          : {
-                                              project_id: project.id,
-                                              sub_business_line: project.sub_business_line,
-                                              cost_line: "",
-                                              spend_type: "",
-                                              spend_sub_category: "",
-                                              budget_cost: Number(e.target.value),
-                                            },
-                                      )
-                                    }
-                                    className="px-3 py-2 border border-gray-300 rounded-md"
-                                  />
-                                </div>
-                                <div className="flex gap-2">
-                                  <button
-                                    onClick={() => {
-                                      if (newCostValues) {
-                                        addNewCostEntry(newCostValues)
-                                        setAddingNewCost(null)
-                                        setNewCostValues(null)
-                                      }
-                                    }}
-                                    disabled={
-                                      savingNewCost ||
-                                      !newCostValues?.cost_line ||
-                                      !newCostValues?.spend_type ||
-                                      !newCostValues?.spend_sub_category
-                                    }
-                                    className="bg-green-600 text-white px-3 py-2 rounded-md hover:bg-green-700 disabled:opacity-50 transition-colors"
-                                  >
-                                    {savingNewCost ? "Adding..." : "Add Entry"}
-                                  </button>
-                                  <button
-                                    onClick={() => {
-                                      setAddingNewCost(null)
-                                      setNewCostValues(null)
-                                    }}
-                                    className="bg-gray-500 text-white px-3 py-2 rounded-md hover:bg-gray-600 transition-colors"
-                                  >
-                                    Cancel
-                                  </button>
-                                </div>
-                              </div>
-                            ) : (
-                              <button
-                                onClick={() => setAddingNewCost(project.id)}
-                                className={`px-4 py-2 rounded-lg transition-colors ${
-                                  isForecasting === project.id
-                                    ? "bg-orange-600 text-white hover:bg-orange-700"
-                                    : "bg-blue-600 text-white hover:bg-blue-700"
-                                }`}
-                              >
-                                Add New Entry
-                              </button>
-                            )}
-                          </div>
-                        )}
-                      </>
+                      <CostBreakdownTableCell 
+                        projectId={project.id} 
+                        versionNumber={activeVersion[project.id] ?? "latest"}
+                      />
                     )}
                   </div>
                 )}
@@ -2738,10 +2463,17 @@ export default function ProjectsPage() {
             setIsForecasting(null)
             setForecastChanges({})
             setForecastReason("")
+            // Clear wizard data to free memory
+            if (showForecastWizard) {
+              setForecastWizardData(prev => {
+                const { [showForecastWizard]: _, ...rest } = prev
+                return rest
+              })
+            }
           }}
           projectId={showForecastWizard}
           projectName={projects.find(p => p.id === showForecastWizard)?.name || ""}
-          currentCosts={costBreakdowns[showForecastWizard] || []}
+          currentCosts={forecastWizardData[showForecastWizard] || []}
           stagedEntries={stagedNewEntries[showForecastWizard] || []}
           onSave={async (changes, newEntries, reason) => {
             await createForecast.mutateAsync({

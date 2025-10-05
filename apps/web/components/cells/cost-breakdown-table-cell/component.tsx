@@ -22,6 +22,7 @@ import { CostBreakdownTableRow } from './table-row'
 
 interface CostBreakdownTableCellProps {
   projectId: string
+  versionNumber?: number | "latest"  // Version to display (defaults to "latest")
 }
 
 interface CostEntry {
@@ -36,7 +37,12 @@ interface CostEntry {
   updatedAt: string | null
 }
 
-export function CostBreakdownTableCell({ projectId }: CostBreakdownTableCellProps) {
+export function CostBreakdownTableCell({ 
+  projectId, 
+  versionNumber = "latest" 
+}: CostBreakdownTableCellProps) {
+  console.log('[CostBreakdownTableCell] Component render:', { projectId, versionNumber })
+  
   const { toast } = useToast()
   const utils = trpc.useUtils()
 
@@ -49,29 +55,43 @@ export function CostBreakdownTableCell({ projectId }: CostBreakdownTableCellProp
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [bulkEditMode, setBulkEditMode] = useState(false)
 
-  // ✅ CRITICAL: Memoize query input
+  // ✅ CRITICAL: Memoize query input with version
   const queryInput = useMemo(
-    () => ({
-      projectId,
-      orderBy: 'costLine' as const,
-    }),
-    [projectId]
+    () => {
+      const input = {
+        projectId,
+        versionNumber,
+        orderBy: 'costLine' as const,
+      }
+      console.log('[CostBreakdownTableCell] Query input:', input)
+      return input
+    },
+    [projectId, versionNumber]  // Include version in deps!
   )
 
-  // tRPC queries
+  // tRPC queries - USE VERSIONED PROCEDURE
   const { 
     data: costs, 
     isLoading, 
     error 
-  } = trpc.costBreakdown.getCostBreakdownByProject.useQuery(queryInput, {
+  } = trpc.costBreakdown.getCostBreakdownByVersion.useQuery(queryInput, {
     refetchOnWindowFocus: false,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 1000, // Reduce to 1 second for version changes
+  })
+  
+  // Debug: Log when data changes
+  console.log('[CostBreakdownTableCell] Data state:', { 
+    versionNumber, 
+    isLoading, 
+    itemCount: costs?.length,
+    firstItem: costs?.[0]?.costLine,
+    error: error?.message 
   })
 
   // tRPC mutations
   const updateMutation = trpc.costBreakdown.updateCostEntry.useMutation({
     onSuccess: () => {
-      utils.costBreakdown.getCostBreakdownByProject.invalidate()
+      utils.costBreakdown.getCostBreakdownByVersion.invalidate()
       setEditingRowId(null)
       setEditValues({})
       setFieldErrors({})
@@ -91,7 +111,7 @@ export function CostBreakdownTableCell({ projectId }: CostBreakdownTableCellProp
 
   const deleteMutation = trpc.costBreakdown.deleteCostEntry.useMutation({
     onSuccess: () => {
-      utils.costBreakdown.getCostBreakdownByProject.invalidate()
+      utils.costBreakdown.getCostBreakdownByVersion.invalidate()
       toast({
         title: 'Success',
         description: 'Cost entry deleted',
@@ -108,7 +128,7 @@ export function CostBreakdownTableCell({ projectId }: CostBreakdownTableCellProp
 
   const bulkDeleteMutation = trpc.costBreakdown.bulkDeleteCostEntries.useMutation({
     onSuccess: (result) => {
-      utils.costBreakdown.getCostBreakdownByProject.invalidate()
+      utils.costBreakdown.getCostBreakdownByVersion.invalidate()
       setSelectedIds(new Set())
       setBulkEditMode(false)
       toast({

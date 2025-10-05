@@ -4,6 +4,7 @@ import { dashboardRouter } from './procedures/dashboard/dashboard.router';
 import { poMappingRouter } from './procedures/po-mapping/po-mapping.router';
 import { forecastsRouter } from './procedures/forecasts/forecasts.router';
 import { projectsRouter } from './procedures/projects/projects.router';
+import { costBreakdownRouter } from './procedures/cost-breakdown/cost-breakdown.router';
 import { db } from '@cost-mgmt/db';
 import type { Context } from './trpc';
 
@@ -18,8 +19,7 @@ export const appRouter = router({
   poMapping: poMappingRouter,
   forecasts: forecastsRouter,
   projects: projectsRouter,
-  // Future routers will be added here:
-  // costBreakdown: costBreakdownRouter,
+  costBreakdown: costBreakdownRouter,
 });
 
 /**

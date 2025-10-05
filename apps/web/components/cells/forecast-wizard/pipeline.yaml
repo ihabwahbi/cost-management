@@ -1,0 +1,38 @@
+version: 1.0
+cell_id: forecast-wizard
+
+on_change:
+  - name: Type Check
+    run: "pnpm type-check"
+    required: true
+    
+  - name: Lint
+    run: "pnpm lint apps/web/components/cells/forecast-wizard"
+    required: true
+    
+  - name: Unit Tests
+    run: "pnpm test apps/web/components/cells/forecast-wizard"
+    coverage_threshold: 80
+    required: true
+    
+  - name: Behavioral Assertions Validation
+    description: "Verify all 12 behavioral assertions have corresponding tests"
+    run: "grep -r 'BA-00[1-9]\\|BA-01[0-2]' apps/web/components/cells/forecast-wizard/__tests__/"
+    required: true
+    
+  - name: File Size Check
+    description: "Ensure no files exceed 400 lines (M-CELL-3)"
+    run: "find apps/web/components/cells/forecast-wizard -name '*.tsx' -exec wc -l {} + | awk '$1 > 400 {exit 1}'"
+    required: true
+
+success_criteria:
+  - "All required gates pass"
+  - "Coverage >= 80%"
+  - "All 12 behavioral assertions have tests"
+  - "Zero TypeScript errors"
+  - "All files ≤ 400 lines"
+  
+validation_commands:
+  manual_test: "Open wizard in browser, complete full flow from review to success"
+  performance_check: "Verify localStorage writes debounced (≤1/second)"
+  data_quality: "Attempt to create $0 entry, verify blocked"

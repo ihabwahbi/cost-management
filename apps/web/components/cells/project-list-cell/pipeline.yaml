@@ -1,0 +1,30 @@
+gates:
+  - id: types
+    name: "TypeScript Compilation"
+    command: "pnpm type-check"
+    requirement: "Zero TypeScript errors"
+    automated: true
+    
+  - id: tests
+    name: "Unit Tests"
+    command: "pnpm test apps/web/components/cells/project-list-cell"
+    requirement: "All tests pass, coverage ≥80%"
+    automated: true
+    
+  - id: build
+    name: "Production Build"
+    command: "pnpm build"
+    requirement: "Build succeeds with zero errors"
+    automated: true
+    
+  - id: performance
+    name: "Performance Validation"
+    requirement: "Load time ≤110% of baseline (≤220ms)"
+    measurement: "React DevTools Profiler"
+    automated: false
+    
+  - id: accessibility
+    name: "Accessibility"
+    standard: "WCAG AA"
+    requirement: "Keyboard navigation, screen reader support, color contrast"
+    automated: false

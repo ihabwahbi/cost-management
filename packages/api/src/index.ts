@@ -1,7 +1,7 @@
 import { router } from './trpc';
-import { testRouter } from './routers/test';
+import { testRouter } from './procedures/test/test.router';
 import { dashboardRouter } from './procedures/dashboard/dashboard.router';
-import { poMappingRouter } from './routers/po-mapping';
+import { poMappingRouter } from './procedures/po-mapping/po-mapping.router';
 import { forecastsRouter } from './procedures/forecasts/forecasts.router';
 import { projectsRouter } from './procedures/projects/projects.router';
 import { db } from '@cost-mgmt/db';

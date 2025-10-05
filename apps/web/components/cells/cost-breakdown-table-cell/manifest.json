@@ -1,0 +1,64 @@
+{
+  "id": "cost-breakdown-table-cell",
+  "version": "1.0.0",
+  "description": "Cost breakdown table with inline editing and bulk operations - extracted from projects/page.tsx",
+  "behavioral_assertions": [
+    {
+      "id": "BA-003",
+      "description": "Component displays cost breakdown table when project is expanded",
+      "verification": "Provide projectId, mock getCostBreakdownByProject, verify table renders",
+      "source": "Original lines 2100-2437"
+    },
+    {
+      "id": "BA-008",
+      "description": "Component shows 'No budget created yet' when cost breakdown is empty",
+      "verification": "Mock empty array, verify empty state with CTA button",
+      "source": "Original lines 2243-2248"
+    },
+    {
+      "id": "BA-009",
+      "description": "Component enables inline editing on row double-click",
+      "verification": "Double-click row, verify input fields appear, edit, save",
+      "source": "Original lines 1304-1374 (updateCostItem)"
+    },
+    {
+      "id": "BA-018",
+      "description": "Component validates required fields before saving",
+      "verification": "Clear cost line field, attempt save, verify validation error",
+      "source": "Original lines 2002-2003, validation logic"
+    },
+    {
+      "id": "BA-022",
+      "description": "Component shows unsaved changes bar when inline edits pending",
+      "verification": "Make edit, verify changes bar appears with count",
+      "source": "Original lines 2764-2774"
+    },
+    {
+      "id": "BA-023",
+      "description": "Component supports keyboard shortcuts (Cmd+S to save, Escape to cancel)",
+      "verification": "Make edit, press Cmd+S, verify save triggered",
+      "source": "Original lines 258-319 (keyboard handler)"
+    },
+    {
+      "id": "BA-BULK-001",
+      "description": "Component enables multi-select for bulk delete operations",
+      "verification": "Enable bulk mode, select multiple rows, delete, verify all removed",
+      "source": "Original lines 1867-1891 (bulk delete loop)"
+    }
+  ],
+  "dependencies": {
+    "data": ["cost_breakdown"],
+    "ui": ["shadcn/ui Table", "shadcn/ui Input", "shadcn/ui Checkbox", "toast"],
+    "api": [
+      "costBreakdown.getCostBreakdownByProject",
+      "costBreakdown.createCostEntry",
+      "costBreakdown.updateCostEntry",
+      "costBreakdown.deleteCostEntry",
+      "costBreakdown.bulkDeleteCostEntries"
+    ]
+  },
+  "performance": {
+    "baseline_load_time_ms": null,
+    "target_load_time_ms": 300
+  }
+}

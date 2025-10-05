@@ -115,7 +115,12 @@
       "@/components/ui/alert"
     ],
     "hooks": [
-      "@/hooks/use-wizard-navigation"
+      "@/hooks/use-wizard-navigation",
+      "@/hooks/use-forecast-calculations",
+      "@/hooks/use-draft-persistence"
+    ],
+    "utils": [
+      "@/lib/budget-utils"
     ],
     "api": [
       "trpc.forecasts.createForecastVersion"
@@ -137,10 +142,19 @@
   "metadata": {
     "extraction_phases": 5,
     "original_size": "1,005 LOC",
-    "current_size": "395 LOC",
-    "reduction": "61%",
-    "components_extracted": 12,
+    "current_size": "342 LOC",
+    "reduction": "66%",
+    "components_extracted": 15,
+    "hooks_extracted": 2,
+    "utils_extracted": 1,
     "test_coverage": "≥80%",
-    "reusable_components": 10
+    "reusable_components": 13
+  },
+  
+  "performance": {
+    "target_render_time_ms": 200,
+    "localStorage_write_frequency": "~1/second (debounced)",
+    "debounce_delay_ms": 1000,
+    "write_reduction": "80% (Pitfall #1 fix)"
   }
 }

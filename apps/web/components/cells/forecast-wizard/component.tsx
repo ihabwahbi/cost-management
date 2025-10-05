@@ -1,7 +1,9 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { useWizardNavigation } from "@/hooks/use-wizard-navigation"
+import { useForecastCalculations } from "@/hooks/use-forecast-calculations"
+import { useDraftPersistence } from "@/hooks/use-draft-persistence"
 import { WizardShell } from "@/components/ui/wizard/wizard-shell"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import {
@@ -102,48 +104,39 @@ export function ForecastWizard({
     initialStep: "review" as WizardStep,
   })
   const [forecastChanges, setForecastChanges] = useState<Record<string, number | null>>({}) // null = excluded
-  const [localStagedEntries, setLocalStagedEntries] = useState<CostBreakdown[]>([])
+  const [localStagedEntries, setLocalStagedEntries] = useState<CostBreakdown[]>(stagedEntries)
   const [forecastReason, setForecastReason] = useState("")
   const [isSaving, setIsSaving] = useState(false)
 
-  // Initialize with existing staged entries
-  useEffect(() => {
-    setLocalStagedEntries(stagedEntries)
-  }, [stagedEntries])
+  // ✅ USE HOOK: Memoized calculations
+  const {
+    totalBudget,
+    totalForecast,
+    totalChange,
+    changePercentage,
+    modifiedCount,
+    newEntriesCount,
+    excludedCount,
+  } = useForecastCalculations({
+    currentCosts,
+    forecastChanges,
+    newEntries: localStagedEntries,
+  })
 
-  // Auto-save draft to localStorage
-  useEffect(() => {
-    const draftData = {
-      projectId,
+  // ✅ USE HOOK: Draft persistence with debouncing (Pitfall #1 fix)
+  const { clearDraft } = useDraftPersistence({
+    storageKey: `forecast-draft-${projectId}`,
+    data: {
       forecastChanges,
       localStagedEntries,
       forecastReason,
-      currentStep,
-      timestamp: new Date().toISOString(),
-    }
-    localStorage.setItem(`forecast-draft-${projectId}`, JSON.stringify(draftData))
-  }, [projectId, forecastChanges, localStagedEntries, forecastReason, currentStep])
-
-  // Load draft on mount
-  useEffect(() => {
-    const draftKey = `forecast-draft-${projectId}`
-    const draftData = localStorage.getItem(draftKey)
-    if (draftData) {
-      try {
-        const parsed = JSON.parse(draftData)
-        // Only restore if draft is less than 24 hours old
-        const draftAge = Date.now() - new Date(parsed.timestamp).getTime()
-        if (draftAge < 24 * 60 * 60 * 1000) {
-          setForecastChanges(parsed.forecastChanges || {})
-          setLocalStagedEntries(parsed.localStagedEntries || [])
-          setForecastReason(parsed.forecastReason || "")
-          // Don't restore step to avoid confusion
-        }
-      } catch (error) {
-        console.error("Error loading draft:", error)
-      }
-    }
-  }, [projectId])
+    },
+    onRestore: (draft) => {
+      setForecastChanges(draft.forecastChanges || {})
+      setLocalStagedEntries(draft.localStagedEntries || [])
+      setForecastReason(draft.forecastReason || "")
+    },
+  })
 
   // Step labels for wizard shell
   const stepLabels = [
@@ -154,61 +147,15 @@ export function ForecastWizard({
     { label: "Confirm & Save", icon: <Save className="w-4 h-4" /> },
   ]
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount)
-  }
 
-  const getTotalBudget = () => {
-    return currentCosts.reduce((sum, cost) => sum + cost.budget_cost, 0)
-  }
-
-  const getTotalForecast = () => {
-    const modifiedTotal = currentCosts.reduce((sum, cost) => {
-      const newValue = forecastChanges[cost.id]
-      // null = excluded (contributes $0), undefined = unchanged (use original), number = modified value
-      if (newValue === null) return sum + 0 // Excluded
-      if (newValue === undefined) return sum + cost.budget_cost // Unchanged
-      return sum + newValue // Modified
-    }, 0)
-    const newEntriesTotal = localStagedEntries.reduce((sum, entry) => sum + entry.budget_cost, 0)
-    return modifiedTotal + newEntriesTotal
-  }
-
-  const getTotalChange = () => {
-    return getTotalForecast() - getTotalBudget()
-  }
-
-  const getChangePercentage = () => {
-    const total = getTotalBudget()
-    if (total === 0) return 0
-    return (getTotalChange() / total) * 100
-  }
-
-  const getModifiedItemsCount = () => {
-    // Count only actual modifications (not exclusions)
-    const modifiedCount = Object.entries(forecastChanges).filter(([_, value]) => value !== null).length
-    return modifiedCount + localStagedEntries.length
-  }
-
-  const getExcludedCount = () => {
-    return Object.values(forecastChanges).filter(value => value === null).length
-  }
-
-  // Navigation handlers are now provided by useWizardNavigation hook
-  // goNext() and goBack() replace handleNext() and handleBack()
 
   const handleSave = async () => {
     setIsSaving(true)
     try {
       await onSave(forecastChanges, localStagedEntries, forecastReason)
       
-      // Clear draft after successful save
-      localStorage.removeItem(`forecast-draft-${projectId}`)
+      // ✅ Clear draft after successful save (using hook)
+      clearDraft()
       
       // Reset state (note: currentStep managed by hook, will reset on next open)
       setForecastChanges({})
@@ -255,7 +202,7 @@ export function ForecastWizard({
       case "review":
         return true
       case "modify":
-        return getModifiedItemsCount() > 0
+        return modifiedCount + newEntriesCount > 0
       case "add-reason":
         return forecastReason.trim().length > 0
       case "preview":
@@ -311,11 +258,11 @@ export function ForecastWizard({
             />
 
             <ChangeSummaryFooter
-              modifiedCount={Object.entries(forecastChanges).filter(([_, v]) => v !== null).length}
-              newEntriesCount={localStagedEntries.length}
-              excludedCount={getExcludedCount()}
-              totalChange={getTotalChange()}
-              changePercentage={getChangePercentage()}
+              modifiedCount={modifiedCount}
+              newEntriesCount={newEntriesCount}
+              excludedCount={excludedCount}
+              totalChange={totalChange}
+              changePercentage={changePercentage}
             />
           </div>
         )
@@ -326,11 +273,11 @@ export function ForecastWizard({
             reason={forecastReason}
             onReasonChange={setForecastReason}
             changeSummary={{
-              modifiedCount: Object.entries(forecastChanges).filter(([_, v]) => v !== null).length,
-              newEntriesCount: localStagedEntries.length,
-              excludedCount: getExcludedCount(),
-              totalChange: getTotalChange(),
-              changePercentage: getChangePercentage(),
+              modifiedCount,
+              newEntriesCount,
+              excludedCount,
+              totalChange,
+              changePercentage,
             }}
           />
         )
@@ -343,10 +290,10 @@ export function ForecastWizard({
             newEntries={localStagedEntries}
             reason={forecastReason}
             totals={{
-              currentTotal: getTotalBudget(),
-              forecastTotal: getTotalForecast(),
-              totalChange: getTotalChange(),
-              changePercentage: getChangePercentage(),
+              currentTotal: totalBudget,
+              forecastTotal: totalForecast,
+              totalChange,
+              changePercentage,
             }}
           />
         )
@@ -355,10 +302,10 @@ export function ForecastWizard({
         return (
           <ConfirmStep
             isSaving={isSaving}
-            totalChanges={getModifiedItemsCount()}
-            totalForecast={getTotalForecast()}
-            totalChange={getTotalChange()}
-            changePercentage={getChangePercentage()}
+            totalChanges={modifiedCount + newEntriesCount}
+            totalForecast={totalForecast}
+            totalChange={totalChange}
+            changePercentage={changePercentage}
             reason={forecastReason}
           />
         )

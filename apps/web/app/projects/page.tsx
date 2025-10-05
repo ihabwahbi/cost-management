@@ -6,6 +6,7 @@ import { EntryStatusIndicator } from "@/components/entry-status-indicator"
 import { UnsavedChangesBar } from "@/components/unsaved-changes-bar"
 import { ForecastWizard } from "@/components/cells/forecast-wizard/component"
 import { CostBreakdownTableCell } from "@/components/cells/cost-breakdown-table-cell/component"
+import { VersionManagementCell } from "@/components/cells/version-management-cell/component"
 import { VersionHistoryTimeline } from "@/components/version-history-timeline"
 import { VersionComparison } from "@/components/version-comparison"
 import { useToast } from "@/hooks/use-toast"
@@ -1329,30 +1330,16 @@ export default function ProjectsPage() {
     }
   }
 
-  const handleVersionChange = async (projectId: string, version: string) => {
-    console.log(`[Version Change] Project: ${projectId}, Version: ${version}`)
+  const handleVersionChange = async (projectId: string, version: number | "latest") => {
+    const versionNumber = typeof version === "string" ? version : version
     
-    const versionNumber = version === "latest" ? "latest" : Number.parseInt(version)
-    
-    // Don't reload if already on this version
-    const currentVersion = activeVersion[projectId]
-    if (currentVersion === versionNumber || 
-        currentVersion?.toString() === versionNumber?.toString()) {
-      console.log(`[Version Change] Already on version ${versionNumber}, skipping`)
-      return
-    }
-    
-    console.log(`[Version Change] Switching from ${currentVersion} to ${versionNumber}`)
-    
-    // Update version state - Cell will auto-refresh via prop change
     setActiveVersion(prev => ({ 
       ...prev, 
       [projectId]: versionNumber 
     }))
     
-    // Also update forecast wizard data if wizard is open for this project
+    // Update forecast wizard data if wizard is open for this project
     if (showForecastWizard === projectId) {
-      console.log(`[Version Change] Updating forecast wizard data`)
       await loadForecastWizardData(projectId)
     }
   }
@@ -2178,16 +2165,12 @@ export default function ProjectsPage() {
                     {/* Version History Timeline */}
                     {forecastVersions[project.id] && forecastVersions[project.id].length > 0 && (
                       <div className="mb-6">
-                        <VersionHistoryTimeline
-                          versions={forecastVersions[project.id]}
-                          currentVersion={activeVersion[project.id] || "latest"}
-                          onVersionSelect={(version) => handleVersionChange(project.id, version.toString())}
-                          onCompareVersions={async (v1, v2) => {
-                            setCompareVersions({v1, v2})
-                            setShowVersionComparison(project.id)
-                            await loadComparisonData(project.id, v1, v2)
-                          }}
-                          isLoading={loadingVersionData[project.id]}
+                        <VersionManagementCell
+                          projectId={project.id}
+                          projectName={project.name}
+                          activeVersion={activeVersion[project.id] ?? "latest"}
+                          onVersionChange={(version) => handleVersionChange(project.id, version)}
+                          onOpenForecastWizard={() => startForecasting(project.id)}
                         />
                       </div>
                     )}
@@ -2195,28 +2178,6 @@ export default function ProjectsPage() {
                     <div className="flex items-center justify-between mb-4">
                       <h4 className="text-lg font-semibold">Cost Breakdown</h4>
                       <div className="flex items-center gap-2">
-                        {forecastVersions[project.id] && forecastVersions[project.id].length > 0 && (
-                          <select
-                            value={activeVersion[project.id]?.toString() || "latest"}
-                            onChange={(e) => {
-                              console.log('Dropdown changed to:', e.target.value)
-                              handleVersionChange(project.id, e.target.value)
-                            }}
-                            className="px-3 py-1 border border-gray-300 rounded-md text-sm"
-                            disabled={loadingVersionData[project.id]}
-                          >
-                            <option value="latest">Latest</option>
-                            <option value="0">Version 0 (Original)</option>
-                            {forecastVersions[project.id]
-                              .filter(v => v.version_number !== 0) // Exclude 0 if it exists in the list
-                              .map((version) => (
-                                <option key={version.id} value={version.version_number.toString()}>
-                                  Version {version.version_number}
-                                </option>
-                              ))}
-                          </select>
-                        )}
-
                         {isInitialBudgetMode === project.id ? (
                           <div className="flex items-center gap-2">
                             <span className="text-sm text-blue-600 font-medium">

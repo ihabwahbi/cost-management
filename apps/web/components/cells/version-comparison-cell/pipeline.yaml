@@ -1,0 +1,50 @@
+version: "1.0"
+gates:
+  - name: types
+    description: "TypeScript compilation with zero errors"
+    command: "pnpm type-check"
+    requirement: "zero_errors"
+    automated: true
+    
+  - name: tests
+    description: "Unit tests with ≥80% coverage"
+    command: "pnpm test apps/web/components/cells/version-comparison-cell"
+    requirements:
+      - "all_tests_pass"
+      - "coverage_gte_80_percent"
+      - "all_behavioral_assertions_verified"
+    automated: true
+    
+  - name: build
+    description: "Production build succeeds"
+    command: "pnpm build"
+    requirement: "build_success"
+    automated: true
+    
+  - name: performance
+    description: "Component performance ≤110% baseline"
+    baseline_render_time_ms: 50
+    max_acceptable_ms: 55
+    measurement_tool: "React DevTools Profiler"
+    requirement: "render_time_lte_110_percent_baseline"
+    automated: false
+    
+  - name: accessibility
+    description: "WCAG AA compliance for Sheet/Dialog"
+    standard: "WCAG_AA"
+    checks:
+      - "Sheet has proper aria-describedby"
+      - "Dialog has proper aria labels"
+      - "Keyboard navigation works (Tab, Esc)"
+      - "Focus management correct on open/close"
+    automated: false
+
+validation:
+  human_required: true
+  reason: "Complex visualization component - verify charts render correctly and export works"
+  checks:
+    - "Open comparison in browser"
+    - "Verify all three tabs (overview, details, charts) display correctly"
+    - "Test filtering (view modes, category, search)"
+    - "Test CSV export (download and verify content)"
+    - "Verify no console errors"

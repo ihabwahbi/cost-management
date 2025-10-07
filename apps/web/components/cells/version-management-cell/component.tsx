@@ -28,6 +28,7 @@ interface VersionManagementCellProps {
   activeVersion: number | "latest"
   onVersionChange: (versionNumber: number | "latest") => void
   onOpenForecastWizard: () => void
+  onCompareVersions?: (v1: number, v2: number) => void
 }
 
 export function VersionManagementCell({
@@ -36,6 +37,7 @@ export function VersionManagementCell({
   activeVersion,
   onVersionChange,
   onOpenForecastWizard,
+  onCompareVersions,
 }: VersionManagementCellProps) {
   const { toast } = useToast()
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
@@ -192,6 +194,7 @@ export function VersionManagementCell({
         versions={transformedVersions}
         currentVersion={activeVersion}
         onVersionSelect={(versionNumber) => onVersionChange(versionNumber)}
+        onCompareVersions={onCompareVersions}
       />
       
       {/* Delete Confirmation Dialog */}

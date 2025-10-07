@@ -1,0 +1,20 @@
+gates:
+  - name: types
+    command: pnpm type-check
+    requirement: Zero TypeScript errors
+    
+  - name: tests
+    command: pnpm test -- __tests__/component.test.tsx
+    requirement: All tests pass, coverage ≥80%
+    
+  - name: build
+    command: pnpm build
+    requirement: Production build succeeds
+    
+  - name: performance
+    requirement: Load time ≤110% of baseline (from manual validation)
+    measurement: React DevTools Profiler
+    
+  - name: accessibility
+    standard: WCAG AA
+    requirement: Manual accessibility review

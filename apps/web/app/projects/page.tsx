@@ -15,7 +15,7 @@ import { LocalStorageService } from "@/lib/local-storage-service"
 import { Button } from "@/components/ui/button"
 import { InlineEdit } from "@/components/inline-edit"
 import { KeyboardShortcutsHelp } from "@/components/keyboard-shortcuts-help"
-import { BudgetComparison } from "@/components/budget-comparison"
+import { POBudgetComparisonCell } from "@/components/cells/po-budget-comparison-cell/component"
 import { useRouter } from "next/navigation"
 
 interface Project {
@@ -121,10 +121,6 @@ export default function ProjectsPage() {
   const [deletingProject, setDeletingProject] = useState<string | null>(null)
   const supabase = createClient()
   
-  // PO mapping state for budget vs actual
-  const [poMappings, setPoMappings] = useState<Record<string, any>>({})
-  const [loadingPoData, setLoadingPoData] = useState<Record<string, boolean>>({})
-
   const [creatingNewProject, setCreatingNewProject] = useState(false)
   const [newProjectData, setNewProjectData] = useState({
     name: "",
@@ -852,108 +848,7 @@ export default function ProjectsPage() {
   }
 
   // Fetch and aggregate PO mappings for a project
-  const fetchPOMappings = async (projectId: string) => {
-    setLoadingPoData(prev => ({ ...prev, [projectId]: true }))
-    
-    try {
-      // First get PO mappings for this project
-      const { data: mappings, error: mappingsError } = await supabase
-        .from('po_mappings')
-        .select(`
-          id,
-          project_id,
-          po_number,
-          line_item_number,
-          cost_breakdown_id,
-          amount
-        `)
-        .eq('project_id', projectId)
-      
-      if (mappingsError) throw mappingsError
-      
-      if (mappings && mappings.length > 0) {
-        // Get unique PO/line item combinations
-        const poLineItems = mappings.map(m => ({
-          po_number: m.po_number,
-          line_item: m.line_item_number
-        }))
-        
-        // Fetch PO line item details
-        const { data: lineItems, error: lineItemsError } = await supabase
-          .from('po_line_items')
-          .select(`
-            po_number,
-            line_item,
-            net_value_usd,
-            invoiced_value_usd,
-            open_value_usd,
-            material_description
-          `)
-          .or(poLineItems.map(item => 
-            `and(po_number.eq.${item.po_number},line_item.eq.${item.line_item})`
-          ).join(','))
-        
-        if (lineItemsError) throw lineItemsError
-        
-        // Create a map for quick lookup
-        const lineItemMap = new Map()
-        lineItems?.forEach(item => {
-          lineItemMap.set(`${item.po_number}-${item.line_item}`, item)
-        })
-        
-        // Aggregate totals
-        const totals = {
-          total: 0,
-          invoiced: 0,
-          open: 0,
-          mappingCount: mappings.length,
-          mappings: mappings.map(mapping => {
-            const lineItem = lineItemMap.get(`${mapping.po_number}-${mapping.line_item_number}`)
-            return {
-              ...mapping,
-              lineItemDetails: lineItem || null
-            }
-          })
-        }
-        
-        // Calculate aggregates
-        mappings.forEach(mapping => {
-          const lineItem = lineItemMap.get(`${mapping.po_number}-${mapping.line_item_number}`)
-          if (lineItem) {
-            // Use the mapped amount or the full line item value
-            const mappedRatio = mapping.amount ? mapping.amount / lineItem.net_value_usd : 1
-            totals.total += lineItem.net_value_usd * mappedRatio
-            totals.invoiced += lineItem.invoiced_value_usd * mappedRatio
-            totals.open += lineItem.open_value_usd * mappedRatio
-          }
-        })
-        
-        setPoMappings(prev => ({ ...prev, [projectId]: totals }))
-      } else {
-        // No mappings found
-        setPoMappings(prev => ({ 
-          ...prev, 
-          [projectId]: {
-            total: 0,
-            invoiced: 0,
-            open: 0,
-            mappingCount: 0,
-            mappings: []
-          }
-        }))
-      }
-    } catch (error) {
-      console.error('Error fetching PO mappings:', error)
-      toast({
-        variant: "destructive",
-        title: "Failed to Load PO Data",
-        description: "Unable to fetch PO mappings for budget comparison",
-      })
-    } finally {
-      setLoadingPoData(prev => ({ ...prev, [projectId]: false }))
-    }
-  }
-  
+
   const loadForecastVersions = async (projectId: string) => {
     try {
       const { data, error } = await supabase
@@ -1659,10 +1554,7 @@ export default function ProjectsPage() {
         }
       }
       
-      // Load PO mappings
-      if (!poMappings[project.id]) {
-        await fetchPOMappings(project.id)
-      }
+
     }
   }
 
@@ -2148,19 +2040,15 @@ export default function ProjectsPage() {
                 {expandedProjects.has(project.id) && (
                   <div className="mt-6 border-t pt-6">
                     {/* Budget vs Actual Comparison */}
-                    {poMappings[project.id] && (
-                      <div className="mb-6">
-                        <BudgetComparison
-                          budget={getTotalBudget(costBreakdowns[project.id] || [])}
-                          actual={poMappings[project.id]}
-                          loading={loadingPoData[project.id]}
-                          className="mb-4"
-                          onViewDetails={() => {
-                            router.push(`/po-mapping?project=${project.id}`)
-                          }}
-                        />
-                      </div>
-                    )}
+                    <div className="mb-6">
+                      <POBudgetComparisonCell
+                        projectId={project.id}
+                        onViewDetails={() => {
+                          router.push(`/po-mapping?project=${project.id}`)
+                        }}
+                        className="mb-4"
+                      />
+                    </div>
                     
                     {/* Version History Timeline */}
                     {forecastVersions[project.id] && forecastVersions[project.id].length > 0 && (

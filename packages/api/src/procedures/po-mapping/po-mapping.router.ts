@@ -8,10 +8,11 @@ import { createMapping } from './create-mapping.procedure';
 import { updateMapping } from './update-mapping.procedure';
 import { clearMappings } from './clear-mappings.procedure';
 import { getCostBreakdownById } from './get-cost-breakdown-by-id.procedure';
+import { getPOSummary } from './get-po-summary.procedure';
 
 /**
  * PO Mapping Domain Router
- * Aggregates all PO mapping procedures (9 total: 6 queries + 3 mutations)
+ * Aggregates all PO mapping procedures (10 total: 7 queries + 3 mutations)
  */
 export const poMappingRouter = router({
   getProjects,                // Direct reference
@@ -23,4 +24,5 @@ export const poMappingRouter = router({
   updateMapping,              // Direct reference (mutation)
   clearMappings,              // Direct reference (mutation)
   getCostBreakdownById,       // Direct reference
+  getPOSummary,               // Direct reference (NEW - Phase 6)
 });

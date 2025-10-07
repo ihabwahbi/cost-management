@@ -206,9 +206,11 @@ mandate_verification:
     requirements:
       - "New Cell structure fully implemented"
       - "Old component DELETED in same commit"
-      - "No parallel implementations (-v2, -fixed suffixes)"
+      - "No parallel implementations (comprehensive check via validator script)"
       - "All imports updated"
-    verification: "Check git diff, grep for old component name"
+    verification: "Run ./scripts/validate-no-parallel-implementations.sh (3 detection strategies)"
+    command: "./scripts/validate-no-parallel-implementations.sh"
+    exit_code_enforcement: "Exit 0 = pass, Exit 1 = M-CELL-2 violation"
     severity: "CRITICAL"
     
   M_CELL_3_file_sizes:
@@ -505,14 +507,23 @@ pnpm lint
    find apps/web/components -name "[old-component-name].tsx"
    grep -r "[old-component-name]" apps/web/components
    ```
-3. Check for parallel implementations:
+3. Check for parallel implementations (COMPREHENSIVE):
    ```bash
-   # Should return NO results
-   find . -name "*-v2.*" -o -name "*-fixed.*" -o -name "*-new.*"
+   # Run comprehensive parallel implementation validator
+   ./scripts/validate-no-parallel-implementations.sh
    ```
+   **This validator checks 3 strategies**:
+   - Strategy 1: Filename patterns (*-v2, *-enhanced, *-improved, etc.)
+   - Strategy 2: Router deprecation comments ("deprecated", "backward compat")
+   - Strategy 3: Semantic base name duplication (e.g., getForecastData + getForecastDataEnhanced)
+   
+   **Exit codes**:
+   - 0 = No violations (M-CELL-2 compliant)
+   - 1 = Violations detected (M-CELL-2 violation → MIGRATION FAILS)
+   
 4. Verify atomic commit (single commit with all changes)
 
-**CRITICAL**: If old component still exists → Migration FAILS (M-CELL-2 violation)
+**CRITICAL**: If old component still exists OR parallel implementations detected → Migration FAILS (M-CELL-2 violation)
 
 ✓ Verify: M-CELL-2 compliance checked
 

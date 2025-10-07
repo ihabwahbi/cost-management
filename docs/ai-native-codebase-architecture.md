@@ -493,6 +493,113 @@ When refactoring existing codebases to the Living Blueprint Architecture:
 
 **Key Principle:** Maintain absolute leanness through 100% architecture adoption. AI agents work best with single, clean implementations - not parallel versions or conditional logic.
 
+#### 4.1.1. Enforcement: Automated Parallel Implementation Prevention
+
+**Problem**: Parallel implementations create agent confusion and maintenance burden
+**Solution**: Multi-layer enforcement with git-level hard blocking
+
+**Enforcement Layers**:
+
+1. **Pre-Commit Hook** (MANDATORY GATE)
+   ```bash
+   # Runs automatically on every git commit
+   # Blocks commits with parallel implementations
+   ./scripts/validate-no-parallel-implementations.sh
+   
+   # Exit 0 = Clean (commit proceeds)
+   # Exit 1 = Violations detected (commit BLOCKED)
+   ```
+
+2. **Phase 5 Validator** (Migration-Level Check)
+   - Runs during migration validation
+   - Checks THIS migration's artifacts
+   - Fails migration if parallel implementations found
+
+3. **Phase 6 Health Monitor** (System-Wide Scan)
+   - Scans entire codebase for violations
+   - Tracks architecture debt over time
+   - Can PAUSE migrations if critical violations accumulate
+
+**Detection Strategies (3-Layer Comprehensive Scan)**:
+
+| Strategy | What It Detects | Severity |
+|----------|-----------------|----------|
+| **1. Filename Patterns** | `*-v2`, `*-enhanced`, `*-improved`, `*-updated` | Informational |
+| **2. Router Comments** | "deprecated", "backward compat", "keep for" | HIGH (hard block) |
+| **3. Semantic Duplication** | Multiple procedures with similar base names | HIGH (hard block) |
+
+**Setup**:
+```bash
+# One-time setup per developer machine
+./scripts/setup-validation-hooks.sh
+
+# Installs pre-commit hook to .git/hooks/
+# Makes all commits enforce M3 automatically
+```
+
+**Bypass (NOT RECOMMENDED)**:
+```bash
+git commit --no-verify  # Bypasses pre-commit hook
+# ⚠️ Only use for documented architectural decisions
+# ⚠️ Phase 5/6 validators will still catch violations
+```
+
+**Policy: Deprecation & Backward Compatibility**
+
+If temporary coexistence is ABSOLUTELY required (e.g., external API compatibility):
+
+1. Add deprecation comment with removal timeline:
+   ```typescript
+   // DEPRECATED - Remove in migration [N+2] (by YYYY-MM-DD)
+   ```
+
+2. Maximum coexistence: **2 migrations**
+3. Document justification in ledger
+4. Update all internal usage immediately
+5. Remove deprecated version by timeline (pre-commit hook enforces)
+
+**Anti-Pattern Examples**:
+
+❌ **FORBIDDEN** - Parallel implementations:
+```typescript
+// forecasts.router.ts
+export const forecastsRouter = router({
+  getForecastData,              // Old version
+  getForecastDataEnhanced,      // New version
+})
+```
+
+✅ **CORRECT** - Single implementation:
+```typescript
+// forecasts.router.ts
+export const forecastsRouter = router({
+  getForecastDataEnhanced,      // Only version
+})
+```
+
+❌ **FORBIDDEN** - Version suffixes without cleanup:
+```
+get-forecast-data.procedure.ts              ← Old
+get-forecast-data-enhanced.procedure.ts     ← New (both exist)
+```
+
+✅ **CORRECT** - Clean replacement:
+```
+get-forecast-data-enhanced.procedure.ts     ← Only file
+```
+
+**Validation Commands**:
+```bash
+# Manual validation anytime
+./scripts/validate-no-parallel-implementations.sh
+
+# Check specific domain
+find packages/api/src/procedures/forecasts -name "*.procedure.ts"
+
+# Verify router exports
+cat packages/api/src/procedures/forecasts/forecasts.router.ts
+```
+
 ### 4.2. Cell Migration Workflow
 
 ```yaml

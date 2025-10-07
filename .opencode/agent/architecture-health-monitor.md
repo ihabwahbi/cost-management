@@ -868,10 +868,25 @@ Count components with business logic NOT in Cell structure.
 **Direct DB calls (already scanned in Phase 2):**
 Count from previous scan.
 
-**Parallel implementations:**
+**Parallel implementations (COMPREHENSIVE CHECK):**
 ```bash
-find . -name '*-v2.*' -o -name '*-fixed.*' -o -name '*-new.*' -o -name '*-worldclass.*' | wc -l
+# Run comprehensive parallel implementation validator (exit 0 = clean, exit 1 = violations)
+./scripts/validate-no-parallel-implementations.sh
+
+# Count violations if any found
+if [ $? -ne 0 ]; then
+  # Count actual violations (Strategy 2 + Strategy 3 are enforced)
+  # Note: Strategy 1 may show informational matches that aren't violations
+  echo "Parallel implementations detected - see validator output for details"
+fi
 ```
+
+**Detection Strategies (3-layer comprehensive scan)**:
+1. Filename patterns: `*-v2`, `*-enhanced`, `*-improved`, `*-updated`, etc.
+2. Router comments: "deprecated", "backward compat", "keep for", "legacy"
+3. Semantic duplication: Multiple procedures with similar base names
+
+**Architecture Debt**: 3 points per HIGH severity instance (router comments or semantic duplication)
 
 **Feature flags:**
 ```bash

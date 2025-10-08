@@ -11,10 +11,12 @@ import { getCostBreakdownById } from './get-cost-breakdown-by-id.procedure';
 import { getPOSummary } from './get-po-summary.procedure';
 import { getPOsWithLineItems } from './get-pos-with-line-items.procedure';
 import { getCostBreakdownsForMapping } from './get-cost-breakdowns-for-mapping.procedure';
+import { bulkCreateMappings } from './bulk-create-mappings.procedure';
+import { clearMappingsForPO } from './clear-mappings-for-po.procedure';
 
 /**
  * PO Mapping Domain Router
- * Aggregates all PO mapping procedures (12 total: 9 queries + 3 mutations)
+ * Aggregates all PO mapping procedures (14 total: 9 queries + 5 mutations)
  */
 export const poMappingRouter = router({
   getProjects,                     // Direct reference
@@ -27,6 +29,8 @@ export const poMappingRouter = router({
   clearMappings,                   // Direct reference (mutation)
   getCostBreakdownById,            // Direct reference
   getPOSummary,                    // Direct reference (Phase 6)
-  getPOsWithLineItems,             // Direct reference (Phase A - query procedures)
-  getCostBreakdownsForMapping,     // Direct reference (Phase A - query procedures)
+  getPOsWithLineItems,             // Direct reference (Phase A - query)
+  getCostBreakdownsForMapping,     // Direct reference (Phase A - query)
+  bulkCreateMappings,              // Direct reference (Phase B - mutation with transaction)
+  clearMappingsForPO,              // Direct reference (Phase B - mutation with transaction)
 });

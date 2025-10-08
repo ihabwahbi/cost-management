@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -23,7 +23,8 @@ export function FilterSidebarCell({ onFilterChange }: FilterSidebarCellProps) {
   const [dateRange, setDateRange] = useState<DateRange | undefined>()
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null)
 
-  const datePresets = getDatePresets()
+  // Memoize date presets to prevent new Date objects on every render
+  const datePresets = useMemo(() => getDatePresets(), [])
 
   const getActiveFilters = (): ActiveFilter[] => {
     const active: ActiveFilter[] = []
@@ -44,10 +45,9 @@ export function FilterSidebarCell({ onFilterChange }: FilterSidebarCellProps) {
       location: location === "all" ? undefined : location,
       fmtPo: fmtPo ? true : undefined,
       mappingStatus: mappingStatus === "all" ? undefined : (mappingStatus as "mapped" | "unmapped"),
-      poNumbers: poNumbers.trim(), // ✅ FIXED: Now trimmed (was line 118 issue)
+      poNumbers: poNumbers.trim(),
       dateRange: dateRange,
     }
-    // ✅ Debug console.log REMOVED (was line 121)
     onFilterChange(filters)
   }
 
@@ -55,7 +55,9 @@ export function FilterSidebarCell({ onFilterChange }: FilterSidebarCellProps) {
     applyFilters()
   }, [location, fmtPo, mappingStatus, poNumbers, dateRange])
 
-  const handleReset = () => {
+  const handleReset = (e?: React.MouseEvent) => {
+    e?.preventDefault()
+    e?.stopPropagation()
     setLocation("all")
     setFmtPo(false)
     setMappingStatus("all")
@@ -85,7 +87,9 @@ export function FilterSidebarCell({ onFilterChange }: FilterSidebarCellProps) {
     }
   }
 
-  const handlePresetSelect = (preset: { label: string; range: DateRange }) => {
+  const handlePresetSelect = (e: React.MouseEvent, preset: { label: string; range: DateRange }) => {
+    e.preventDefault()
+    e.stopPropagation()
     setDateRange(preset.range)
     setSelectedPreset(preset.label)
   }
@@ -117,7 +121,11 @@ export function FilterSidebarCell({ onFilterChange }: FilterSidebarCellProps) {
                   key={filter.key}
                   variant="outline"
                   className="bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100 transition-colors cursor-pointer group"
-                  onClick={() => removeFilter(filter.key)}
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    removeFilter(filter.key)
+                  }}
                 >
                   <span className="text-xs font-medium">{filter.label}</span>
                   <XIcon className="ml-1 h-3 w-3 group-hover:text-blue-900" />
@@ -125,9 +133,10 @@ export function FilterSidebarCell({ onFilterChange }: FilterSidebarCellProps) {
               ))}
             </div>
             <Button
+              type="button"
               variant="ghost"
               size="sm"
-              onClick={handleReset}
+              onClick={(e) => handleReset(e)}
               className="h-7 px-2 text-xs text-slate-600 hover:text-slate-900 hover:bg-slate-100"
             >
               <RotateCcwIcon className="mr-1 h-3 w-3" />
@@ -150,9 +159,10 @@ export function FilterSidebarCell({ onFilterChange }: FilterSidebarCellProps) {
               {datePresets.recent.map((preset) => (
                 <Button
                   key={preset.label}
+                  type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => handlePresetSelect(preset)}
+                  onClick={(e) => handlePresetSelect(e, preset)}
                   className={cn(
                     "h-9 text-xs font-medium transition-all border-slate-200 hover:border-blue-300 hover:bg-blue-50",
                     selectedPreset === preset.label
@@ -173,9 +183,10 @@ export function FilterSidebarCell({ onFilterChange }: FilterSidebarCellProps) {
               {datePresets.periods.map((preset) => (
                 <Button
                   key={preset.label}
+                  type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => handlePresetSelect(preset)}
+                  onClick={(e) => handlePresetSelect(e, preset)}
                   className={cn(
                     "h-9 text-xs font-medium transition-all border-slate-200 hover:border-blue-300 hover:bg-blue-50",
                     selectedPreset === preset.label
@@ -196,6 +207,7 @@ export function FilterSidebarCell({ onFilterChange }: FilterSidebarCellProps) {
               <PopoverTrigger asChild>
                 <Button
                   id="date-range"
+                  type="button"
                   variant="outline"
                   className={cn(
                     "w-full justify-start text-left font-normal h-10 transition-all border-slate-200",
@@ -272,7 +284,12 @@ export function FilterSidebarCell({ onFilterChange }: FilterSidebarCellProps) {
               <span className="text-xs text-slate-500">Show only FMT purchase orders</span>
             </div>
             <button
-              onClick={() => setFmtPo(!fmtPo)}
+              type="button"
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                setFmtPo(!fmtPo)
+              }}
               className={cn(
                 "relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2",
                 fmtPo ? "bg-blue-600" : "bg-slate-200",
@@ -299,7 +316,12 @@ export function FilterSidebarCell({ onFilterChange }: FilterSidebarCellProps) {
             ].map((option) => (
               <button
                 key={option.value}
-                onClick={() => setMappingStatus(option.value)}
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  setMappingStatus(option.value)
+                }}
                 className={cn(
                   "flex-1 px-3 py-2 text-sm font-medium rounded-md transition-all",
                   mappingStatus === option.value

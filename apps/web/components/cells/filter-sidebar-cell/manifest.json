@@ -1,0 +1,119 @@
+{
+  "id": "filter-sidebar-cell",
+  "version": "1.0.0",
+  "description": "Filter panel for PO mapping with date presets, location, status, and number filtering",
+  "behavioral_assertions": [
+    {
+      "id": "BA-001",
+      "description": "Component initializes with all filters in default/neutral state",
+      "verification": "Mount component, verify all state values match defaults (location='all', fmtPo=false, mappingStatus='all', poNumbers='', dateRange=undefined, selectedPreset=null)",
+      "source": "Lines 90-95 from original filter-sidebar.tsx"
+    },
+    {
+      "id": "BA-002",
+      "description": "Displays active filter count badge when filters are applied",
+      "verification": "Apply 3 filters, verify badge shows '3 active'",
+      "source": "Lines 176-180 from original"
+    },
+    {
+      "id": "BA-003",
+      "description": "Shows individual filter badges with remove buttons",
+      "verification": "Apply multiple filters, verify each has clickable badge with X icon",
+      "source": "Lines 186-196 from original"
+    },
+    {
+      "id": "BA-004",
+      "description": "Automatically calls onFilterChange when any filter state changes",
+      "verification": "Change filter state, verify callback invoked with updated filters object",
+      "source": "Lines 125-127 from original (useEffect auto-apply)",
+      "critical": true
+    },
+    {
+      "id": "BA-005",
+      "description": "Date preset selection updates dateRange and highlights preset button",
+      "verification": "Click 'Last 7 days' preset, verify dateRange state updated and button shows default variant",
+      "source": "Lines 159-162, 229 from original"
+    },
+    {
+      "id": "BA-006",
+      "description": "Custom date range selection clears preset highlight",
+      "verification": "Select preset then open calendar and select custom range, verify selectedPreset becomes null",
+      "source": "Lines 164-167 from original"
+    },
+    {
+      "id": "BA-007",
+      "description": "Individual filter removal via badge click resets that filter only",
+      "verification": "Apply location + fmtPo filters, click location badge X, verify only location reset to 'all' and fmtPo remains true",
+      "source": "Lines 138-157 from original (removeFilter function)"
+    },
+    {
+      "id": "BA-008",
+      "description": "Clear all button resets all filters to defaults",
+      "verification": "Apply multiple filters, click 'Clear all' button, verify all state reset",
+      "source": "Lines 129-136 from original (handleReset)",
+      "critical": true
+    },
+    {
+      "id": "BA-009",
+      "description": "Displays empty state message when no filters are active",
+      "verification": "Ensure no filters applied, verify 'No filters applied' message visible",
+      "source": "Lines 404-418 from original"
+    },
+    {
+      "id": "BA-010",
+      "description": "Location select shows visual highlight when not 'all'",
+      "verification": "Change location to 'Jandakot', verify select shows border-blue-500 styling",
+      "source": "Line 324 from original"
+    },
+    {
+      "id": "BA-011",
+      "description": "FMT PO toggle switches between enabled/disabled with visual feedback",
+      "verification": "Click FMT PO toggle, verify fmtPo state flips and toggle animation runs (translate-x-6 vs translate-x-1)",
+      "source": "Lines 345-358 from original (custom toggle)"
+    },
+    {
+      "id": "BA-012",
+      "description": "Mapping status segmented control allows switching between all/mapped/unmapped",
+      "verification": "Click each segment (all, mapped, unmapped), verify state updates and visual selection (bg-blue-600)",
+      "source": "Lines 365-384 from original (segmented control)"
+    },
+    {
+      "id": "BA-013",
+      "description": "PO numbers textarea shows active state when not empty",
+      "verification": "Enter PO number '12345', verify textarea shows border-blue-500",
+      "source": "Lines 397-401 from original"
+    },
+    {
+      "id": "BA-014",
+      "description": "Trims whitespace from PO numbers before passing to parent callback",
+      "verification": "Enter '  12345  ' in PO numbers, verify onFilterChange callback receives {poNumbers: '12345'} (trimmed)",
+      "source": "Line 118 from original (FIXED: now trimmed in applyFilters)",
+      "critical": true
+    }
+  ],
+  "dependencies": {
+    "data": [],
+    "ui": [
+      "@/components/ui/card",
+      "@/components/ui/select",
+      "@/components/ui/calendar",
+      "@/components/ui/popover",
+      "@/components/ui/textarea",
+      "@/components/ui/button",
+      "@/components/ui/badge",
+      "@/components/ui/label",
+      "lucide-react"
+    ],
+    "utilities": [
+      "@/lib/date-preset-utils",
+      "@/lib/utils",
+      "@/types/filters"
+    ]
+  },
+  "notes": [
+    "Pure UI Cell - no database dependencies",
+    "Extracted helpers: date-preset-utils.ts, filters.ts",
+    "Icons replaced with lucide-react",
+    "Fixed: PO number trimming (line 118), removed debug log (line 121), removed dead code (lines 57-58)"
+  ]
+}

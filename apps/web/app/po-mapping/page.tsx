@@ -3,11 +3,12 @@
 import { useState, useEffect } from "react"
 import { AppShell } from "@/components/app-shell"
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable"
-import { FilterSidebar } from "@/components/filter-sidebar"
+import { FilterSidebarCell } from "@/components/cells/filter-sidebar-cell/component"
 import { POTable } from "@/components/po-table"
 import { DetailsPanel } from "@/components/cells/details-panel/component"
 import { BatchActionBar } from "@/components/batch-action-bar"
 import { createClient } from "@/lib/supabase/client"
+import type { POFilters } from "@/types/filters"
 
 interface PO {
   id: string
@@ -152,7 +153,7 @@ export default function POMapping() {
     setSelectedPOs(poIds)
   }
 
-  const handleFilterChange = (filters: any) => {
+  const handleFilterChange = (filters: POFilters) => {
     console.log("[v0] Applying filters:", filters)
     let filtered = allPOs
 
@@ -164,21 +165,21 @@ export default function POMapping() {
     if (filters.dateRange?.from || filters.dateRange?.to) {
       filtered = filtered.filter((po) => {
         const poDate = new Date(po.po_creation_date)
-        if (filters.dateRange.from && poDate < filters.dateRange.from) return false
-        if (filters.dateRange.to && poDate > filters.dateRange.to) return false
+        if (filters.dateRange?.from && poDate < filters.dateRange.from) return false
+        if (filters.dateRange?.to && poDate > filters.dateRange.to) return false
         return true
       })
     }
 
-    if (filters.location && filters.location !== "all") {
-      filtered = filtered.filter((po) => po.location.toLowerCase() === filters.location.toLowerCase())
+    if (filters.location) {
+      filtered = filtered.filter((po) => po.location.toLowerCase() === filters.location?.toLowerCase())
     }
 
-    if (filters.fmtPo !== undefined) {
-      filtered = filtered.filter((po) => po.fmt_po === filters.fmtPo)
+    if (filters.fmtPo) {
+      filtered = filtered.filter((po) => po.fmt_po === true)
     }
 
-    if (filters.mappingStatus && filters.mappingStatus !== "all") {
+    if (filters.mappingStatus) {
       if (filters.mappingStatus === "mapped") {
         filtered = filtered.filter((po) => po.mapped_count && po.mapped_count > 0)
       } else if (filters.mappingStatus === "unmapped") {
@@ -255,7 +256,7 @@ export default function POMapping() {
       <div className="h-[calc(100vh-4rem)]">
         <ResizablePanelGroup direction="horizontal" className="h-full">
           <ResizablePanel defaultSize={20} minSize={15} maxSize={30}>
-            <FilterSidebar onFilterChange={handleFilterChange} />
+            <FilterSidebarCell onFilterChange={handleFilterChange} />
           </ResizablePanel>
 
           <ResizableHandle withHandle />

@@ -11,82 +11,11 @@ import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import type { DateRange } from "react-day-picker"
 import { cn } from "@/lib/utils"
+import { Calendar as CalendarIcon, X as XIcon, RotateCcw as RotateCcwIcon } from "lucide-react"
+import { getDatePresets, formatDate } from "@/lib/date-preset-utils"
+import type { FilterSidebarCellProps, POFilters, ActiveFilter } from "@/types/filters"
 
-const CalendarIcon = ({ className }: { className?: string }) => (
-  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-    <line x1="16" y1="2" x2="16" y2="6" />
-    <line x1="8" y1="2" x2="8" y2="6" />
-    <line x1="3" y1="10" x2="21" y2="10" />
-  </svg>
-)
-
-const XIcon = ({ className }: { className?: string }) => (
-  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <line x1="18" y1="6" x2="6" y2="18" />
-    <line x1="6" y1="6" x2="18" y2="18" />
-  </svg>
-)
-
-const RotateCcwIcon = ({ className }: { className?: string }) => (
-  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <polyline points="1,4 1,10 7,10" />
-    <path d="M3.51,15a9,9,0,0,0,2.13,3.09,9,9,0,0,0,13.37,0,9,9,0,0,0,0-12.72,9,9,0,0,0-9.9-1.92L3.51,9" />
-  </svg>
-)
-
-const formatDate = (date: Date) => {
-  return date.toLocaleDateString("en-US", {
-    month: "short",
-    day: "2-digit",
-    year: "numeric",
-  })
-}
-
-const getDatePresets = () => {
-  const today = new Date()
-  const yesterday = new Date(today)
-  yesterday.setDate(yesterday.getDate() - 1)
-
-  const last7Days = new Date(today)
-  last7Days.setDate(last7Days.getDate() - 7)
-
-  const last30Days = new Date(today)
-  last30Days.setDate(last30Days.getDate() - 30)
-
-  const last90Days = new Date(today)
-  last90Days.setDate(last90Days.getDate() - 90)
-
-  const thisMonth = new Date(today.getFullYear(), today.getMonth(), 1)
-
-  const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1)
-  const lastMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0)
-
-  const thisQuarter = new Date(today.getFullYear(), Math.floor(today.getMonth() / 3) * 3, 1)
-
-  const thisYear = new Date(today.getFullYear(), 0, 1)
-
-  return {
-    recent: [
-      { label: "Today", range: { from: today, to: today } },
-      { label: "Yesterday", range: { from: yesterday, to: yesterday } },
-      { label: "Last 7 days", range: { from: last7Days, to: today } },
-      { label: "Last 30 days", range: { from: last30Days, to: today } },
-    ],
-    periods: [
-      { label: "This month", range: { from: thisMonth, to: today } },
-      { label: "Last month", range: { from: lastMonth, to: lastMonthEnd } },
-      { label: "This quarter", range: { from: thisQuarter, to: today } },
-      { label: "This year", range: { from: thisYear, to: today } },
-    ],
-  }
-}
-
-interface FilterSidebarProps {
-  onFilterChange: (filters: any) => void
-}
-
-export function FilterSidebar({ onFilterChange }: FilterSidebarProps) {
+export function FilterSidebarCell({ onFilterChange }: FilterSidebarCellProps) {
   const [location, setLocation] = useState("all")
   const [fmtPo, setFmtPo] = useState(false)
   const [mappingStatus, setMappingStatus] = useState("all")
@@ -96,8 +25,8 @@ export function FilterSidebar({ onFilterChange }: FilterSidebarProps) {
 
   const datePresets = getDatePresets()
 
-  const getActiveFilters = () => {
-    const active = []
+  const getActiveFilters = (): ActiveFilter[] => {
+    const active: ActiveFilter[] = []
     if (location !== "all") active.push({ key: "location", label: `Location: ${location}`, value: location })
     if (fmtPo) active.push({ key: "fmtPo", label: "FMT PO Only", value: fmtPo })
     if (mappingStatus !== "all")
@@ -111,14 +40,14 @@ export function FilterSidebar({ onFilterChange }: FilterSidebarProps) {
   }
 
   const applyFilters = () => {
-    const filters = {
+    const filters: POFilters = {
       location: location === "all" ? undefined : location,
       fmtPo: fmtPo ? true : undefined,
-      mappingStatus: mappingStatus === "all" ? undefined : mappingStatus,
-      poNumbers: poNumbers,
+      mappingStatus: mappingStatus === "all" ? undefined : (mappingStatus as "mapped" | "unmapped"),
+      poNumbers: poNumbers.trim(), // ✅ FIXED: Now trimmed (was line 118 issue)
       dateRange: dateRange,
     }
-    console.log("[v0] Filter values:", filters)
+    // ✅ Debug console.log REMOVED (was line 121)
     onFilterChange(filters)
   }
 
@@ -296,20 +225,20 @@ export function FilterSidebar({ onFilterChange }: FilterSidebarProps) {
                   )}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
+              <PopoverContent className="w-auto p-0 z-50" align="start" sideOffset={4}>
                 <div className="p-4 border-b bg-slate-50">
                   <h4 className="font-semibold text-sm text-slate-800 mb-1">Custom Date Range</h4>
                   <p className="text-xs text-slate-600">Select specific start and end dates</p>
                 </div>
-                <Calendar
-                  initialFocus
-                  mode="range"
-                  defaultMonth={dateRange?.from}
-                  selected={dateRange}
-                  onSelect={handleCustomDateRange}
-                  numberOfMonths={2}
-                  className="p-3"
-                />
+                <div className="p-3">
+                  <Calendar
+                    mode="range"
+                    defaultMonth={dateRange?.from}
+                    selected={dateRange}
+                    onSelect={handleCustomDateRange}
+                    numberOfMonths={2}
+                  />
+                </div>
               </PopoverContent>
             </Popover>
           </div>

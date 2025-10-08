@@ -1,7 +1,11 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { format } from "date-fns"
+import { trpc } from "@/lib/trpc"
+import { getVersionStatus, calculateVersionChanges, type CostBreakdown } from "@/lib/version-utils"
+import { formatCurrency } from "@/lib/budget-utils"
+import { useCompareDialog } from "@/lib/hooks/use-compare-dialog"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -31,147 +35,108 @@ import {
   Download,
 } from "lucide-react"
 
-interface ForecastVersion {
-  id: string
-  project_id: string
-  version_number: number
-  reason_for_change: string
-  created_at: string
-  created_by: string
-}
-
-interface CostBreakdown {
-  id: string
-  cost_line: string
-  spend_type: string
-  spend_sub_category: string
-  budget_cost: number
-  forecasted_cost?: number
-}
-
-interface VersionHistoryTimelineProps {
-  versions: ForecastVersion[]
+interface VersionHistoryTimelineCellProps {
+  projectId: string
   currentVersion: number | "latest"
   onVersionSelect: (version: number) => void
   onCompareVersions?: (v1: number, v2: number) => void
   costBreakdowns?: Record<number, CostBreakdown[]>
-  isLoading?: boolean
 }
 
-export function VersionHistoryTimeline({
-  versions,
+export function VersionHistoryTimelineCell({
+  projectId,
   currentVersion,
   onVersionSelect,
   onCompareVersions,
   costBreakdowns,
-  isLoading,
-}: VersionHistoryTimelineProps) {
-  const [showCompareDialog, setShowCompareDialog] = useState(false)
-  const [compareFrom, setCompareFrom] = useState<number | null>(null)
-  const [compareTo, setCompareTo] = useState<number | null>(null)
+}: VersionHistoryTimelineCellProps) {
+  // Self-fetching with tRPC
+  const { data: versions, isLoading, error } = trpc.forecasts.getForecastVersions.useQuery(
+    { projectId },
+    {
+      refetchOnMount: false,
+      refetchOnWindowFocus: false,
+      staleTime: 60 * 1000,
+      retry: 1,
+    }
+  )
+  // Dialog state management via custom hook
+  const {
+    showDialog: showCompareDialog,
+    compareFrom,
+    compareTo,
+    setCompareFrom,
+    setCompareTo,
+    handleOpenChange: handleDialogOpenChange,
+    handleCompare,
+  } = useCompareDialog(onCompareVersions)
+  // Local state (1 variable)
   const [expandedVersion, setExpandedVersion] = useState<string | null>(null)
-
-  const sortedVersions = [...versions].sort(
-    (a, b) => b.version_number - a.version_number
+  // Transform camelCase → snake_case (CRITICAL: memoized to prevent infinite loops)
+  const transformedVersions = useMemo(() => {
+    if (!versions) return []
+    
+    return versions.map(v => ({
+      id: v.id,
+      project_id: v.projectId,
+      version_number: v.versionNumber,
+      reason_for_change: v.reasonForChange,
+      created_at: v.createdAt ?? '',
+      created_by: v.createdBy ?? '',
+    }))
+  }, [versions])
+  // Sort versions (CRITICAL: memoized to prevent infinite loops - TP-001 fix)
+  const sortedVersions = useMemo(
+    () => [...transformedVersions].sort((a, b) => b.version_number - a.version_number),
+    [transformedVersions]
   )
 
-  const getVersionStatus = (version: ForecastVersion) => {
-    const versionAge = Date.now() - new Date(version.created_at).getTime()
-    const dayInMs = 1000 * 60 * 60 * 24
-
-    if (versionAge < dayInMs) return { label: "New", variant: "default" as const }
-    if (versionAge < dayInMs * 7) return { label: "Recent", variant: "secondary" as const }
-    if (versionAge < dayInMs * 30) return { label: "Current", variant: "outline" as const }
-    return { label: "Historical", variant: "outline" as const }
-  }
-
-  const calculateVersionChanges = (versionNumber: number): {
-    totalChange: number
-    changePercent: number
-    itemsChanged: number
-  } => {
-    if (!costBreakdowns || versionNumber === 0) {
-      return { totalChange: 0, changePercent: 0, itemsChanged: 0 }
-    }
-
-    const currentCosts = costBreakdowns[versionNumber] || []
-    const previousVersion = versionNumber - 1
-    const previousCosts = costBreakdowns[previousVersion] || []
-
-    let totalChange = 0
-    let itemsChanged = 0
-
-    currentCosts.forEach((current) => {
-      const previous = previousCosts.find((p) => p.id === current.id)
-      if (previous) {
-        const change = (current.forecasted_cost || current.budget_cost) - 
-                      (previous.forecasted_cost || previous.budget_cost)
-        if (change !== 0) {
-          totalChange += change
-          itemsChanged++
-        }
-      } else {
-        totalChange += current.forecasted_cost || current.budget_cost
-        itemsChanged++
-      }
-    })
-
-    const previousTotal = previousCosts.reduce(
-      (sum, cost) => sum + (cost.forecasted_cost || cost.budget_cost),
-      0
-    )
-    const changePercent = previousTotal > 0 ? (totalChange / previousTotal) * 100 : 0
-
-    return { totalChange, changePercent, itemsChanged }
-  }
-
-  // Handle dialog open/close with state reset
-  const handleDialogOpenChange = (open: boolean) => {
-    setShowCompareDialog(open)
-    if (!open) {
-      // Reset state when dialog closes
-      setCompareFrom(null)
-      setCompareTo(null)
-      // Debug instrumentation
-      console.log('[VersionComparison] Dialog state reset:', { 
-        isOpen: open, 
-        compareFrom: null, 
-        compareTo: null,
-        timestamp: Date.now() 
-      })
-    }
-  }
-
-  const handleCompare = () => {
-    if (compareFrom !== null && compareTo !== null && onCompareVersions) {
-      onCompareVersions(compareFrom, compareTo)
-      setShowCompareDialog(false)
-    }
-  }
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount)
-  }
-
+  // Loading state
   if (isLoading) {
     return (
       <Card>
-        <CardContent className="p-6">
-          <div className="animate-pulse space-y-4">
-            <div className="h-4 bg-gray-200 rounded w-1/3"></div>
-            <div className="h-20 bg-gray-200 rounded"></div>
-            <div className="h-20 bg-gray-200 rounded"></div>
+        <CardHeader>
+          <CardTitle>Version History</CardTitle>
+          <CardDescription>Loading versions...</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="h-20 bg-muted animate-pulse rounded" />
+            ))}
           </div>
         </CardContent>
       </Card>
     )
   }
 
+  // Error state
+  if (error) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Version History</CardTitle>
+          <CardDescription className="text-destructive">
+            Error loading versions: {error.message}
+          </CardDescription>
+        </CardHeader>
+      </Card>
+    )
+  }
+
+  // Empty state
+  if (!sortedVersions || sortedVersions.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Version History</CardTitle>
+          <CardDescription>No forecast versions yet</CardDescription>
+        </CardHeader>
+      </Card>
+    )
+  }
+
+  // Success state - render timeline
   return (
     <>
       <Card>
@@ -187,8 +152,8 @@ export function VersionHistoryTimeline({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setShowCompareDialog(true)}
-                disabled={versions.length < 2}
+                onClick={() => handleDialogOpenChange(true)}
+                disabled={sortedVersions.length < 2}
               >
                 <GitCompare className="w-4 h-4 mr-2" />
                 Compare
@@ -212,8 +177,8 @@ export function VersionHistoryTimeline({
 
               {/* Version items */}
               {sortedVersions.map((version, index) => {
-                const changes = calculateVersionChanges(version.version_number)
-                const status = getVersionStatus(version)
+                const changes = calculateVersionChanges(version.version_number, costBreakdowns)
+                const status = getVersionStatus(version.created_at)
                 const isActive = 
                   currentVersion === version.version_number ||
                   (currentVersion === "latest" && index === 0)
@@ -298,8 +263,8 @@ export function VersionHistoryTimeline({
                             </p>
                           </div>
 
-                          {/* Change summary (if not initial version) */}
-                          {version.version_number > 0 && (
+                          {/* Change summary (only if costBreakdowns provided) */}
+                          {version.version_number > 0 && costBreakdowns && (
                             <div className="flex items-center gap-4 pt-3 border-t">
                               <div className="flex items-center gap-1">
                                 {changes.totalChange >= 0 ? (
@@ -386,7 +351,6 @@ export function VersionHistoryTimeline({
                 value={compareFrom !== null ? compareFrom : ""}
                 onChange={(e) => setCompareFrom(e.target.value ? Number(e.target.value) : null)}
                 aria-label="Select from version"
-                aria-describedby="version-from-helper"
               >
                 <option value="">Select version</option>
                 {sortedVersions.map((v) => (
@@ -417,7 +381,7 @@ export function VersionHistoryTimeline({
           <div className="flex justify-end gap-2">
             <Button
               variant="outline"
-              onClick={() => setShowCompareDialog(false)}
+              onClick={() => handleDialogOpenChange(false)}
             >
               Cancel
             </Button>

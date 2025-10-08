@@ -18,7 +18,7 @@ import {
   DialogDescription, 
   DialogFooter 
 } from '@/components/ui/dialog'
-import { VersionHistoryTimeline } from '@/components/version-history-timeline'
+import { VersionHistoryTimelineCell } from '@/components/cells/version-history-timeline-cell/component'
 import { Plus, Trash2 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 
@@ -43,13 +43,13 @@ export function VersionManagementCell({
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [versionToDelete, setVersionToDelete] = useState<number | null>(null)
   
-  // Query 1: Get all forecast versions for this project
+  // Query 1: Get all forecast versions for dropdown
   const { data: versions, isLoading: versionsLoading } = trpc.forecasts.getForecastVersions.useQuery(
     { projectId },
     {
       refetchOnMount: false,
       refetchOnWindowFocus: false,
-      staleTime: 60 * 1000, // 1 minute
+      staleTime: 60 * 1000,
     }
   )
   
@@ -95,19 +95,7 @@ export function VersionManagementCell({
     ]
   }, [versions])
 
-  // Transform versions for VersionHistoryTimeline (camelCase → snake_case)
-  const transformedVersions = useMemo(() => {
-    if (!versions) return []
-    
-    return versions.map(v => ({
-      id: v.id,
-      project_id: v.projectId,
-      version_number: v.versionNumber,
-      reason_for_change: v.reasonForChange,
-      created_at: v.createdAt ?? '',
-      created_by: v.createdBy ?? '',
-    }))
-  }, [versions])
+  // Transformation removed - now handled internally by VersionHistoryTimelineCell
   
   const handleVersionSelect = (value: string) => {
     if (value === 'latest') {
@@ -190,8 +178,8 @@ export function VersionManagementCell({
       </div>
       
       {/* Version Timeline */}
-      <VersionHistoryTimeline
-        versions={transformedVersions}
+      <VersionHistoryTimelineCell
+        projectId={projectId}
         currentVersion={activeVersion}
         onVersionSelect={(versionNumber) => onVersionChange(versionNumber)}
         onCompareVersions={onCompareVersions}

@@ -1,0 +1,105 @@
+{
+  "id": "version-history-timeline-cell",
+  "version": "1.0.0",
+  "description": "Displays forecast version history with comparison capabilities",
+  "type": "smart-cell",
+  "dependencies": {
+    "data": ["forecast_versions"],
+    "ui": [
+      "@/components/ui/card",
+      "@/components/ui/button",
+      "@/components/ui/dialog",
+      "@/components/ui/badge",
+      "@/components/ui/scroll-area"
+    ],
+    "utilities": [
+      "@/lib/version-utils",
+      "@/lib/budget-utils",
+      "date-fns"
+    ],
+    "trpc": ["forecasts.getForecastVersions"]
+  },
+  "behavioral_assertions": [
+    {
+      "id": "BA-001",
+      "description": "Displays version history timeline when versions exist",
+      "verification": "Mock successful query with versions array, verify timeline renders",
+      "test_scenario": "Mount Cell with projectId, mock tRPC success, assert version cards displayed"
+    },
+    {
+      "id": "BA-002",
+      "description": "Shows loading skeleton during data fetch",
+      "verification": "Mock pending query state, verify skeleton visible",
+      "test_scenario": "Mock isLoading=true, assert skeleton elements render"
+    },
+    {
+      "id": "BA-003",
+      "description": "Displays error message when fetch fails",
+      "verification": "Mock failed query, verify error message shown",
+      "test_scenario": "Mock error state, assert error message with error.message displayed"
+    },
+    {
+      "id": "BA-004",
+      "description": "Shows empty state when no versions exist",
+      "verification": "Mock successful query with empty array, verify empty state",
+      "test_scenario": "Mock data=[], assert 'No forecast versions yet' message"
+    },
+    {
+      "id": "BA-005",
+      "description": "Sorts versions by version_number descending (latest first)",
+      "verification": "Mock versions in random order, verify rendered order is DESC",
+      "test_scenario": "Mock [v1, v3, v2], assert rendered order is [v3, v2, v1]"
+    },
+    {
+      "id": "BA-006",
+      "description": "Categorizes versions by age (New, Recent, Current, Historical)",
+      "verification": "Mock versions with different created_at dates, verify status badges",
+      "test_scenario": "Mock 4 versions at <1d, <7d, <30d, >30d old, assert correct badges"
+    },
+    {
+      "id": "BA-007",
+      "description": "Calculates version changes (total, percentage, item count)",
+      "verification": "Mock costBreakdowns, verify change calculations",
+      "test_scenario": "Mock version with cost changes, assert totalChange/changePercent correct"
+    },
+    {
+      "id": "BA-008",
+      "description": "Opens comparison dialog when compare button clicked",
+      "verification": "Click compare button, verify dialog opens",
+      "test_scenario": "Click compare button, assert showCompareDialog=true"
+    },
+    {
+      "id": "BA-009",
+      "description": "Resets comparison state when dialog closes",
+      "verification": "Open dialog, select versions, close dialog, verify state reset",
+      "test_scenario": "Set compareFrom/compareTo, close dialog, assert both null"
+    },
+    {
+      "id": "BA-010",
+      "description": "Calls onVersionSelect callback when version clicked",
+      "verification": "Click version, verify callback called with version number",
+      "test_scenario": "Mock onVersionSelect, click version 3, assert called with 3"
+    },
+    {
+      "id": "BA-011",
+      "description": "Calls onCompareVersions callback when compare confirmed",
+      "verification": "Select two versions, confirm, verify callback called",
+      "test_scenario": "Select v2 and v3, click compare, assert onCompareVersions(2,3) called"
+    },
+    {
+      "id": "BA-012",
+      "description": "Expands/collapses version details on click",
+      "verification": "Click version card, verify expansion state toggles",
+      "test_scenario": "Click version, assert expanded, click again, assert collapsed"
+    }
+  ],
+  "performance_targets": {
+    "initial_render": "≤110% of baseline (220ms max)",
+    "re_renders": "< 5 total renders on mount + data load"
+  },
+  "accessibility": {
+    "wcag_level": "AA",
+    "keyboard_navigation": true,
+    "screen_reader": true
+  }
+}

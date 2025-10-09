@@ -1,19 +1,101 @@
 {
   "id": "smart-kpi-card",
   "version": "1.0.0",
-  "description": "Enhanced KPI card with trend indicators, status badges, and progress tracking",
+  "description": "Enhanced KPI card with trend indicators, status badges, progress tracking, and mini variant for compact displays",
+  "dataContract": {
+    "input": {
+      "title": "string - KPI title",
+      "value": "number | string - KPI value",
+      "trend": "number | undefined - Percentage trend (+/- or 0)",
+      "status": "'critical' | 'warning' | 'good' | 'neutral' - Status indicator",
+      "progress": "number | undefined - Progress percentage (0-100)",
+      "action": "string | undefined - Action text",
+      "onClick": "() => void | undefined - Click handler",
+      "icon": "React.ReactNode | undefined - Custom icon",
+      "subtitle": "string | undefined - Subtitle text",
+      "borderColor": "string - Border color class (default: 'border-l-primary')",
+      "formatter": "(value: number | string) => string - Custom value formatter"
+    },
+    "source": "Props-based (presentation cell)"
+  },
   "behavioralAssertions": [
     {
       "id": "BA-001",
-      "requirement": "Component MUST display KPI value with optional formatting",
-      "criticality": "high"
+      "requirement": "Component MUST display KPI value with optional custom formatting",
+      "validation": "Unit test: render with formatter prop, verify formatted value displayed",
+      "criticality": "high",
+      "source": "Lines 22-34, 77"
+    },
+    {
+      "id": "BA-002",
+      "requirement": "Status badge MUST display with correct variant and icon for critical/warning/good status",
+      "validation": "Unit test: render with each status, verify badge variant and icon presence",
+      "criticality": "high",
+      "source": "Lines 60-75, 104-109"
+    },
+    {
+      "id": "BA-003",
+      "requirement": "Trend indicator MUST display TrendingUp (positive), TrendingDown (negative), or Minus (zero) with correct color",
+      "validation": "Unit test: render with trend values (+10, -10, 0), verify correct icon and color class",
+      "criticality": "medium",
+      "source": "Lines 35-58, 136"
+    },
+    {
+      "id": "BA-004",
+      "requirement": "Progress bar MUST render when progress prop provided, with percentage label",
+      "validation": "Unit test: render with progress=75, verify Progress component and '75% complete' text",
+      "criticality": "medium",
+      "source": "Lines 123-134"
+    },
+    {
+      "id": "BA-005",
+      "requirement": "Card MUST be clickable when onClick handler provided, with hover effects",
+      "validation": "Unit test: render with onClick, verify role='button', tabIndex=0, and click handler fires",
+      "criticality": "medium",
+      "source": "Lines 79-90"
+    },
+    {
+      "id": "BA-006",
+      "requirement": "MiniKPICard variant MUST render compact layout with change indicator",
+      "validation": "Unit test: render MiniKPICard with change prop, verify compact structure and color-coded change",
+      "criticality": "high",
+      "source": "Lines 158-196"
     }
   ],
   "dependencies": {
-    "ui": ["@/components/ui/card", "@/components/ui/badge", "@/components/ui/progress", "lucide-react"]
+    "ui": [
+      "@/components/ui/card",
+      "@/components/ui/badge",
+      "@/components/ui/progress",
+      "lucide-react (TrendingUp, TrendingDown, Minus, AlertCircle, CheckCircle)"
+    ],
+    "utilities": ["@/lib/utils (cn)"]
+  },
+  "performance": {
+    "memoization": "React.memo applied to both SmartKPICard and MiniKPICard",
+    "rendering": "Props-based, no internal state",
+    "bundle_size": "Medium (196 lines)"
+  },
+  "accessibility": {
+    "keyboard_navigation": "Clickable cards have tabIndex=0",
+    "aria_labels": "aria-label on card, aria-labelledby on value, aria-live on value updates",
+    "semantic_html": "Card, button roles, proper heading hierarchy"
+  },
+  "variants": {
+    "SmartKPICard": {
+      "description": "Full-featured KPI card with all props",
+      "use_case": "Dashboard primary metrics"
+    },
+    "MiniKPICard": {
+      "description": "Compact variant without trend/progress",
+      "use_case": "Summary sections, sidebars",
+      "props": ["title", "value", "icon", "change", "changeType"]
+    }
   },
   "metadata": {
     "createdBy": "Phase 4: Migration Execution (2025-10-09)",
-    "migrationFrom": "apps/web/components/dashboard/smart-kpi-card.tsx"
+    "migrationFrom": "apps/web/components/dashboard/smart-kpi-card.tsx",
+    "updatedBy": "Phase B: Cell Documentation (2025-10-09)",
+    "m_cell_4_compliant": true
   }
 }

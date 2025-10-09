@@ -1,0 +1,39 @@
+gates:
+  - name: types
+    command: pnpm type-check
+    requirement: Zero TypeScript errors
+    description: Verify component and types are type-safe
+    
+  - name: tests
+    command: pnpm test apps/web/components/cells/cost-breakdown-table/__tests__
+    requirement: All 6 behavioral assertions verified, coverage ≥80%
+    description: |
+      Unit tests must verify:
+      - BA-001: Hierarchical data display
+      - BA-002: Expand/collapse functionality
+      - BA-003: Currency formatting (standard and compact notation)
+      - BA-004: Utilization color coding
+      - BA-005: Progress bar rendering
+      - BA-006: Empty state handling
+    
+  - name: build
+    command: pnpm build
+    requirement: Production build succeeds
+    description: Verify component builds without errors
+    
+  - name: accessibility
+    requirement: WCAG AA compliance
+    description: |
+      - Table has proper semantic structure (thead, tbody)
+      - Expand/collapse buttons accessible
+      - Color coding supplemented with text indicators
+    checks:
+      - Keyboard navigation for expand/collapse buttons
+      - Screen reader compatibility for hierarchical structure
+      - Color contrast ratios meet WCAG AA
+    manual: true
+    
+  - name: lint
+    command: pnpm lint --fix
+    requirement: Zero lint errors
+    description: Code style compliance

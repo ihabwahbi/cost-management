@@ -1,19 +1,81 @@
 {
   "id": "cost-breakdown-table",
   "version": "1.0.0",
-  "description": "Cost breakdown table with budget tracking",
+  "description": "Hierarchical cost breakdown table with expand/collapse, budget tracking, utilization indicators, and variance analysis",
+  "dataContract": {
+    "input": {
+      "data": "CostBreakdownRow[] - Hierarchical cost data with 4 levels (business_line, cost_line, spend_type, sub_category)",
+      "structure": "Nested children property for hierarchy"
+    },
+    "source": "Props-based (presentation cell)"
+  },
   "behavioralAssertions": [
     {
       "id": "BA-001",
-      "requirement": "Component MUST display cost breakdown rows",
-      "criticality": "high"
+      "requirement": "Component MUST display cost breakdown rows with hierarchical data",
+      "validation": "Unit test: verify all top-level rows rendered with correct data",
+      "criticality": "high",
+      "source": "Lines 154-172"
+    },
+    {
+      "id": "BA-002",
+      "requirement": "Expand/collapse MUST toggle child row visibility",
+      "validation": "Unit test: click chevron button, verify children become visible/hidden",
+      "criticality": "high",
+      "source": "Lines 28-36, 88-96"
+    },
+    {
+      "id": "BA-003",
+      "requirement": "Currency MUST format with compact notation for values >999,999",
+      "validation": "Unit test: formatCurrency(1500000) returns '$1.5M', formatCurrency(5000) returns '$5,000'",
+      "criticality": "medium",
+      "source": "Lines 38-46"
+    },
+    {
+      "id": "BA-004",
+      "requirement": "Utilization text MUST color-code based on thresholds (>100%=red, >90%=orange, >75%=yellow, else gray)",
+      "validation": "Unit test: verify text color classes applied correctly for each threshold",
+      "criticality": "high",
+      "source": "Lines 48-53"
+    },
+    {
+      "id": "BA-005",
+      "requirement": "Progress bar MUST display utilization percentage with color-coded background",
+      "validation": "Unit test: verify progress bar width matches utilization, color changes at thresholds",
+      "criticality": "high",
+      "source": "Lines 55-60, 116-131"
+    },
+    {
+      "id": "BA-006",
+      "requirement": "Empty state MUST display when data is empty or null",
+      "validation": "Unit test: render with empty array, verify 'No cost breakdown data available' message shown",
+      "criticality": "medium",
+      "source": "Lines 146-152"
     }
   ],
   "dependencies": {
-    "ui": ["@/components/ui/table"]
+    "ui": [
+      "@/components/ui/table",
+      "@/components/ui/button",
+      "@/components/ui/badge",
+      "lucide-react"
+    ],
+    "utilities": ["@/lib/utils (cn)"]
+  },
+  "performance": {
+    "rendering": "React state for expansion tracking",
+    "memoization": "Hierarchical rendering with depth tracking",
+    "bundle_size": "Medium (172 lines)"
+  },
+  "accessibility": {
+    "keyboard_navigation": "Button elements for expand/collapse",
+    "semantic_html": "Table structure with proper thead/tbody",
+    "aria_labels": "Buttons have implicit labels from icons"
   },
   "metadata": {
     "createdBy": "Phase 4: Migration Execution (2025-10-09)",
-    "migrationFrom": "apps/web/components/dashboard/cost-breakdown-table.tsx"
+    "migrationFrom": "apps/web/components/dashboard/cost-breakdown-table.tsx",
+    "updatedBy": "Phase B: Cell Documentation (2025-10-09)",
+    "m_cell_4_compliant": true
   }
 }

@@ -1,0 +1,34 @@
+version: 1.0
+
+on_change:
+  - name: Type Check
+    run: "pnpm type-check"
+    required: true
+    
+  - name: Lint
+    run: "eslint component.tsx components/ utils/"
+    required: true
+    
+  - name: Unit Tests
+    run: "vitest run --coverage"
+    coverage_threshold: 80
+    required: true
+    
+  - name: Behavioral Assertions Validation
+    run: "node scripts/validate-assertions.js ./manifest.json"
+    required: true
+    
+  - name: Accessibility Audit
+    run: "axe-core ./component.tsx"
+    required: true
+    
+  - name: Visual Regression (Treemap)
+    run: "percy snapshot"
+    required: true
+
+success_criteria:
+  - "All required gates pass"
+  - "Coverage ≥80%"
+  - "All 10 behavioral assertions have corresponding tests"
+  - "Zero accessibility violations (WCAG AA)"
+  - "Visual snapshots match baseline (treemap + list views)"

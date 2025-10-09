@@ -1,6 +1,6 @@
 'use client'
 
-import { AppShell } from '@/components/app-shell'
+import { AppShell } from '@/components/cells/app-shell-cell/component'
 import { MainDashboardCell } from '@/components/cells/main-dashboard-cell/component'
 
 export default function DashboardPage() {

@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useRef, useEffect } from "react"
 import { trpc } from "@/lib/trpc"
-import { AppShell } from "@/components/app-shell"
+import { AppShell } from "@/components/cells/app-shell-cell/component"
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable"
 import { FilterSidebarCell } from "@/components/cells/filter-sidebar-cell/component"
 import { POTable } from "@/components/po-table"

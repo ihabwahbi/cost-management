@@ -18,6 +18,7 @@ import { DashboardSkeleton } from '@/components/dashboard/dashboard-skeleton'
 import { KPICard } from '@/components/cells/kpi-card/component'
 import { trpc } from '@/lib/trpc'
 import { useToast } from '@/hooks/use-toast'
+import { useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { RefreshCw } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -54,6 +55,7 @@ export default function ProjectDashboard({ params }: ProjectDashboardProps) {
   const projectId = params.id
   const supabase = createClient()
   const { toast } = useToast()
+  const queryClient = useQueryClient()
   const [metrics, setMetrics] = useState<ProjectMetrics | null>(null)
   const [loading, setLoading] = useState(true)
   const [project, setProject] = useState<any>(null)
@@ -172,21 +174,23 @@ export default function ProjectDashboard({ params }: ProjectDashboardProps) {
     }
   }
 
+  const handleRealtimeEvent = async (payload: any) => {
+    console.log('Cost breakdown changed:', payload)
+    
+    // Invalidate ALL dashboard queries to refresh data
+    await queryClient.invalidateQueries({
+      queryKey: ['trpc', 'dashboard']
+    })
+    
+    // Also refresh project details query
+    await queryClient.invalidateQueries({
+      queryKey: ['trpc', 'dashboard', 'getProjectDetails']
+    })
+  }
+
   const setupRealtimeSubscription = () => {
     const channel = supabase
       .channel(`project-${projectId}`)
-      .on('postgres_changes', 
-        { 
-          event: '*', 
-          schema: 'public', 
-          table: 'po_mappings',
-          filter: `project_id=eq.${projectId}`
-        },
-        (payload) => {
-          console.log('PO mapping changed:', payload)
-          handleRefresh() // Refresh metrics
-        }
-      )
       .on('postgres_changes',
         {
           event: '*',
@@ -194,10 +198,7 @@ export default function ProjectDashboard({ params }: ProjectDashboardProps) {
           table: 'cost_breakdown',
           filter: `project_id=eq.${projectId}`
         },
-        (payload) => {
-          console.log('Cost breakdown changed:', payload)
-          handleRefresh()
-        }
+        handleRealtimeEvent
       )
       .subscribe()
     

@@ -5,7 +5,7 @@ import { trpc } from "@/lib/trpc"
 import { AppShell } from "@/components/cells/app-shell-cell/component"
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable"
 import { FilterSidebarCell } from "@/components/cells/filter-sidebar-cell/component"
-import { POTable } from "@/components/po-table"
+import { POTableCell } from "@/components/cells/po-table-cell/component"
 import { DetailsPanel } from "@/components/cells/details-panel/component"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import type { POFilters } from "@/types/filters"
@@ -38,6 +38,7 @@ interface POLineItem {
 
 export default function POMapping() {
   const [selectedPO, setSelectedPO] = useState<PO | null>(null)
+  const [selectedPOs, setSelectedPOs] = useState<string[]>([])
   const [currentFilters, setCurrentFilters] = useState<POFilters>({})
   
   // Track if we've loaded data at least once (prevents UI unmount on filter changes)
@@ -162,12 +163,12 @@ export default function POMapping() {
           <ResizableHandle withHandle />
 
           <ResizablePanel defaultSize={50} minSize={40}>
-            <POTable
+            <POTableCell
               pos={transformedPOs}
               selectedPO={selectedPO}
-              selectedPOs={[]}
+              selectedPOs={selectedPOs}
               onPOSelect={setSelectedPO}
-              onPOsSelection={() => {}}
+              onPOsSelection={(ids) => setSelectedPOs(ids)}
             />
           </ResizablePanel>
 

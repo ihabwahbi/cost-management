@@ -1,0 +1,23 @@
+{
+  "id": "dashboard-skeleton",
+  "version": "1.0.0",
+  "description": "Loading skeleton for project dashboard page with KPI cards, charts, and table placeholders",
+  "dataContract": {
+    "source": "none (static component)"
+  },
+  "behavioralAssertions": [
+    {
+      "id": "BA-001",
+      "requirement": "Component MUST render skeleton placeholders for all dashboard sections",
+      "validation": "Unit test: verify skeleton structure rendered",
+      "criticality": "high"
+    }
+  ],
+  "dependencies": {
+    "ui": ["@/components/ui/skeleton", "@/components/ui/card"]
+  },
+  "metadata": {
+    "createdBy": "Phase 4: Migration Execution (2025-10-09)",
+    "migrationFrom": "apps/web/components/dashboard/dashboard-skeleton.tsx"
+  }
+}

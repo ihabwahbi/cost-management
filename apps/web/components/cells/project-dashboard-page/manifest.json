@@ -1,0 +1,157 @@
+{
+  "id": "project-dashboard-page",
+  "version": "1.0.0",
+  "description": "Main project dashboard with budget tracking, P&L analysis, and realtime updates",
+  
+  "dataContract": {
+    "sources": [
+      "trpc.dashboard.getProjectDetails",
+      "trpc.dashboard.getProjectMetrics",
+      "trpc.dashboard.getProjectCategoryBreakdown",
+      "trpc.dashboard.getProjectHierarchicalBreakdown"
+    ],
+    "inputSchema": {
+      "projectId": "string (uuid from route params)",
+      "filters": "DashboardFilters (optional user selections)"
+    },
+    "realtime": {
+      "subscriptions": [
+        {
+          "table": "cost_breakdown",
+          "filter": "project_id=eq.{projectId}",
+          "events": ["INSERT", "UPDATE", "DELETE"],
+          "action": "Invalidate all dashboard queries"
+        }
+      ]
+    }
+  },
+  
+  "behavioralAssertions": [
+    {
+      "id": "BA-001",
+      "requirement": "Dashboard MUST display project name and sub-business line in header",
+      "validation": "Unit test: Mock getProjectDetails, verify header renders project.name and project.subBusinessLine",
+      "criticality": "high",
+      "source": "Current lines 305-306"
+    },
+    {
+      "id": "BA-002",
+      "requirement": "Dashboard MUST show loading skeleton while data fetches",
+      "validation": "Unit test: Mock pending queries, verify DashboardSkeleton renders",
+      "criticality": "medium",
+      "source": "Current lines 260-262"
+    },
+    {
+      "id": "BA-003",
+      "requirement": "Dashboard MUST display error alert if project not found",
+      "validation": "Unit test: Mock NOT_FOUND error from getProjectDetails, verify Alert with 'Project Not Found' message",
+      "criticality": "high",
+      "source": "Current lines 276-288"
+    },
+    {
+      "id": "BA-004",
+      "requirement": "Dashboard MUST display error alert if metrics query fails",
+      "validation": "Unit test: Mock query error, verify Alert with error message",
+      "criticality": "high",
+      "source": "Current lines 264-274"
+    },
+    {
+      "id": "BA-005",
+      "requirement": "Refresh button MUST trigger data reload and show spinning icon",
+      "validation": "E2E test: Click refresh button, verify spinner animation, verify React Query invalidation",
+      "criticality": "medium",
+      "source": "Current lines 309-317"
+    },
+    {
+      "id": "BA-006",
+      "requirement": "Export PDF button MUST generate PDF via print dialog",
+      "validation": "Integration test: Mock exportDashboardToPDF, verify called with correct arguments",
+      "criticality": "low",
+      "source": "Current lines 233-242"
+    },
+    {
+      "id": "BA-007",
+      "requirement": "Export Excel button MUST generate CSV file with dashboard data",
+      "validation": "Integration test: Mock exportDashboardToExcel, verify data structure passed correctly",
+      "criticality": "low",
+      "source": "Current lines 244-258"
+    },
+    {
+      "id": "BA-008",
+      "requirement": "Dashboard MUST auto-refresh when cost_breakdown table changes",
+      "validation": "Integration test: Trigger Supabase realtime event, verify React Query queries invalidated",
+      "criticality": "high",
+      "source": "Current lines 190-201 (FIXED - was broken)"
+    },
+    {
+      "id": "BA-009",
+      "requirement": "Spend subcategory chart MUST display flattened hierarchy from 4-level data",
+      "validation": "Unit test: Provide nested hierarchy object, verify flat subcategory array output with useMemo optimization",
+      "criticality": "medium",
+      "source": "Current lines 113-137"
+    },
+    {
+      "id": "BA-010",
+      "requirement": "Dashboard MUST display 'No data' message when category data is empty",
+      "validation": "Unit test: Provide empty categoryData array, verify 'No category data available' text renders",
+      "criticality": "low",
+      "source": "Current lines 382-388"
+    },
+    {
+      "id": "BA-011",
+      "requirement": "'Back to Projects' button MUST navigate to previous page",
+      "validation": "E2E test: Click button, verify window.history.back() called or router.back() called",
+      "criticality": "medium",
+      "source": "Current lines 324-330"
+    }
+  ],
+  
+  "dependencies": {
+    "cells": [
+      "kpi-card",
+      "pl-command-center",
+      "financial-control-matrix",
+      "budget-timeline-chart"
+    ],
+    "presentational": [
+      "SpendCategoryChart",
+      "SpendSubcategoryChart",
+      "CostBreakdownTable"
+    ],
+    "ui": [
+      "@/components/ui/card",
+      "@/components/ui/button",
+      "@/components/ui/alert",
+      "@/components/ui/skeleton"
+    ],
+    "api": [
+      "trpc.dashboard.getProjectDetails",
+      "trpc.dashboard.getProjectMetrics",
+      "trpc.dashboard.getProjectCategoryBreakdown",
+      "trpc.dashboard.getProjectHierarchicalBreakdown"
+    ],
+    "external": [
+      "@tanstack/react-query (for React Query invalidation)",
+      "Supabase realtime (for database subscriptions)"
+    ]
+  },
+  
+  "accessibility": {
+    "wcag": "AA",
+    "requirements": [
+      "All buttons MUST have accessible labels (aria-label)",
+      "Loading states MUST announce to screen readers (aria-live)",
+      "Error messages MUST use Alert role with appropriate aria attributes",
+      "Navigation actions MUST be keyboard accessible"
+    ]
+  },
+  
+  "metadata": {
+    "createdBy": "MigrationExecutor (Phase D)",
+    "createdAt": "2025-10-09T13:31:00Z",
+    "replacesComponent": "apps/web/app/projects/[id]/dashboard/page.tsx",
+    "replacementReason": "God component (443 lines) → Cell architecture migration",
+    "criticalPath": true,
+    "breakingChangeRisk": "HIGH"
+  }
+}

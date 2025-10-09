@@ -9,14 +9,14 @@
 
 /**
  * Project details from tRPC getProjectDetails output
- * Maps to database projects table schema
+ * Uses camelCase from Drizzle schema (not database snake_case)
  */
 export interface Project {
   id: string
   name: string
-  sub_business_line: string  // Database uses snake_case
-  created_at: string
-  updated_at: string
+  subBusinessLine: string  // Drizzle returns camelCase
+  createdAt: string | null
+  updatedAt: string | null
 }
 
 // ===== Dashboard Filter Types =====

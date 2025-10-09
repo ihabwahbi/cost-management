@@ -318,7 +318,7 @@ export default function ProjectDashboard({ params }: ProjectDashboardProps) {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-3xl font-bold">{project.name} Dashboard</h1>
-          <p className="text-muted-foreground">{project.sub_business_line}</p>
+          <p className="text-muted-foreground">{project.subBusinessLine}</p>
         </div>
         <div className="flex items-center gap-2">
           <Button 

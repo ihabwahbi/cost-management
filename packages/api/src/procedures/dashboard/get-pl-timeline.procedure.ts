@@ -3,8 +3,7 @@ import { publicProcedure } from '../../trpc';
 import { eq, inArray } from 'drizzle-orm';
 import { costBreakdown, poMappings, poLineItems } from '@cost-mgmt/db';
 import { TRPCError } from '@trpc/server';
-import { splitMappedAmount } from './helpers/split-mapped-amount.helper';
-import { FALLBACK_INVOICE_RATIO } from './helpers/constants';
+import { splitMappedAmount, FALLBACK_INVOICE_RATIO } from '../../utils/pl-calculations';
 
 /**
  * Get P&L Timeline (monthly breakdown)
@@ -43,6 +42,7 @@ export const getPLTimeline = publicProcedure
           mappedAmount: poMappings.mappedAmount,
           lineValue: poLineItems.lineValue,
           invoicedValueUsd: poLineItems.invoicedValueUsd,
+          invoicedQuantity: poLineItems.invoicedQuantity,
           invoiceDate: poLineItems.invoiceDate,
           supplierPromiseDate: poLineItems.supplierPromiseDate,
           createdAt: poLineItems.createdAt,
@@ -73,7 +73,11 @@ export const getPLTimeline = publicProcedure
           addToMonth(input.dateRange.from, 'actual', inferredActual);
           addToMonth(input.dateRange.to, 'projected', mappedAmount - inferredActual);
         } else {
-          const { actual, future } = splitMappedAmount(mappedAmount, mapping);
+          const { actual, future } = splitMappedAmount(mappedAmount, {
+            lineValue: Number(mapping.lineValue),
+            invoicedValueUsd: Number(mapping.invoicedValueUsd),
+            invoicedQuantity: Number(mapping.invoicedQuantity),
+          });
           
           const invoiceDate = mapping.invoiceDate 
             ? new Date(mapping.invoiceDate) 

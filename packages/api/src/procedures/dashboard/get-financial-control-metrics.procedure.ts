@@ -3,7 +3,7 @@ import { publicProcedure } from '../../trpc';
 import { eq, sql, inArray, and } from 'drizzle-orm';
 import { costBreakdown, poMappings, poLineItems, budgetForecasts, forecastVersions } from '@cost-mgmt/db';
 import { TRPCError } from '@trpc/server';
-import { splitMappedAmount } from './helpers/split-mapped-amount.helper';
+import { splitMappedAmount } from '../../utils/pl-calculations';
 
 /**
  * Get Financial Control Metrics
@@ -70,6 +70,7 @@ export const getFinancialControlMetrics = publicProcedure
           mappedAmount: poMappings.mappedAmount,
           lineValue: poLineItems.lineValue,
           invoicedValueUsd: poLineItems.invoicedValueUsd,
+          invoicedQuantity: poLineItems.invoicedQuantity,
         })
         .from(poMappings)
         .leftJoin(poLineItems, eq(poMappings.poLineItemId, poLineItems.id))
@@ -116,12 +117,11 @@ export const getFinancialControlMetrics = publicProcedure
         categoryData.committed += mappedAmount;
 
         // ✅ CRITICAL: Use splitMappedAmount() helper for real P&L calculation
-        const lineItem = {
-          lineValue: mapping.lineValue,
-          invoicedValueUsd: mapping.invoicedValueUsd,
-        };
-
-        const { actual, future } = splitMappedAmount(mappedAmount, lineItem);
+        const { actual, future } = splitMappedAmount(mappedAmount, {
+          lineValue: Number(mapping.lineValue),
+          invoicedValueUsd: Number(mapping.invoicedValueUsd),
+          invoicedQuantity: Number(mapping.invoicedQuantity),
+        });
         categoryData.actual += actual;
         categoryData.future += future;
       }

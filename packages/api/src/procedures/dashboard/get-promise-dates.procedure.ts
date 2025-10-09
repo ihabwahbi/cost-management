@@ -3,7 +3,7 @@ import { publicProcedure } from '../../trpc';
 import { eq, inArray } from 'drizzle-orm';
 import { costBreakdown, poMappings, poLineItems } from '@cost-mgmt/db';
 import { TRPCError } from '@trpc/server';
-import { splitMappedAmount } from './helpers/split-mapped-amount.helper';
+import { splitMappedAmount } from '../../utils/pl-calculations';
 
 /**
  * Get Promise Dates (next P&L hits)
@@ -36,6 +36,7 @@ export const getPromiseDates = publicProcedure
           mappedAmount: poMappings.mappedAmount,
           lineValue: poLineItems.lineValue,
           invoicedValueUsd: poLineItems.invoicedValueUsd,
+          invoicedQuantity: poLineItems.invoicedQuantity,
           supplierPromiseDate: poLineItems.supplierPromiseDate,
         })
         .from(poMappings)
@@ -50,7 +51,11 @@ export const getPromiseDates = publicProcedure
         if (!mapping.supplierPromiseDate) return;
         
         const mappedAmount = Number(mapping.mappedAmount || 0);
-        const { future } = splitMappedAmount(mappedAmount, mapping);
+        const { future } = splitMappedAmount(mappedAmount, {
+          lineValue: Number(mapping.lineValue),
+          invoicedValueUsd: Number(mapping.invoicedValueUsd),
+          invoicedQuantity: Number(mapping.invoicedQuantity),
+        });
 
         if (future <= 0) return;
 

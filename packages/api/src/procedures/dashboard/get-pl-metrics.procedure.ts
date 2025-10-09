@@ -3,8 +3,7 @@ import { publicProcedure } from '../../trpc';
 import { eq, sql, inArray, and } from 'drizzle-orm';
 import { costBreakdown, poMappings, poLineItems, budgetForecasts, forecastVersions } from '@cost-mgmt/db';
 import { TRPCError } from '@trpc/server';
-import { splitMappedAmount } from './helpers/split-mapped-amount.helper';
-import { FALLBACK_INVOICE_RATIO } from './helpers/constants';
+import { splitMappedAmount, FALLBACK_INVOICE_RATIO } from '../../utils/pl-calculations';
 
 /**
  * Get P&L Metrics for PLCommandCenter
@@ -66,6 +65,7 @@ export const getPLMetrics = publicProcedure
           mappedAmount: poMappings.mappedAmount,
           lineValue: poLineItems.lineValue,
           invoicedValueUsd: poLineItems.invoicedValueUsd,
+          invoicedQuantity: poLineItems.invoicedQuantity,
         })
         .from(poMappings)
         .leftJoin(poLineItems, eq(poMappings.poLineItemId, poLineItems.id))
@@ -85,7 +85,11 @@ export const getPLMetrics = publicProcedure
           actualPLImpact += inferredActual;
           futurePLImpact += Math.max(mappedAmount - inferredActual, 0);
         } else {
-          const { actual, future } = splitMappedAmount(mappedAmount, mapping);
+          const { actual, future } = splitMappedAmount(mappedAmount, {
+            lineValue: Number(mapping.lineValue),
+            invoicedValueUsd: Number(mapping.invoicedValueUsd),
+            invoicedQuantity: Number(mapping.invoicedQuantity),
+          });
           actualPLImpact += actual;
           futurePLImpact += future;
         }

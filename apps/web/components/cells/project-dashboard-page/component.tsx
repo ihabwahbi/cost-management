@@ -12,7 +12,7 @@ import { useState } from 'react'
 import { useToast } from '@/hooks/use-toast'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertCircle } from 'lucide-react'
-import { DashboardSkeleton } from '@/components/dashboard/dashboard-skeleton'
+import { DashboardSkeleton } from '@/components/cells/dashboard-skeleton/component'
 
 // Custom hooks (all business logic extracted)
 import { useDashboardData, type DashboardFilters } from './hooks/use-dashboard-data'

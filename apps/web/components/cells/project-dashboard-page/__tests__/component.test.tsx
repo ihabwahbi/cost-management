@@ -58,7 +58,7 @@ vi.mock('../components/breakdown-section', () => ({
   BreakdownSection: () => <div data-testid="breakdown-section">Breakdown Section</div>,
 }))
 
-vi.mock('@/components/dashboard/dashboard-skeleton', () => ({
+vi.mock('@/components/cells/dashboard-skeleton/component', () => ({
   DashboardSkeleton: () => <div data-testid="dashboard-skeleton">Loading...</div>,
 }))
 

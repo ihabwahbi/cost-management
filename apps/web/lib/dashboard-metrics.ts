@@ -1,3 +1,13 @@
+/**
+ * @deprecated This utility has been migrated to tRPC procedures.
+ * Use the following instead:
+ * - calculateProjectMetrics → trpc.dashboard.getProjectMetrics.useQuery()
+ * - getCategoryBreakdown → trpc.dashboard.getProjectCategoryBreakdown.useQuery()
+ * - getHierarchicalBreakdown → trpc.dashboard.getProjectHierarchicalBreakdown.useQuery()
+ * 
+ * This file will be deleted in the next release after validation period.
+ */
+
 import { createClient } from '@/lib/supabase/client'
 import { buildInFilter } from '@/lib/supabase/filters'
 import {
@@ -6,6 +16,9 @@ import {
   splitMappedAmount
 } from '@/lib/supabase/line-items'
 
+/**
+ * @deprecated Use trpc.dashboard.getProjectMetrics.useQuery() instead
+ */
 interface ProjectMetrics {
   totalBudget: number
   actualSpend: number  // Total committed (PO value)
@@ -19,12 +32,18 @@ interface ProjectMetrics {
   lineItemCount: number
 }
 
+/**
+ * @deprecated Use trpc.dashboard.getProjectMetrics.useQuery() instead
+ */
 interface DashboardFilters {
   dateRange?: { from: Date; to: Date }
   costLine?: string
   spendType?: string
 }
 
+/**
+ * @deprecated Use trpc.dashboard.getProjectMetrics.useQuery() instead
+ */
 export async function calculateProjectMetrics(
   projectId: string,
   filters?: DashboardFilters
@@ -158,6 +177,9 @@ export async function calculateProjectMetrics(
   }
 }
 
+/**
+ * @deprecated Timeline data now fetched by budget-timeline-chart Cell
+ */
 export async function getTimelineData(projectId: string, filters?: DashboardFilters) {
   const supabase = createClient()
   
@@ -222,6 +244,9 @@ export async function getTimelineData(projectId: string, filters?: DashboardFilt
   return timelineData
 }
 
+/**
+ * @deprecated Use trpc.dashboard.getProjectCategoryBreakdown.useQuery() instead
+ */
 export async function getCategoryBreakdown(projectId: string, filters?: DashboardFilters) {
   const supabase = createClient()
   
@@ -292,6 +317,9 @@ export async function getCategoryBreakdown(projectId: string, filters?: Dashboar
   return Object.values(categories)
 }
 
+/**
+ * @deprecated Use trpc.dashboard.getProjectHierarchicalBreakdown.useQuery() instead
+ */
 export async function getHierarchicalBreakdown(projectId: string, filters?: DashboardFilters) {
   const supabase = createClient()
   

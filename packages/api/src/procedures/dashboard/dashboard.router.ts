@@ -11,23 +11,11 @@ import { getMainMetrics } from './get-main-metrics.procedure';
 import { getRecentActivity } from './get-recent-activity.procedure';
 import { getCategoryBreakdown } from './get-category-breakdown.procedure';
 import { getTimelineData } from './get-timeline-data.procedure';
+import { getProjectMetrics } from './get-project-metrics.procedure';
+import { getProjectCategoryBreakdown } from './get-project-category-breakdown.procedure';
+import { getProjectHierarchicalBreakdown } from './get-project-hierarchical-breakdown.procedure';
 
-/**
- * Dashboard Domain Router
- * Aggregates all dashboard procedures following M1-M4 architecture mandates
- * 
- * Procedures (10 total):
- * - getKPIMetrics: KPI card metrics
- * - getPLMetrics: P&L command center metrics
- * - getPLTimeline: Monthly P&L timeline
- * - getPromiseDates: Upcoming promise dates
- * - getTimelineBudget: Budget timeline visualization
- * - getFinancialControlMetrics: Financial control matrix
- * - getMainMetrics: Main dashboard global metrics (Phase A-NEW)
- * - getRecentActivity: Recent PO mapping activity (Phase B-NEW)
- * - getCategoryBreakdown: Category spend breakdown (Phase C-NEW)
- * - getTimelineData: Monthly timeline with real forecasts (Phase C-NEW)
- */
+// Dashboard domain router - 13 procedures total (M1-M4 compliant)
 export const dashboardRouter = router({
   getKPIMetrics,
   getPLMetrics,
@@ -39,4 +27,7 @@ export const dashboardRouter = router({
   getRecentActivity,
   getCategoryBreakdown,
   getTimelineData,
+  getProjectMetrics,
+  getProjectCategoryBreakdown,
+  getProjectHierarchicalBreakdown,
 });

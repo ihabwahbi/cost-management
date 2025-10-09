@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { DollarSign, TrendingUp, TrendingDown, AlertCircle, Activity, Package, Calculator, FileText } from 'lucide-react'
@@ -16,7 +16,7 @@ import { DashboardFilterPanel } from '@/components/dashboard/dashboard-filters'
 import { DashboardSkeleton } from '@/components/dashboard/dashboard-skeleton'
 // Living Blueprint Architecture - Smart Cell
 import { KPICard } from '@/components/cells/kpi-card/component'
-import { calculateProjectMetrics, getCategoryBreakdown, getHierarchicalBreakdown } from '@/lib/dashboard-metrics'
+import { trpc } from '@/lib/trpc'
 import { useToast } from '@/hooks/use-toast'
 import { Button } from '@/components/ui/button'
 import { RefreshCw } from 'lucide-react'
@@ -74,58 +74,51 @@ export default function ProjectDashboard({ params }: ProjectDashboardProps) {
     comparisonMode: 'none'
   })
 
-  useEffect(() => {
-    loadDashboardData()
-    const subscription = setupRealtimeSubscription()
-    
-    return () => {
-      subscription?.unsubscribe()
-    }
-  }, [projectId, filters])
+  // Memoize filter inputs to prevent infinite loops
+  const memoizedFilters = useMemo(() => ({
+    costLine: filters.costLine,
+    spendType: filters.spendType
+  }), [filters.costLine, filters.spendType])
 
-  const loadDashboardData = async () => {
-    try {
-      setLoading(true)
-      
-      // Fetch project details
-      const { data: projectData, error: projectError } = await supabase
-        .from('projects')
-        .select('*')
-        .eq('id', projectId)
-        .single()
-      
-      if (projectError) throw projectError
-      setProject(projectData)
-      
-      // Fetch aggregated metrics
-      const metricsData = await calculateProjectMetrics(projectId, filters)
+  // tRPC queries replace utility functions
+  const { data: metricsData, isLoading: metricsLoading, error: metricsError } = 
+    trpc.dashboard.getProjectMetrics.useQuery({
+      projectId,
+      filters: memoizedFilters
+    })
+
+  const { data: categoryDataResponse, isLoading: categoryLoading } = 
+    trpc.dashboard.getProjectCategoryBreakdown.useQuery({
+      projectId,
+      filters: { costLine: memoizedFilters.costLine }
+    })
+
+  const { data: breakdownDataResponse, isLoading: breakdownLoading } = 
+    trpc.dashboard.getProjectHierarchicalBreakdown.useQuery({
+      projectId,
+      filters: memoizedFilters
+    })
+
+  useEffect(() => {
+    // Update local state when tRPC data arrives
+    if (metricsData) {
       setMetrics(metricsData)
+    }
+    if (categoryDataResponse) {
+      setCategoryData(categoryDataResponse.categories)
+    }
+    if (breakdownDataResponse) {
+      setBreakdownData(breakdownDataResponse.hierarchy)
       
-      // Fetch chart data
-      const [categories, breakdown] = await Promise.all([
-        getCategoryBreakdown(projectId, filters),
-        getHierarchicalBreakdown(projectId, filters)
-      ])
-      
-      console.log('Category data:', categories) // Debug log
-      console.log('Breakdown data:', breakdown) // Debug log
-      setCategoryData(categories)
-      setBreakdownData(breakdown)
-      
-      // Prepare subcategory data from breakdown
+      // Process subcategory data
       const subcategoryArray: any[] = []
-      console.log('Processing breakdown for subcategories, breakdown length:', breakdown.length)
-      breakdown.forEach(businessLine => {
-        console.log('Business Line:', businessLine.name, 'has children:', !!businessLine.children)
+      breakdownDataResponse.hierarchy.forEach(businessLine => {
         if (businessLine.children) {
           businessLine.children.forEach((costLine: any) => {
-            console.log('  Cost Line:', costLine.name, 'has children:', !!costLine.children)
             if (costLine.children) {
               costLine.children.forEach((spendType: any) => {
-                console.log('    Spend Type:', spendType.name, 'has children:', !!spendType.children)
                 if (spendType.children) {
                   spendType.children.forEach((subCategory: any) => {
-                    console.log('      Subcategory:', subCategory.name, 'actual:', subCategory.actual)
                     subcategoryArray.push({
                       category: spendType.name,
                       subcategory: subCategory.name,
@@ -140,12 +133,32 @@ export default function ProjectDashboard({ params }: ProjectDashboardProps) {
           })
         }
       })
-      console.log('Total subcategories found:', subcategoryArray.length)
       setSubcategoryData(subcategoryArray)
+    }
+  }, [metricsData, categoryDataResponse, breakdownDataResponse])
+
+  useEffect(() => {
+    loadProjectData()
+    const subscription = setupRealtimeSubscription()
+    
+    return () => {
+      subscription?.unsubscribe()
+    }
+  }, [projectId])
+
+  const loadProjectData = async () => {
+    try {
+      setLoading(true)
       
-      // Calculate burn rate data
-      // Note: Burn rate calculation removed as timeline data now fetched by Cell
-      setBurnRateData([])
+      // Fetch project details
+      const { data: projectData, error: projectError } = await supabase
+        .from('projects')
+        .select('*')
+        .eq('id', projectId)
+        .single()
+      
+      if (projectError) throw projectError
+      setProject(projectData)
       
     } catch (error) {
       console.error('Error loading dashboard data:', error)
@@ -209,7 +222,7 @@ export default function ProjectDashboard({ params }: ProjectDashboardProps) {
 
   const handleRefresh = async () => {
     setRefreshing(true)
-    await loadDashboardData()
+    await loadProjectData()
     setRefreshing(false)
   }
 
@@ -244,8 +257,20 @@ export default function ProjectDashboard({ params }: ProjectDashboardProps) {
     })
   }
 
-  if (loading) {
+  if (loading || metricsLoading || categoryLoading || breakdownLoading) {
     return <DashboardSkeleton />
+  }
+
+  if (metricsError) {
+    return (
+      <div className="container mx-auto p-6">
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error Loading Dashboard</AlertTitle>
+          <AlertDescription>{metricsError.message}</AlertDescription>
+        </Alert>
+      </div>
+    )
   }
 
   if (!project) {

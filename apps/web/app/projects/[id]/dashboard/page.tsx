@@ -23,6 +23,17 @@ import { Button } from '@/components/ui/button'
 import { RefreshCw } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { exportDashboardToPDF, exportDashboardToExcel } from '@/lib/dashboard-export'
+// Phase C: Type Safety - Import TypeScript interfaces
+import type {
+  Project,
+  CategoryData,
+  SubcategoryData,
+  HierarchyNode,
+  CostBreakdownRow,
+  BurnRateDataPoint,
+  TimelineDataPoint,
+  RealtimePayload
+} from '@/components/cells/project-dashboard-page/types'
 
 // Next.js 14 App Router dynamic route params type
 interface ProjectDashboardProps {
@@ -58,14 +69,15 @@ export default function ProjectDashboard({ params }: ProjectDashboardProps) {
   const queryClient = useQueryClient()
   const [metrics, setMetrics] = useState<ProjectMetrics | null>(null)
   const [loading, setLoading] = useState(true)
-  const [project, setProject] = useState<any>(null)
-  const [categoryData, setCategoryData] = useState<any[]>([])
-  const [breakdownData, setBreakdownData] = useState<any[]>([])
-  const [burnRateData, setBurnRateData] = useState<any[]>([])
+  // Phase C: Type Safety - Replace 'any' with proper types
+  const [project, setProject] = useState<Project | null>(null)
+  const [categoryData, setCategoryData] = useState<CategoryData[]>([])
+  const [breakdownData, setBreakdownData] = useState<HierarchyNode[]>([])
+  const [burnRateData, setBurnRateData] = useState<BurnRateDataPoint[]>([])
   const [refreshing, setRefreshing] = useState(false)
   
   // New P&L tracking states
-  const [subcategoryData, setSubcategoryData] = useState<any[]>([])
+  const [subcategoryData, setSubcategoryData] = useState<SubcategoryData[]>([])
   
   const [filters, setFilters] = useState<DashboardFilters>({
     dateRange: {
@@ -112,15 +124,15 @@ export default function ProjectDashboard({ params }: ProjectDashboardProps) {
     if (breakdownDataResponse) {
       setBreakdownData(breakdownDataResponse.hierarchy)
       
-      // Process subcategory data
-      const subcategoryArray: any[] = []
+      // Process subcategory data (Phase C: Type Safety - properly typed)
+      const subcategoryArray: SubcategoryData[] = []
       breakdownDataResponse.hierarchy.forEach(businessLine => {
         if (businessLine.children) {
-          businessLine.children.forEach((costLine: any) => {
+          businessLine.children.forEach(costLine => {
             if (costLine.children) {
-              costLine.children.forEach((spendType: any) => {
+              costLine.children.forEach(spendType => {
                 if (spendType.children) {
-                  spendType.children.forEach((subCategory: any) => {
+                  spendType.children.forEach(subCategory => {
                     subcategoryArray.push({
                       category: spendType.name,
                       subcategory: subCategory.name,
@@ -174,7 +186,8 @@ export default function ProjectDashboard({ params }: ProjectDashboardProps) {
     }
   }
 
-  const handleRealtimeEvent = async (payload: any) => {
+  // Phase C: Type Safety - Properly typed realtime event handler
+  const handleRealtimeEvent = async (payload: RealtimePayload) => {
     console.log('Cost breakdown changed:', payload)
     
     // Invalidate ALL dashboard queries to refresh data
@@ -205,7 +218,8 @@ export default function ProjectDashboard({ params }: ProjectDashboardProps) {
     return channel
   }
 
-  const calculateBurnRateFromTimeline = (timeline: any[]) => {
+  // Phase C: Type Safety - Properly typed burn rate calculation
+  const calculateBurnRateFromTimeline = (timeline: TimelineDataPoint[]): BurnRateDataPoint[] => {
     // Calculate monthly spending rate
     const monthlyData = timeline.map((item, index) => {
       const previousActual = index > 0 ? timeline[index - 1].actual : 0
@@ -419,7 +433,8 @@ export default function ProjectDashboard({ params }: ProjectDashboardProps) {
             <CardTitle>Detailed Cost Breakdown</CardTitle>
           </CardHeader>
           <CardContent>
-            <CostBreakdownTable data={breakdownData} />
+            {/* Phase C: Type assertion - API data has 'level' at runtime even though type doesn't declare it */}
+            <CostBreakdownTable data={breakdownData as CostBreakdownRow[]} />
           </CardContent>
         </Card>
       </div>

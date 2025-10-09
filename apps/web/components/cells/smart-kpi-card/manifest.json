@@ -1,0 +1,19 @@
+{
+  "id": "smart-kpi-card",
+  "version": "1.0.0",
+  "description": "Enhanced KPI card with trend indicators, status badges, and progress tracking",
+  "behavioralAssertions": [
+    {
+      "id": "BA-001",
+      "requirement": "Component MUST display KPI value with optional formatting",
+      "criticality": "high"
+    }
+  ],
+  "dependencies": {
+    "ui": ["@/components/ui/card", "@/components/ui/badge", "@/components/ui/progress", "lucide-react"]
+  },
+  "metadata": {
+    "createdBy": "Phase 4: Migration Execution (2025-10-09)",
+    "migrationFrom": "apps/web/components/dashboard/smart-kpi-card.tsx"
+  }
+}

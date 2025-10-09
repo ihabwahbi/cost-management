@@ -1,0 +1,19 @@
+{
+  "id": "cost-breakdown-table",
+  "version": "1.0.0",
+  "description": "Cost breakdown table with budget tracking",
+  "behavioralAssertions": [
+    {
+      "id": "BA-001",
+      "requirement": "Component MUST display cost breakdown rows",
+      "criticality": "high"
+    }
+  ],
+  "dependencies": {
+    "ui": ["@/components/ui/table"]
+  },
+  "metadata": {
+    "createdBy": "Phase 4: Migration Execution (2025-10-09)",
+    "migrationFrom": "apps/web/components/dashboard/cost-breakdown-table.tsx"
+  }
+}

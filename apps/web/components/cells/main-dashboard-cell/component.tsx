@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Skeleton } from '@/components/ui/skeleton'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
-import { SmartKPICard } from '@/components/dashboard/smart-kpi-card'
+import { SmartKPICard } from '@/components/cells/smart-kpi-card/component'
 import { AlertCircle, TrendingUp, Activity, DollarSign, FolderOpen } from 'lucide-react'
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, LineChart, Line, XAxis, YAxis, CartesianGrid } from 'recharts'
 

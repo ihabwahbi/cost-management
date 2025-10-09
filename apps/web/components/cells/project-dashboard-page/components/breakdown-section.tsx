@@ -5,7 +5,7 @@
  */
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { CostBreakdownTable } from '@/components/dashboard/cost-breakdown-table'
+import { CostBreakdownTable } from '@/components/cells/cost-breakdown-table/component'
 import type { HierarchyNode, CostBreakdownRow } from '../types'
 
 export interface BreakdownSectionProps {

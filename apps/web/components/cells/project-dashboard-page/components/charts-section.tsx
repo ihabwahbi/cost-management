@@ -5,7 +5,7 @@
  */
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { SpendCategoryChart } from '@/components/dashboard/spend-category-chart'
+import { SpendCategoryChart } from '@/components/cells/spend-category-chart/component'
 import { SpendSubcategoryChart } from '@/components/cells/spend-subcategory-chart/component'
 import type { CategoryData, SubcategoryData } from '../types'
 

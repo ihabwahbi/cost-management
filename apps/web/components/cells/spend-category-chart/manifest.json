@@ -1,0 +1,38 @@
+{
+  "id": "spend-category-chart",
+  "version": "1.0.0",
+  "description": "Pie chart visualization for spend by category with budget utilization",
+  "dataContract": {
+    "source": "props (parent: ChartsSection)",
+    "inputSchema": {
+      "data": "CategoryData[] (name, value, budget)"
+    }
+  },
+  "behavioralAssertions": [
+    {
+      "id": "BA-001",
+      "requirement": "Component MUST render pie chart with category data",
+      "validation": "Unit test: render with mock data, verify PieChart rendered",
+      "criticality": "high"
+    },
+    {
+      "id": "BA-002",
+      "requirement": "Color palette MUST cycle through 8 colors using modulo",
+      "validation": "Unit test: verify COLORS array usage",
+      "criticality": "medium"
+    },
+    {
+      "id": "BA-003",
+      "requirement": "Labels MUST hide for slices < 5%",
+      "validation": "Unit test: verify renderCustomizedLabel logic",
+      "criticality": "low"
+    }
+  ],
+  "dependencies": {
+    "ui": ["@/components/ui/chart", "recharts"]
+  },
+  "metadata": {
+    "createdBy": "Phase 4: Migration Execution (2025-10-09)",
+    "migrationFrom": "apps/web/components/dashboard/spend-category-chart.tsx"
+  }
+}

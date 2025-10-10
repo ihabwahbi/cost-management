@@ -11,10 +11,32 @@ import {
   ResponsiveContainer,
   Cell,
   ComposedChart,
-  Line
+  Line,
+  type TooltipProps,
+  type Rectangle
 } from "recharts"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { TrendingUp, TrendingDown, AlertCircle } from "lucide-react"
+
+// Type definitions for chart data
+interface WaterfallDataPoint {
+  name: string
+  value: number | [number, number]
+  displayValue: number
+  actualChange?: number
+  fill: string
+  isTotal: boolean
+}
+
+// Recharts custom bar props
+interface CustomBarProps {
+  fill?: string
+  x?: number
+  y?: number
+  width?: number
+  height?: number
+  payload?: WaterfallDataPoint
+}
 
 interface WaterfallChartProps {
   data: Array<{
@@ -45,7 +67,7 @@ export function WaterfallChart({ data, title = "Budget Change Waterfall", descri
     })
     
     // Build waterfall data
-    const result: any[] = []
+    const result: WaterfallDataPoint[] = []
     let cumulative = data.reduce((sum, item) => sum + (item.v1_amount || 0), 0)
     
     // Start bar
@@ -98,7 +120,7 @@ export function WaterfallChart({ data, title = "Budget Change Waterfall", descri
     }).format(Math.abs(value))
   }
   
-  const CustomTooltip = ({ active, payload }: any) => {
+  const CustomTooltip = ({ active, payload }: TooltipProps<number, string>) => {
     if (active && payload && payload[0]) {
       const data = payload[0].payload
       
@@ -119,8 +141,11 @@ export function WaterfallChart({ data, title = "Budget Change Waterfall", descri
   }
   
   // Custom bar shape for floating effect
-  const FloatingBar = (props: any) => {
-    const { fill, x, y, width, height, payload } = props
+  const FloatingBar = (props: unknown) => {
+    const barProps = props as CustomBarProps
+    const { fill, x = 0, y = 0, width = 0, height = 0, payload } = barProps
+    
+    if (!payload) return <rect />
     
     // For total bars, render normally from 0
     if (payload.isTotal) {
@@ -230,9 +255,10 @@ export function CategoryComparisonChart({ data }: CategoryComparisonChartProps) 
               tick={{ fontSize: 11 }}
             />
             <Tooltip 
-              formatter={(value: any, name: string) => {
-                if (name === "Change %") return `${value.toFixed(1)}%`
-                return `$${(value / 1000).toFixed(1)}K`
+              formatter={(value: string | number | Array<string | number>, name: string) => {
+                const numValue = Array.isArray(value) ? 0 : (typeof value === 'string' ? parseFloat(value) : value)
+                if (name === "Change %") return `${numValue.toFixed(1)}%`
+                return `$${(numValue / 1000).toFixed(1)}K`
               }}
             />
             <Bar yAxisId="amount" dataKey="v1_total" fill="#cbd5e1" name="Version 1" />

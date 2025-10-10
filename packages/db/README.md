@@ -106,6 +106,56 @@ const invalid = await db.select({
 - [x] Schema validation completed (pnpm db:compare)
 - [ ] Database introspection with live connection (requires DATABASE_URL)
 
+## Migration Workflow
+
+### Creating Migrations
+
+1. **Update Drizzle Schema**:
+   ```typescript
+   // packages/db/src/schema/table-name.ts
+   export const tableName = pgTable('table_name', {
+     // ... add/modify columns
+   })
+   ```
+
+2. **Generate Migration**:
+   ```bash
+   pnpm db:generate --name descriptive_migration_name
+   ```
+
+3. **Review Generated SQL**:
+   ```bash
+   cat src/migrations/XXXX_descriptive_migration_name.sql
+   ```
+
+4. **Apply Migration**:
+   ```bash
+   pnpm db:push
+   ```
+
+5. **Commit Both Schema and Migration**:
+   ```bash
+   git add src/schema/ src/migrations/
+   git commit -m "feat(db): Add [description]"
+   ```
+
+### Baseline Migration
+
+- **File**: `0000_baseline_schema.sql`
+- **Created**: 2025-10-10
+- **Status**: Applied (represents current production state)
+- **Do NOT re-run**: Already in database
+
+### Future Migrations
+
+All future schema changes MUST:
+1. Update Drizzle schema first
+2. Generate migration
+3. Review SQL
+4. Test on development
+5. Apply to production
+6. Commit schema + migration together
+
 ## Documentation
 
 - [Drizzle ORM Docs](https://orm.drizzle.team/)

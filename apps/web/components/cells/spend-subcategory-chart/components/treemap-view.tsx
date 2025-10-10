@@ -6,6 +6,19 @@ import { getCategoryColor } from '../utils/color-utils'
 import { formatCurrency } from '../utils/data-formatters'
 import type { GroupedCategory, TreemapNode } from '../types'
 
+// Recharts Treemap custom content props
+interface TreemapContentProps {
+  x?: number
+  y?: number
+  width?: number
+  height?: number
+  name?: string
+  value?: number
+  category?: string
+  depth?: number
+  root?: unknown // Complex Recharts internal type
+}
+
 interface TreemapViewProps {
   categoryArray: GroupedCategory[]
   onDrillDown?: (category: string, subcategory: string) => void
@@ -28,8 +41,8 @@ export function TreemapView({ categoryArray, onDrillDown }: TreemapViewProps) {
   )
 
   // Custom treemap cell renderer
-  const CustomTreemapContent = (props: any) => {
-    const { x, y, width, height, name, value, category } = props
+  const CustomTreemapContent = (props: TreemapContentProps) => {
+    const { x = 0, y = 0, width = 0, height = 0, name = '', value = 0, category } = props
     
     // Get category color
     const categoryIndex = categoryArray.findIndex(c => c.category === (category || name))

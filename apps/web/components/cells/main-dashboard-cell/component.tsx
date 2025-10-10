@@ -32,7 +32,7 @@ export function MainDashboardCell() {
     staleTime: 5 * 60 * 1000,
   })
 
-  const categoryBreakdown = trpc.dashboard.getCategoryBreakdown.useQuery(categoryBreakdownInput, {
+  const categoryBreakdown = trpc.dashboard.getCostLineBreakdown.useQuery(categoryBreakdownInput, {
     refetchOnMount: false,
     refetchOnWindowFocus: false,
     staleTime: 5 * 60 * 1000,

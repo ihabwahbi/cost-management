@@ -96,7 +96,7 @@ export interface BreakdownData {
 /**
  * Cost Breakdown Row for table display
  * Same as HierarchyNode but with required level property
- * Used by CostBreakdownTable component
+ * Used by HierarchicalCostView component
  */
 export interface CostBreakdownRow {
   id: string

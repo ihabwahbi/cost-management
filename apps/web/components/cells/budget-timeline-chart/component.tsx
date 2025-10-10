@@ -43,8 +43,8 @@ export function BudgetTimelineChartCell({
   const chartMargin = useMemo(() => ({ top: 5, right: 30, left: 20, bottom: 5 }), [])
 
   // CRITICAL: Type-safe tooltip formatter (FIXES TYPE SAFETY PITFALL)
-  const tooltipFormatter = useCallback((value: any) => {
-    const numValue = typeof value === 'string' ? parseFloat(value) : Number(value)
+  const tooltipFormatter = useCallback((value: string | number | Array<string | number>) => {
+    const numValue = Array.isArray(value) ? 0 : (typeof value === 'string' ? parseFloat(value) : Number(value))
     return `$${(numValue / 1000).toFixed(1)}K`
   }, [])
 

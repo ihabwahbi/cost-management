@@ -18,11 +18,11 @@ interface CostBreakdownRow {
   children?: CostBreakdownRow[]
 }
 
-interface CostBreakdownTableProps {
+interface HierarchicalCostViewProps {
   data: CostBreakdownRow[]
 }
 
-export function CostBreakdownTable({ data }: CostBreakdownTableProps) {
+export function HierarchicalCostView({ data }: HierarchicalCostViewProps) {
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
 
   const toggleExpand = (id: string) => {

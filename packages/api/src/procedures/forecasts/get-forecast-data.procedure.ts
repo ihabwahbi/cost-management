@@ -4,7 +4,7 @@ import { costBreakdown, forecastVersions, budgetForecasts } from '@cost-mgmt/db'
 import { eq, desc, and } from 'drizzle-orm'
 import { TRPCError } from '@trpc/server'
 
-export const getForecastDataEnhanced = publicProcedure
+export const getForecastData = publicProcedure
   .input(z.object({
     projectId: z.string().uuid(),
     versionNumber: z.union([

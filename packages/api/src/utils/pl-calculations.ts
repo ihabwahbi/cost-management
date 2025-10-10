@@ -3,6 +3,15 @@
  * Shared logic for dashboard procedures involving P&L calculations
  */
 
+import { poLineItems } from '@cost-mgmt/db'
+import type { InferSelectModel } from 'drizzle-orm'
+
+// Type for raw line item from database
+type POLineItemRaw = Pick<
+  InferSelectModel<typeof poLineItems>,
+  'id' | 'lineValue' | 'invoicedValueUsd' | 'invoicedQuantity' | 'invoiceDate'
+>
+
 /**
  * Fallback invoice ratio when actual invoice data unavailable
  * Used to split mapped amounts into actual (60%) vs future (40%)
@@ -50,7 +59,7 @@ export function splitMappedAmount(
  * Normalize line item data from Drizzle query
  * Converts numeric strings to numbers
  */
-export function normalizeLineItem(raw: any): {
+export function normalizeLineItem(raw: POLineItemRaw): {
   id: string
   lineValue: number
   invoicedValueUsd: number

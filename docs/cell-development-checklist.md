@@ -56,10 +56,21 @@
 - [ ] Reference existing working procedures for SQL patterns
 
 ### 3. Test Procedures Independently (MANDATORY)
+
+**CRITICAL**: Query procedures (`.query()`) use **GET**, mutation procedures (`.mutation()`) use **POST**.
+
+- [ ] Start Next.js dev server: `pnpm dev`
 - [ ] Test each procedure via `curl` or Postman BEFORE writing client code
   ```bash
-  # Test with actual ISO date strings
-  curl "https://[PROJECT].supabase.co/functions/v1/trpc/dashboard.getPLTimeline?batch=1&input=%7B%220%22%3A%7B%22projectId%22%3A%22[UUID]%22%2C%22dateRange%22%3A%7B%22from%22%3A%222025-01-01%22%2C%22to%22%3A%222025-12-31%22%7D%7D%7D"
+  # Query procedures use GET with URL-encoded params
+  curl -G http://localhost:3000/api/trpc/dashboard.getPLTimeline \
+    --data-urlencode 'batch=1' \
+    --data-urlencode 'input={"0":{"projectId":"[UUID]","dateRange":{"from":"2025-01-01T00:00:00Z","to":"2025-12-31T23:59:59Z"}}}'
+  
+  # Mutation procedures use POST with JSON body
+  curl -X POST http://localhost:3000/api/trpc/costBreakdown.createCostEntry \
+    -H "Content-Type: application/json" \
+    -d '{"projectId":"[UUID]","costLine":"Test","budgetCost":5000}'
   ```
 - [ ] Verify response structure matches expected schema
 - [ ] Test with edge cases (empty data, invalid IDs, null values)
@@ -85,9 +96,8 @@
 - [ ] **Verify**: Domain router file is ≤50 lines (architecture mandate)
 - [ ] **Verify**: Router contains ONLY imports and merges, NO business logic
 - [ ] Build and test locally: `pnpm build`
-- [ ] Deploy updated API to edge function
-- [ ] Wait 30 seconds for cold start
-- [ ] Re-test all procedures via curl after deployment
+- [ ] Start Next.js dev server: `pnpm dev`
+- [ ] Re-test all procedures via curl (see Step 3 for examples)
 - [ ] **DO NOT touch client code until procedures verified**
 
 **ARCHITECTURE CHECK**:
@@ -439,23 +449,27 @@ Respond with:
 
 ### Pitfall #3: SQL Syntax Mismatches
 **Symptoms**:
-- 500 Internal Server Error from edge function
-- Edge function logs show SQL syntax errors
+- 500 Internal Server Error from API
+- Server logs show SQL syntax errors
 
 **Solution**:
 - Reference existing working procedures (e.g., getKPIMetrics)
 - Use `inArray()` for filtering by array of IDs
-- Test queries directly in Supabase SQL editor first
+- Test queries directly in Azure Data Studio or psql first:
+  ```bash
+  psql "postgresql://iwahbi:PASSWORD@cost-management-db.postgres.database.azure.com:5432/postgres?sslmode=require"
+  ```
 
-### Pitfall #4: Missing Edge Function Deployment
+### Pitfall #4: Wrong HTTP Method for Procedure Type
 **Symptoms**:
-- 404 Not Found errors
-- Error: "Procedure not found"
+- 405 METHOD_NOT_SUPPORTED error
+- Error: "Unsupported POST-request to query procedure"
 
 **Solution**:
-- Deploy edge function BEFORE writing client code
-- Wait 30 seconds after deployment for cold start
-- Test with curl to verify deployment
+- Query procedures (`.query()`) → Use **GET** with URL-encoded params
+- Mutation procedures (`.mutation()`) → Use **POST** with JSON body
+- Start dev server BEFORE writing client code: `pnpm dev`
+- Test with curl to verify correct method (see Step 3 examples)
 
 ---
 
@@ -506,8 +520,8 @@ How many tRPC queries does this component need?
 
 A Cell is considered successfully implemented when:
 
-- [ ] All tRPC procedures tested independently via curl
-- [ ] Edge function deployed and verified
+- [ ] All tRPC procedures tested independently via curl (GET for queries, POST for mutations)
+- [ ] Next.js dev server running and procedures verified
 - [ ] Component renders without errors
 - [ ] All queries complete successfully (status: 'success')
 - [ ] No infinite render loops (< 5 renders total)

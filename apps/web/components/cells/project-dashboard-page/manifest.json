@@ -13,16 +13,6 @@
     "inputSchema": {
       "projectId": "string (uuid from route params)",
       "filters": "DashboardFilters (optional user selections)"
-    },
-    "realtime": {
-      "subscriptions": [
-        {
-          "table": "cost_breakdown",
-          "filter": "project_id=eq.{projectId}",
-          "events": ["INSERT", "UPDATE", "DELETE"],
-          "action": "Invalidate all dashboard queries"
-        }
-      ]
     }
   },
   
@@ -76,13 +66,7 @@
       "criticality": "low",
       "source": "Current lines 244-258"
     },
-    {
-      "id": "BA-008",
-      "requirement": "Dashboard MUST auto-refresh when cost_breakdown table changes",
-      "validation": "Integration test: Trigger Supabase realtime event, verify React Query queries invalidated",
-      "criticality": "high",
-      "source": "Current lines 190-201 (FIXED - was broken)"
-    },
+
     {
       "id": "BA-009",
       "requirement": "Spend subcategory chart MUST display flattened hierarchy from 4-level data",
@@ -131,8 +115,7 @@
       "trpc.dashboard.getProjectHierarchicalBreakdown"
     ],
     "external": [
-      "@tanstack/react-query (for React Query invalidation)",
-      "Supabase realtime (for database subscriptions)"
+      "@tanstack/react-query (for React Query caching and invalidation)"
     ]
   },
   

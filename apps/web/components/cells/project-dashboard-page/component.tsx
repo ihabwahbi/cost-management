@@ -16,7 +16,6 @@ import { DashboardSkeleton } from '@/components/cells/dashboard-skeleton/compone
 
 // Custom hooks (all business logic extracted)
 import { useDashboardData, type DashboardFilters } from './hooks/use-dashboard-data'
-import { useRealtimeSync } from './hooks/use-realtime-sync'
 
 // Export handlers
 import { handleExportPDF, handleExportExcel } from './utils/export-handlers'
@@ -44,9 +43,8 @@ export function ProjectDashboardPage({ projectId }: ProjectDashboardPageProps) {
   const [refreshing, setRefreshing] = useState(false)
   const [filters] = useState<DashboardFilters>({})
 
-  // Custom hooks handle ALL data fetching and realtime sync
+  // Custom hooks handle ALL data fetching
   const data = useDashboardData(projectId, filters)
-  useRealtimeSync(projectId)
 
   // Handlers
   const handleRefresh = async () => {

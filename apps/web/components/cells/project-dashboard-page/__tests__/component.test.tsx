@@ -2,12 +2,10 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { ProjectDashboardPage } from '../component'
 import { useDashboardData } from '../hooks/use-dashboard-data'
-import { useRealtimeSync } from '../hooks/use-realtime-sync'
 import { handleExportPDF, handleExportExcel } from '../utils/export-handlers'
 
 // Mock dependencies
 vi.mock('../hooks/use-dashboard-data')
-vi.mock('../hooks/use-realtime-sync')
 vi.mock('../utils/export-handlers')
 vi.mock('@/hooks/use-toast', () => ({
   useToast: () => ({
@@ -93,7 +91,6 @@ describe('ProjectDashboardPage Cell - Behavioral Assertions', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    vi.mocked(useRealtimeSync).mockReturnValue(undefined)
   })
 
   // ============================================================================
@@ -361,29 +358,6 @@ describe('ProjectDashboardPage Cell - Behavioral Assertions', () => {
           })
         )
       })
-    })
-  })
-
-  // ============================================================================
-  // BA-008: Dashboard MUST auto-refresh when cost_breakdown table changes
-  // ============================================================================
-  describe('BA-008: Realtime sync', () => {
-    it('should initialize realtime sync with projectId', () => {
-      vi.mocked(useDashboardData).mockReturnValue({
-        project: mockProject,
-        metrics: mockMetrics,
-        categoryData: mockCategoryData,
-        breakdownData: [],
-        subcategoryData: [],
-        isLoading: false,
-        anyLoading: false,
-        error: null,
-        refetchAll: vi.fn(),
-      })
-
-      render(<ProjectDashboardPage projectId={mockProjectId} />)
-
-      expect(useRealtimeSync).toHaveBeenCalledWith(mockProjectId)
     })
   })
 

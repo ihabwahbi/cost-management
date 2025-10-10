@@ -160,16 +160,4 @@ export interface TimelineDataPoint {
   actual: number
 }
 
-// ===== Realtime Event Types =====
 
-/**
- * Supabase realtime event payload
- * Generic structure for postgres_changes events
- */
-export interface RealtimePayload {
-  eventType: 'INSERT' | 'UPDATE' | 'DELETE'
-  new: Record<string, any>
-  old: Record<string, any>
-  schema: string
-  table: string
-}

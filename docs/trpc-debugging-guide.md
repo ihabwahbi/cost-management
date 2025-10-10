@@ -10,11 +10,13 @@
 
 | Symptom | Likely Cause | Quick Fix |
 |---------|--------------|-----------|
+| **405 METHOD_NOT_SUPPORTED on POST** | **Using POST for `.query()` procedure** | **Use GET with URL-encoded params** |
 | Component stuck loading forever | Unmemoized query inputs | Wrap inputs in `useMemo()` |
 | 400 Bad Request on date inputs | Using `z.date()` instead of `z.string().transform()` | Change schema to transform strings |
-| SQL syntax errors in edge function | Using wrong query builder syntax | Use Drizzle helpers: `eq()`, `inArray()` |
-| KPICard suddenly broke | Changed NEXT_PUBLIC_TRPC_URL | Check env vars point to correct endpoint |
+| SQL syntax errors in API procedure | Using wrong query builder syntax | Use Drizzle helpers: `eq()`, `inArray()` |
 | Network 200 OK but UI stuck | React Query sees changing query keys | Memoize ALL objects/arrays in inputs |
+
+**⚠️ CRITICAL**: Query procedures (`.query()`) use **GET requests only**. Mutation procedures (`.mutation()`) use POST.
 
 ---
 
@@ -142,16 +144,11 @@ const { data } = trpc.getPLMetrics.useQuery({
 
 **How to Debug:**
 ```bash
+# IMPORTANT: Query procedures use GET (not POST)
 # Test procedure directly with curl
-curl -X POST https://your-edge-function.supabase.co/trpc/getPLMetrics \
-  -H "Content-Type: application/json" \
-  -d '{
-    "projectId": "your-uuid",
-    "dateRange": {
-      "from": "2025-10-02T00:00:00Z",
-      "to": "2025-12-31T23:59:59Z"
-    }
-  }'
+curl -G http://localhost:3000/api/trpc/dashboard.getPLMetrics \
+  --data-urlencode 'batch=1' \
+  --data-urlencode 'input={"0":{"projectId":"your-uuid","dateRange":{"from":"2025-10-02T00:00:00Z","to":"2025-12-31T23:59:59Z"}}}'
 
 # If this fails → Schema expects wrong type
 # If this succeeds → Client sending wrong format
@@ -231,7 +228,7 @@ import { eq, inArray, and, or } from 'drizzle-orm'
 
 **How to Debug:**
 1. Copy the SQL logic you're trying to implement
-2. Test in Supabase SQL Editor first
+2. Test in Azure Data Studio or psql first
 3. Verify data exists and query returns results
 4. Then translate to Drizzle syntax
 5. Reference existing working procedures (e.g., `getKPIMetrics`)
@@ -257,7 +254,7 @@ import { costBreakdown, poMappings, poLineItems } from '@/db/schema'
 
 ---
 
-### Step 5: Using Supabase CLI for Database Verification
+### Step 5: Using Azure PostgreSQL for Database Verification
 
 **When to Use:** 
 - Verify database has expected data
@@ -267,8 +264,8 @@ import { costBreakdown, poMappings, poLineItems } from '@/db/schema'
 **How to Use:**
 
 ```bash
-# 1. Connect to database
-supabase db connect
+# 1. Connect to Azure PostgreSQL database
+psql "postgresql://iwahbi:PASSWORD@cost-management-db.postgres.database.azure.com:5432/postgres?sslmode=require"
 
 # 2. Run query to verify data exists
 SELECT * FROM cost_breakdown 
@@ -302,8 +299,8 @@ WHERE cb.project_id = 'your-uuid';
 # New Cell shows: totalBudget = $1,500,000
 # WHY THE DIFFERENCE?
 
-# Use Supabase CLI:
-supabase db connect
+# Use psql to connect to Azure:
+psql "postgresql://iwahbi:PASSWORD@cost-management-db.postgres.database.azure.com:5432/postgres?sslmode=require"
 
 # Query the source of truth:
 SELECT SUM(budget_cost) FROM cost_breakdown 
@@ -396,35 +393,41 @@ Open Network tab:
 
 **ALWAYS test tRPC procedures via curl BEFORE writing client code**
 
-```bash
-# 1. Deploy edge function
-supabase functions deploy trpc
+**CRITICAL**: Query procedures (`.query()`) use GET, Mutation procedures (`.mutation()`) use POST
 
-# 2. Test procedure with curl
-curl -X POST https://your-project.supabase.co/functions/v1/trpc \
+```bash
+# 1. Start Next.js dev server
+pnpm dev
+
+# 2a. Test QUERY procedure (GET request with URL-encoded params)
+curl -G http://localhost:3000/api/trpc/dashboard.getProjectDetails \
+  --data-urlencode 'batch=1' \
+  --data-urlencode 'input={"0":{"projectId":"94d1eaad-4ada-4fb6-b872-212b6cd6007a"}}'
+
+# 2b. Test MUTATION procedure (POST request with JSON body)
+curl -X POST http://localhost:3000/api/trpc/costBreakdown.createCostEntry \
   -H "Content-Type: application/json" \
   -d '{
-    "0": {
-      "json": {
-        "projectId": "94d1eaad-4ada-4fb6-b872-212b6cd6007a",
-        "dateRange": {
-          "from": "2025-01-01T00:00:00Z",
-          "to": "2025-12-31T23:59:59Z"
-        }
-      }
-    }
+    "projectId": "94d1eaad-4ada-4fb6-b872-212b6cd6007a",
+    "costLine": "Test Line",
+    "budgetCost": 50000
   }'
 
 # 3. Verify response
-# Should see: {"result":{"data":{"json":{...your data...}}}}
+# Query: [{"result":{"data":{...your data...}}}]
+# Mutation: {"result":{"data":{...created data...}}}
 
 # 4. Test error cases
-# Invalid UUID:
-curl -X POST ... -d '{"0":{"json":{"projectId":"invalid-uuid"}}}'
+# Invalid UUID (GET query):
+curl -G http://localhost:3000/api/trpc/dashboard.getProjectDetails \
+  --data-urlencode 'batch=1' \
+  --data-urlencode 'input={"0":{"projectId":"invalid-uuid"}}'
 # Should see: 400 Bad Request with Zod error
 
 # Missing required field:
-curl -X POST ... -d '{"0":{"json":{}}}'
+curl -G http://localhost:3000/api/trpc/dashboard.getProjectDetails \
+  --data-urlencode 'batch=1' \
+  --data-urlencode 'input={"0":{}}'
 # Should see: 400 Bad Request
 
 # 5. Only THEN write client code
@@ -657,36 +660,25 @@ find packages/api/src/procedures -name "*.router.ts" -exec wc -l {} + | awk '$1 
 ### Pattern: Testing Specialized Procedures
 
 ```bash
+# REMEMBER: Query procedures (.query) use GET, not POST!
 # Test procedure directly with curl before client implementation
-curl -X POST https://your-project.supabase.co/functions/v1/trpc/dashboard.getKPIMetrics \
-  -H "Content-Type: application/json" \
-  -d '{
-    "0": {
-      "json": {
-        "projectId": "94d1eaad-4ada-4fb6-b872-212b6cd6007a",
-        "dateRange": {
-          "from": "2025-01-01T00:00:00Z",
-          "to": "2025-12-31T23:59:59Z"
-        }
-      }
-    }
-  }'
+curl -G http://localhost:3000/api/trpc/dashboard.getKPIMetrics \
+  --data-urlencode 'batch=1' \
+  --data-urlencode 'input={"0":{"projectId":"94d1eaad-4ada-4fb6-b872-212b6cd6007a","dateRange":{"from":"2025-01-01T00:00:00Z","to":"2025-12-31T23:59:59Z"}}}'
 ```
 
 **Expected Response:**
 ```json
-{
-  "0": {
+[
+  {
     "result": {
       "data": {
-        "json": {
-          "totalBudget": 1750000,
-          "itemCount": 42
-        }
+        "totalBudget": 1750000,
+        "itemCount": 42
       }
     }
   }
-}
+]
 ```
 
 ---
@@ -776,4 +768,9 @@ import { inArray } from 'drizzle-orm'
 
 **Keep this guide open while debugging tRPC issues.**
 
-**When in doubt: Network tab first, then Console, then Supabase CLI.**
+**When in doubt: Network tab first, then Console, then Azure PostgreSQL (psql).**
+
+**Remember**: 
+- Query procedures (`.query()`) → **GET requests only**
+- Mutation procedures (`.mutation()`) → **POST requests**
+- Trying to POST to a query will fail with "METHOD_NOT_SUPPORTED"

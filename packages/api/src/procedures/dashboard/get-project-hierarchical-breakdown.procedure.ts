@@ -4,13 +4,38 @@ import { costBreakdown, poMappings } from '@cost-mgmt/db'
 import { eq, inArray, and } from 'drizzle-orm'
 import { TRPCError } from '@trpc/server'
 
-interface HierarchyNode {
+// Type definitions for hierarchical breakdown
+interface HierarchyNodeBase {
   id: string
   name: string
   budget: number
   actual: number
   variance: number
   utilization: number
+}
+
+interface SubCategory extends HierarchyNodeBase {
+  level: 'sub_category'
+}
+
+interface SpendType extends HierarchyNodeBase {
+  level: 'spend_type'
+  children: SubCategory[]
+}
+
+interface CostLine extends HierarchyNodeBase {
+  level: 'cost_line'
+  children: Record<string, SpendType>
+}
+
+interface BusinessLine extends HierarchyNodeBase {
+  level: 'business_line'
+  children: Record<string, CostLine>
+}
+
+// Final output type
+interface HierarchyNode extends HierarchyNodeBase {
+  level: 'business_line' | 'cost_line' | 'spend_type' | 'sub_category'
   children?: HierarchyNode[]
 }
 
@@ -61,7 +86,7 @@ export const getProjectHierarchicalBreakdown = publicProcedure
           (actualSpendMap[mapping.costBreakdownId] || 0) + (Number(mapping.mappedAmount || 0))
       })
 
-      const hierarchy: Record<string, any> = {}
+      const hierarchy: Record<string, BusinessLine> = {}
 
       costData.forEach(item => {
         const { subBusinessLine, costLine, spendType, spendSubCategory } = item
@@ -107,9 +132,9 @@ export const getProjectHierarchicalBreakdown = publicProcedure
           }
         }
 
-        const subCategoryItem = {
+        const subCategoryItem: SubCategory = {
           id: item.id,
-          level: 'sub_category',
+          level: 'sub_category' as const,
           name: spendSubCategory || 'Unknown',
           budget,
           actual,
@@ -131,17 +156,17 @@ export const getProjectHierarchicalBreakdown = publicProcedure
 
       const result: HierarchyNode[] = []
 
-      Object.values(hierarchy).forEach((businessLine: any) => {
+      Object.values(hierarchy).forEach((businessLine: BusinessLine) => {
         businessLine.variance = businessLine.budget - businessLine.actual
         businessLine.utilization = businessLine.budget > 0 ? (businessLine.actual / businessLine.budget) * 100 : 0
 
-        const costLines: any[] = []
-        Object.values(businessLine.children).forEach((costLine: any) => {
+        const costLines: HierarchyNode[] = []
+        Object.values(businessLine.children).forEach((costLine: CostLine) => {
           costLine.variance = costLine.budget - costLine.actual
           costLine.utilization = costLine.budget > 0 ? (costLine.actual / costLine.budget) * 100 : 0
 
-          const spendTypes: any[] = []
-          Object.values(costLine.children).forEach((spendType: any) => {
+          const spendTypes: HierarchyNode[] = []
+          Object.values(costLine.children).forEach((spendType: SpendType) => {
             spendType.variance = spendType.budget - spendType.actual
             spendType.utilization = spendType.budget > 0 ? (spendType.actual / spendType.budget) * 100 : 0
 

@@ -18,7 +18,6 @@ cost-management-hub/
 ├── tools/
 │   ├── cell-validator/         # CLI for validating Component Cells
 │   └── ledger-query/           # Query utilities for Architectural Ledger
-├── supabase/functions/         # Supabase Edge Functions
 ├── docs/                       # Documentation and specs
 └── ledger.jsonl               # Architectural Ledger
 ```
@@ -29,7 +28,7 @@ cost-management-hub/
 
 - **Node.js** >= 18
 - **pnpm** >= 8
-- **Supabase** account with project setup
+- **Azure PostgreSQL** database access
 
 ### Installation
 
@@ -40,11 +39,8 @@ pnpm install
 # Copy environment variables
 cp apps/web/.env.example apps/web/.env.local
 
-# Add your Supabase credentials to apps/web/.env.local:
-# NEXT_PUBLIC_SUPABASE_URL=https://[PROJECT-REF].supabase.co
-# NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
-# NEXT_PUBLIC_TRPC_URL=https://[PROJECT-REF].supabase.co/functions/v1/trpc
-# DATABASE_URL=postgresql://postgres:[PASSWORD]@db.[PROJECT-REF].supabase.co:5432/postgres
+# Add your Azure PostgreSQL credentials to apps/web/.env.local:
+# DATABASE_URL=postgresql://iwahbi:PASSWORD@cost-management-db.postgres.database.azure.com:5432/postgres?sslmode=require
 ```
 
 ### Development
@@ -88,20 +84,17 @@ Next.js 14 application with:
 - Project dashboard
 - PO mapping interface
 - Real-time metrics
-- Supabase integration
+- Azure PostgreSQL integration
 
 ### [@cost-mgmt/db](./packages/db)
 Database layer featuring:
 - Drizzle ORM for type-safe queries
 - PostgreSQL schema definitions
-- Supabase connection management
+- Azure PostgreSQL connection management
 - Migration tools
 
 ### [@cost-mgmt/api](./packages/api)
-tRPC API layer providing:
-- End-to-end type safety
-- Zod input validation
-- Supabase Edge Function deployment
+- Next.js API route deployment
 - Procedure-based architecture
 
 ### [@cost-mgmt/cell-validator](./tools/cell-validator)
@@ -151,29 +144,23 @@ pnpm --filter @cost-mgmt/db db:studio
 
 ### Local Development
 
-The tRPC API can be accessed through the Supabase Edge Function:
+The tRPC API is served through Next.js API routes:
 
 ```bash
-# Deploy Edge Function locally
-supabase functions serve trpc
+# Start development server
+pnpm dev
 
 # Test endpoint
-curl http://localhost:54321/functions/v1/trpc/test.hello \
+curl http://localhost:3000/api/trpc/test.hello \
   -H "Content-Type: application/json" \
   -d '{"name": "World"}'
 ```
 
 ### Production Deployment
 
-```bash
-# Deploy to Supabase
-supabase functions deploy trpc
+tRPC endpoints are automatically deployed with the Next.js application. No separate deployment needed.
 
-# Set environment variables
-supabase secrets set DATABASE_URL="postgresql://..."
-```
-
-See [supabase/functions/README.md](./supabase/functions/README.md) for detailed deployment instructions.
+See [packages/api/README.md](./packages/api/README.md) for detailed API documentation.
 
 ## 🧪 Testing
 
@@ -194,7 +181,7 @@ pnpm type-check
 This project implements the **Living Blueprint Architecture** with three core pillars:
 
 ### 1. Type-Safe Data Layer
-- PostgreSQL (Supabase) → Drizzle ORM → tRPC → React
+- Azure PostgreSQL → Drizzle ORM → tRPC → React
 - End-to-end type safety with zero gaps
 - Runtime validation with Zod
 
@@ -278,8 +265,8 @@ pnpm install
 **Backend:**
 - tRPC v10
 - Drizzle ORM
-- PostgreSQL (Supabase)
-- Supabase Edge Functions
+- Azure PostgreSQL
+- Next.js API Routes
 
 **Development:**
 - TypeScript
@@ -313,7 +300,7 @@ Proprietary - All rights reserved
 
 ## 🔗 Links
 
-- [Supabase Dashboard](https://app.supabase.com)
+- [Azure Portal](https://portal.azure.com)
 - [Turborepo Docs](https://turbo.build/repo/docs)
 - [tRPC Docs](https://trpc.io)
 - [Drizzle ORM Docs](https://orm.drizzle.team)

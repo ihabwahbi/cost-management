@@ -15,11 +15,11 @@ This package provides:
 ```
 tRPC Client (Frontend)
     ↓ [Type-safe calls with autocomplete]
-tRPC Router (Edge Function)
+tRPC Router (Next.js API Route)
     ↓ [Zod validation + business logic]
 Drizzle ORM (@cost-mgmt/db)
     ↓ [Type-safe queries]
-PostgreSQL (Supabase)
+Azure PostgreSQL
 ```
 
 ## Setup
@@ -97,7 +97,7 @@ const result = await trpc.test.hello.query({ name: 'World' });
 
 ## Deployment
 
-This package is deployed as a Supabase Edge Function. See Task 5 for deployment setup.
+This package is automatically deployed with the Next.js application. No separate deployment needed.
 
 ## Project Structure
 

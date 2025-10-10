@@ -1,6 +1,6 @@
 # @cost-mgmt/db
 
-Type-safe database layer using Drizzle ORM for Supabase PostgreSQL.
+Type-safe database layer using Drizzle ORM for Azure PostgreSQL.
 
 ## Overview
 
@@ -17,11 +17,11 @@ This package provides:
 Add the following to your `.env.local` file:
 
 ```bash
-DATABASE_URL=postgresql://postgres:[PASSWORD]@db.[PROJECT-REF].supabase.co:5432/postgres
+DATABASE_URL=postgresql://iwahbi:PASSWORD@cost-management-db.postgres.database.azure.com:5432/postgres?sslmode=require
 ```
 
-You can find your connection string in the Supabase dashboard under:
-Settings → Database → Connection string → URI
+Find your connection details in Azure Portal:
+Database → Settings → Connection strings
 
 ### 2. Install Dependencies
 
@@ -159,4 +159,4 @@ All future schema changes MUST:
 ## Documentation
 
 - [Drizzle ORM Docs](https://orm.drizzle.team/)
-- [Supabase PostgreSQL Docs](https://supabase.com/docs/guides/database)
+- [Azure Database for PostgreSQL Docs](https://learn.microsoft.com/en-us/azure/postgresql/)

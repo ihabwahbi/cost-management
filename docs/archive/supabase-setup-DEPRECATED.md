@@ -1,3 +1,12 @@
+# [DEPRECATED] Supabase Database Setup Guide
+
+**⚠️ THIS DOCUMENT IS OBSOLETE**  
+**Migration Date:** 2025-10-10  
+**Status:** Replaced by Azure PostgreSQL  
+**See:** [../azure-postgresql-migration.md](../azure-postgresql-migration.md)
+
+---
+
 # Supabase Database Setup Guide
 
 ## Quick Reference

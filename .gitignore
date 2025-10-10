@@ -38,6 +38,7 @@ lerna-debug.log*
 .env.development.local
 .env.test.local
 .env.production.local
+.env
 
 # vercel
 .vercel
@@ -142,3 +143,6 @@ supabase/.temp
 *.njsproj
 *.sln
 *.sw?
+packages/db/.env
+packages/db/.env
+packages/db/.env

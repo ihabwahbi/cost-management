@@ -1,4 +1,4 @@
-// packages/api/src/procedures/dashboard/get-category-breakdown.procedure.ts
+// packages/api/src/procedures/dashboard/get-cost-line-breakdown.procedure.ts
 
 import { z } from 'zod';
 import { publicProcedure } from '../../trpc';
@@ -7,13 +7,13 @@ import { costBreakdown, poMappings } from '@cost-mgmt/db';
 import { TRPCError } from '@trpc/server';
 
 /**
- * Get Category Breakdown for Main Dashboard
- * Returns spend by category with real data (replaces simulated budget * 0.85)
+ * Get Cost Line Breakdown for Main Dashboard
+ * Returns spend by cost line with real data (replaces simulated budget * 0.85)
  * - Groups by cost_line (category) from cost_breakdown
  * - Joins with po_mappings to get actual spend
  * Used by: main-dashboard-cell (category breakdown chart)
  */
-export const getCategoryBreakdown = publicProcedure
+export const getCostLineBreakdown = publicProcedure
   .input(z.object({}))
   .output(z.object({
     categories: z.array(z.object({
@@ -46,7 +46,7 @@ export const getCategoryBreakdown = publicProcedure
       
       return { categories };
     } catch (error) {
-      console.error('[getCategoryBreakdown] Failed:', error);
+      console.error('[getCostLineBreakdown] Failed:', error);
       throw new TRPCError({
         code: 'INTERNAL_SERVER_ERROR',
         message: 'Failed to fetch category breakdown. Please try again.',

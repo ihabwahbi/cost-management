@@ -13,7 +13,7 @@ vi.mock('@/lib/trpc', () => ({
       getRecentActivity: {
         useQuery: vi.fn()
       },
-      getCategoryBreakdown: {
+      getCostLineBreakdown: {
         useQuery: vi.fn()
       },
       getTimelineData: {
@@ -73,7 +73,7 @@ describe('MainDashboardCell', () => {
       error: null
     } as any)
 
-    vi.mocked(trpc.dashboard.getCategoryBreakdown.useQuery).mockReturnValue({
+    vi.mocked(trpc.dashboard.getCostLineBreakdown.useQuery).mockReturnValue({
       data: {
         categories: [
           { name: 'Personnel', value: 500000 },
@@ -109,7 +109,7 @@ describe('MainDashboardCell', () => {
         error: null
       } as any)
 
-      vi.mocked(trpc.dashboard.getCategoryBreakdown.useQuery).mockReturnValue({
+      vi.mocked(trpc.dashboard.getCostLineBreakdown.useQuery).mockReturnValue({
         data: undefined,
         isLoading: false,
         error: null
@@ -143,7 +143,7 @@ describe('MainDashboardCell', () => {
         error: null
       } as any)
 
-      vi.mocked(trpc.dashboard.getCategoryBreakdown.useQuery).mockReturnValue({
+      vi.mocked(trpc.dashboard.getCostLineBreakdown.useQuery).mockReturnValue({
         data: undefined,
         isLoading: false,
         error: null
@@ -176,7 +176,7 @@ describe('MainDashboardCell', () => {
         error: null
       } as any)
 
-      vi.mocked(trpc.dashboard.getCategoryBreakdown.useQuery).mockReturnValue({
+      vi.mocked(trpc.dashboard.getCostLineBreakdown.useQuery).mockReturnValue({
         data: undefined,
         isLoading: true,
         error: null
@@ -209,7 +209,7 @@ describe('MainDashboardCell', () => {
         error: null
       } as any)
 
-      vi.mocked(trpc.dashboard.getCategoryBreakdown.useQuery).mockReturnValue({
+      vi.mocked(trpc.dashboard.getCostLineBreakdown.useQuery).mockReturnValue({
         data: undefined,
         isLoading: false,
         error: null
@@ -242,7 +242,7 @@ describe('MainDashboardCell', () => {
         error: null
       } as any)
 
-      vi.mocked(trpc.dashboard.getCategoryBreakdown.useQuery).mockReturnValue({
+      vi.mocked(trpc.dashboard.getCostLineBreakdown.useQuery).mockReturnValue({
         data: undefined,
         isLoading: false,
         error: null
@@ -276,7 +276,7 @@ describe('MainDashboardCell', () => {
         error: new Error('Failed to fetch recent activity')
       } as any)
 
-      vi.mocked(trpc.dashboard.getCategoryBreakdown.useQuery).mockReturnValue({
+      vi.mocked(trpc.dashboard.getCostLineBreakdown.useQuery).mockReturnValue({
         data: undefined,
         isLoading: false,
         error: null
@@ -424,7 +424,7 @@ describe('MainDashboardCell', () => {
 
       expect(trpc.dashboard.getMainMetrics.useQuery).toHaveBeenCalledWith({}, expectedConfig)
       expect(trpc.dashboard.getRecentActivity.useQuery).toHaveBeenCalledWith({ limit: 5 }, expectedConfig)
-      expect(trpc.dashboard.getCategoryBreakdown.useQuery).toHaveBeenCalledWith({}, expectedConfig)
+      expect(trpc.dashboard.getCostLineBreakdown.useQuery).toHaveBeenCalledWith({}, expectedConfig)
       expect(trpc.dashboard.getTimelineData.useQuery).toHaveBeenCalledWith({}, expectedConfig)
     })
   })
@@ -459,7 +459,7 @@ describe('MainDashboardCell', () => {
     it('should show empty state when no category data', () => {
       mockSuccessfulQueries()
 
-      vi.mocked(trpc.dashboard.getCategoryBreakdown.useQuery).mockReturnValue({
+      vi.mocked(trpc.dashboard.getCostLineBreakdown.useQuery).mockReturnValue({
         data: { categories: [] },
         isLoading: false,
         error: null
@@ -551,7 +551,7 @@ describe('MainDashboardCell', () => {
         error: null
       } as any)
 
-      vi.mocked(trpc.dashboard.getCategoryBreakdown.useQuery).mockReturnValue({
+      vi.mocked(trpc.dashboard.getCostLineBreakdown.useQuery).mockReturnValue({
         data: undefined,
         isLoading: false,
         error: null

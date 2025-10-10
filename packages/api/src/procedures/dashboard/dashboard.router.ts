@@ -9,7 +9,7 @@ import { getTimelineBudget } from './get-timeline-budget.procedure';
 import { getFinancialControlMetrics } from './get-financial-control-metrics.procedure';
 import { getMainMetrics } from './get-main-metrics.procedure';
 import { getRecentActivity } from './get-recent-activity.procedure';
-import { getCategoryBreakdown } from './get-category-breakdown.procedure';
+import { getCostLineBreakdown } from './get-cost-line-breakdown.procedure';
 import { getTimelineData } from './get-timeline-data.procedure';
 import { getProjectMetrics } from './get-project-metrics.procedure';
 import { getProjectCategoryBreakdown } from './get-project-category-breakdown.procedure';
@@ -26,7 +26,7 @@ export const dashboardRouter = router({
   getFinancialControlMetrics,
   getMainMetrics,
   getRecentActivity,
-  getCategoryBreakdown,
+  getCostLineBreakdown,
   getTimelineData,
   getProjectMetrics,
   getProjectCategoryBreakdown,

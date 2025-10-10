@@ -123,8 +123,8 @@ describe('MainDashboardCell', () => {
 
       render(<MainDashboardCell />)
 
-      // Verify skeleton elements present
-      const skeletons = screen.getAllByTestId(/skeleton/)
+      // Verify skeleton elements present (use data-slot attribute)
+      const skeletons = document.querySelectorAll('[data-slot="skeleton"]')
       expect(skeletons.length).toBeGreaterThan(0)
     })
   })
@@ -157,7 +157,7 @@ describe('MainDashboardCell', () => {
 
       render(<MainDashboardCell />)
 
-      const skeletons = screen.getAllByTestId(/skeleton/)
+      const skeletons = document.querySelectorAll('[data-slot="skeleton"]')
       expect(skeletons.length).toBeGreaterThan(0)
     })
   })
@@ -190,7 +190,7 @@ describe('MainDashboardCell', () => {
 
       render(<MainDashboardCell />)
 
-      const skeletons = screen.getAllByTestId(/skeleton/)
+      const skeletons = document.querySelectorAll('[data-slot="skeleton"]')
       expect(skeletons.length).toBeGreaterThan(0)
     })
   })
@@ -223,7 +223,7 @@ describe('MainDashboardCell', () => {
 
       render(<MainDashboardCell />)
 
-      const skeletons = screen.getAllByTestId(/skeleton/)
+      const skeletons = document.querySelectorAll('[data-slot="skeleton"]')
       expect(skeletons.length).toBeGreaterThan(0)
     })
   })
@@ -566,7 +566,8 @@ describe('MainDashboardCell', () => {
       render(<MainDashboardCell />)
 
       // Should display with default values (0) instead of errors
-      expect(screen.getByText('0')).toBeInTheDocument() // unmappedPOs
+      const zeros = screen.getAllByText('0')
+      expect(zeros.length).toBeGreaterThan(0) // unmappedPOs and activeProjects both show 0
       expect(screen.getByText('$0')).toBeInTheDocument() // totalPOValue
       expect(screen.getByText('0.00%')).toBeInTheDocument() // budgetVariance
     })

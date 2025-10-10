@@ -24,20 +24,18 @@ describe('DetailsPanelViewer', () => {
   describe('BA-001: Displays Current Mappings in Green Card When Data Exists', () => {
     it('should display green card with mappings when data exists', () => {
       vi.mocked(trpc.poMapping.getExistingMappings.useQuery).mockReturnValue({
-        data: {
-          mappings: [
-            {
-              id: 'mapping-1',
-              poLineItemId: 'po-line-1',
-              lineValue: 50000,
-              costBreakdown: {
-                costLine: 'Personnel',
-                spendType: 'Engineers',
-                spendSubCategory: 'Senior Engineers'
-              }
-            }
-          ]
-        },
+        data: [
+          {
+            id: 'mapping-1',
+            poLineItemId: 'po-line-1',
+            lineValue: '50000',
+            mappedAmount: '50000',
+            costLine: 'Personnel',
+            spendType: 'Engineers',
+            spendSubCategory: 'Senior Engineers',
+            mappingNotes: null
+          }
+        ],
         isLoading: false,
         error: null
       } as any)
@@ -57,13 +55,29 @@ describe('DetailsPanelViewer', () => {
     })
 
     it('should call onMappingsLoaded with mapping data', () => {
-      const mockMappings = [
-        { id: 'mapping-1', poLineItemId: 'po-line-1' },
-        { id: 'mapping-2', poLineItemId: 'po-line-2' }
-      ]
-
       vi.mocked(trpc.poMapping.getExistingMappings.useQuery).mockReturnValue({
-        data: { mappings: mockMappings },
+        data: [
+          { 
+            id: 'mapping-1', 
+            poLineItemId: 'po-line-1',
+            lineValue: '1000',
+            mappedAmount: '1000',
+            costLine: 'Personnel',
+            spendType: 'Test',
+            spendSubCategory: 'Test',
+            mappingNotes: null
+          },
+          { 
+            id: 'mapping-2', 
+            poLineItemId: 'po-line-2',
+            lineValue: '2000',
+            mappedAmount: '2000',
+            costLine: 'Equipment',
+            spendType: 'Test',
+            spendSubCategory: 'Test',
+            mappingNotes: null
+          }
+        ],
         isLoading: false,
         error: null
       } as any)
@@ -72,35 +86,36 @@ describe('DetailsPanelViewer', () => {
         <DetailsPanelViewer poId="po-123" onMappingsLoaded={mockOnMappingsLoaded} />
       )
 
-      expect(mockOnMappingsLoaded).toHaveBeenCalledWith(mockMappings)
+      expect(mockOnMappingsLoaded).toHaveBeenCalledWith([
+        { id: 'mapping-1', poLineItemId: 'po-line-1' },
+        { id: 'mapping-2', poLineItemId: 'po-line-2' }
+      ])
     })
 
     it('should display multiple mappings', () => {
       vi.mocked(trpc.poMapping.getExistingMappings.useQuery).mockReturnValue({
-        data: {
-          mappings: [
-            {
-              id: 'mapping-1',
-              poLineItemId: 'po-line-1',
-              lineValue: 50000,
-              costBreakdown: {
-                costLine: 'Personnel',
-                spendType: 'Engineers',
-                spendSubCategory: 'Senior'
-              }
-            },
-            {
-              id: 'mapping-2',
-              poLineItemId: 'po-line-2',
-              lineValue: 30000,
-              costBreakdown: {
-                costLine: 'Equipment',
-                spendType: 'Hardware',
-                spendSubCategory: 'Computers'
-              }
-            }
-          ]
-        },
+        data: [
+          {
+            id: 'mapping-1',
+            poLineItemId: 'po-line-1',
+            lineValue: '50000',
+            mappedAmount: '50000',
+            costLine: 'Personnel',
+            spendType: 'Engineers',
+            spendSubCategory: 'Senior',
+            mappingNotes: null
+          },
+          {
+            id: 'mapping-2',
+            poLineItemId: 'po-line-2',
+            lineValue: '30000',
+            mappedAmount: '30000',
+            costLine: 'Equipment',
+            spendType: 'Hardware',
+            spendSubCategory: 'Computers',
+            mappingNotes: null
+          }
+        ],
         isLoading: false,
         error: null
       } as any)
@@ -115,7 +130,7 @@ describe('DetailsPanelViewer', () => {
 
     it('should not render green card when no mappings', () => {
       vi.mocked(trpc.poMapping.getExistingMappings.useQuery).mockReturnValue({
-        data: { mappings: [] },
+        data: [],
         isLoading: false,
         error: null
       } as any)
@@ -132,20 +147,18 @@ describe('DetailsPanelViewer', () => {
   describe('BA-002: Shows N/A for Null or Invalid Line Values', () => {
     it('should display N/A when lineValue is null', () => {
       vi.mocked(trpc.poMapping.getExistingMappings.useQuery).mockReturnValue({
-        data: {
-          mappings: [
-            {
-              id: 'mapping-1',
-              poLineItemId: 'po-line-1',
-              lineValue: null,
-              costBreakdown: {
-                costLine: 'Personnel',
-                spendType: 'Engineers',
-                spendSubCategory: 'Senior'
-              }
-            }
-          ]
-        },
+        data: [
+          {
+            id: 'mapping-1',
+            poLineItemId: 'po-line-1',
+            lineValue: null,
+            mappedAmount: '0',
+            costLine: 'Personnel',
+            spendType: 'Engineers',
+            spendSubCategory: 'Senior',
+            mappingNotes: null
+          }
+        ],
         isLoading: false,
         error: null
       } as any)
@@ -159,20 +172,18 @@ describe('DetailsPanelViewer', () => {
 
     it('should display N/A when lineValue is undefined', () => {
       vi.mocked(trpc.poMapping.getExistingMappings.useQuery).mockReturnValue({
-        data: {
-          mappings: [
-            {
-              id: 'mapping-1',
-              poLineItemId: 'po-line-1',
-              lineValue: undefined,
-              costBreakdown: {
-                costLine: 'Personnel',
-                spendType: 'Engineers',
-                spendSubCategory: 'Senior'
-              }
-            }
-          ]
-        },
+        data: [
+          {
+            id: 'mapping-1',
+            poLineItemId: 'po-line-1',
+            lineValue: undefined,
+            mappedAmount: '0',
+            costLine: 'Personnel',
+            spendType: 'Engineers',
+            spendSubCategory: 'Senior',
+            mappingNotes: null
+          }
+        ],
         isLoading: false,
         error: null
       } as any)
@@ -186,20 +197,18 @@ describe('DetailsPanelViewer', () => {
 
     it('should display N/A when lineValue is zero', () => {
       vi.mocked(trpc.poMapping.getExistingMappings.useQuery).mockReturnValue({
-        data: {
-          mappings: [
-            {
-              id: 'mapping-1',
-              poLineItemId: 'po-line-1',
-              lineValue: 0,
-              costBreakdown: {
-                costLine: 'Personnel',
-                spendType: 'Engineers',
-                spendSubCategory: 'Senior'
-              }
-            }
-          ]
-        },
+        data: [
+          {
+            id: 'mapping-1',
+            poLineItemId: 'po-line-1',
+            lineValue: '0',
+            mappedAmount: '0',
+            costLine: 'Personnel',
+            spendType: 'Engineers',
+            spendSubCategory: 'Senior',
+            mappingNotes: null
+          }
+        ],
         isLoading: false,
         error: null
       } as any)
@@ -215,20 +224,18 @@ describe('DetailsPanelViewer', () => {
   describe('BA-003: Formats Currency as AUD With No Decimals', () => {
     it('should format valid lineValue as AUD currency', () => {
       vi.mocked(trpc.poMapping.getExistingMappings.useQuery).mockReturnValue({
-        data: {
-          mappings: [
-            {
-              id: 'mapping-1',
-              poLineItemId: 'po-line-1',
-              lineValue: 50000,
-              costBreakdown: {
-                costLine: 'Personnel',
-                spendType: 'Engineers',
-                spendSubCategory: 'Senior'
-              }
-            }
-          ]
-        },
+        data: [
+          {
+            id: 'mapping-1',
+            poLineItemId: 'po-line-1',
+            lineValue: '50000',
+            mappedAmount: '50000',
+            costLine: 'Personnel',
+            spendType: 'Engineers',
+            spendSubCategory: 'Senior',
+            mappingNotes: null
+          }
+        ],
         isLoading: false,
         error: null
       } as any)
@@ -243,20 +250,18 @@ describe('DetailsPanelViewer', () => {
 
     it('should format large numbers with thousand separators', () => {
       vi.mocked(trpc.poMapping.getExistingMappings.useQuery).mockReturnValue({
-        data: {
-          mappings: [
-            {
-              id: 'mapping-1',
-              poLineItemId: 'po-line-1',
-              lineValue: 1250000,
-              costBreakdown: {
-                costLine: 'Personnel',
-                spendType: 'Engineers',
-                spendSubCategory: 'Senior'
-              }
-            }
-          ]
-        },
+        data: [
+          {
+            id: 'mapping-1',
+            poLineItemId: 'po-line-1',
+            lineValue: '1250000',
+            mappedAmount: '1250000',
+            costLine: 'Personnel',
+            spendType: 'Engineers',
+            spendSubCategory: 'Senior',
+            mappingNotes: null
+          }
+        ],
         isLoading: false,
         error: null
       } as any)
@@ -270,20 +275,18 @@ describe('DetailsPanelViewer', () => {
 
     it('should format without decimal places', () => {
       vi.mocked(trpc.poMapping.getExistingMappings.useQuery).mockReturnValue({
-        data: {
-          mappings: [
-            {
-              id: 'mapping-1',
-              poLineItemId: 'po-line-1',
-              lineValue: 50123.99,
-              costBreakdown: {
-                costLine: 'Personnel',
-                spendType: 'Engineers',
-                spendSubCategory: 'Senior'
-              }
-            }
-          ]
-        },
+        data: [
+          {
+            id: 'mapping-1',
+            poLineItemId: 'po-line-1',
+            lineValue: '50123.99',
+            mappedAmount: '50123.99',
+            costLine: 'Personnel',
+            spendType: 'Engineers',
+            spendSubCategory: 'Senior',
+            mappingNotes: null
+          }
+        ],
         isLoading: false,
         error: null
       } as any)
@@ -332,7 +335,7 @@ describe('DetailsPanelViewer', () => {
 
     it('should call onMappingsLoaded with empty array when no data', () => {
       vi.mocked(trpc.poMapping.getExistingMappings.useQuery).mockReturnValue({
-        data: { mappings: [] },
+        data: [],
         isLoading: false,
         error: null
       } as any)

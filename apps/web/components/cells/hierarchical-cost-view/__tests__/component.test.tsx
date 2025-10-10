@@ -1,9 +1,9 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { CostBreakdownTable } from '../component'
+import { HierarchicalCostView } from '../component'
 
-describe('CostBreakdownTable', () => {
+describe('HierarchicalCostView', () => {
   const mockData = [
     {
       id: 'bl-1',
@@ -49,7 +49,7 @@ describe('CostBreakdownTable', () => {
 
   describe('BA-001: Hierarchical data display', () => {
     it('should render all top-level rows with correct data', () => {
-      render(<CostBreakdownTable data={mockData} />)
+      render(<HierarchicalCostView data={mockData} />)
       
       // Verify both business lines are displayed
       expect(screen.getByText('Operations')).toBeInTheDocument()
@@ -65,7 +65,7 @@ describe('CostBreakdownTable', () => {
     })
 
     it('should display nested data structure correctly', () => {
-      render(<CostBreakdownTable data={mockData} />)
+      render(<HierarchicalCostView data={mockData} />)
       
       // Initially, children should not be visible (collapsed)
       expect(screen.queryByText('Engineering')).not.toBeInTheDocument()
@@ -76,7 +76,7 @@ describe('CostBreakdownTable', () => {
   describe('BA-002: Expand/collapse functionality', () => {
     it('should toggle child row visibility on chevron click', async () => {
       const user = userEvent.setup()
-      render(<CostBreakdownTable data={mockData} />)
+      render(<HierarchicalCostView data={mockData} />)
       
       // Find expand button for Operations row (has children)
       const expandButtons = screen.getAllByRole('button')
@@ -100,7 +100,7 @@ describe('CostBreakdownTable', () => {
 
     it('should expand nested hierarchy multiple levels', async () => {
       const user = userEvent.setup()
-      render(<CostBreakdownTable data={mockData} />)
+      render(<HierarchicalCostView data={mockData} />)
       
       // Expand first level (Operations)
       const buttons = screen.getAllByRole('button')
@@ -119,7 +119,7 @@ describe('CostBreakdownTable', () => {
     })
 
     it('should not render expand button for rows without children', () => {
-      render(<CostBreakdownTable data={mockData} />)
+      render(<HierarchicalCostView data={mockData} />)
       
       // Marketing row has no children, so it should not have an expand button
       // Operations has children, so it should have one
@@ -133,7 +133,7 @@ describe('CostBreakdownTable', () => {
 
   describe('BA-003: Currency formatting', () => {
     it('should format large values with compact notation', () => {
-      render(<CostBreakdownTable data={mockData} />)
+      render(<HierarchicalCostView data={mockData} />)
       
       // 2,000,000 should be formatted as "$2M"
       expect(screen.getByText('$2M')).toBeInTheDocument()
@@ -153,7 +153,7 @@ describe('CostBreakdownTable', () => {
         utilization: 90,
       }]
       
-      render(<CostBreakdownTable data={smallData} />)
+      render(<HierarchicalCostView data={smallData} />)
       
       // 5,000 should be formatted as "$5,000" (not "$5K")
       expect(screen.getByText('$5,000')).toBeInTheDocument()
@@ -162,7 +162,7 @@ describe('CostBreakdownTable', () => {
 
     it('should handle variance display with "over" indicator', () => {
       const user = userEvent.setup()
-      render(<CostBreakdownTable data={mockData} />)
+      render(<HierarchicalCostView data={mockData} />)
       
       // Positive variance (under budget) should not have "over"
       expect(screen.getByText('$200,000')).toBeInTheDocument()
@@ -174,7 +174,7 @@ describe('CostBreakdownTable', () => {
   describe('BA-004: Utilization color coding', () => {
     it('should apply red color for utilization >100%', async () => {
       const user = userEvent.setup()
-      render(<CostBreakdownTable data={mockData} />)
+      render(<HierarchicalCostView data={mockData} />)
       
       // Expand to see Labor with 108% utilization
       const buttons = screen.getAllByRole('button')
@@ -187,7 +187,7 @@ describe('CostBreakdownTable', () => {
     })
 
     it('should apply orange color for utilization >90% and ≤100%', () => {
-      render(<CostBreakdownTable data={mockData} />)
+      render(<HierarchicalCostView data={mockData} />)
       
       // Engineering has 95% utilization (needs to be expanded to check, or check inline)
       // Operations has 90% utilization
@@ -196,7 +196,7 @@ describe('CostBreakdownTable', () => {
     })
 
     it('should apply gray color for utilization ≤75%', () => {
-      render(<CostBreakdownTable data={mockData} />)
+      render(<HierarchicalCostView data={mockData} />)
       
       // Marketing has 80% utilization
       const marketingRow = screen.getByText('Marketing').closest('tr')
@@ -210,7 +210,7 @@ describe('CostBreakdownTable', () => {
 
   describe('BA-005: Progress bar rendering', () => {
     it('should render progress bar with correct width', () => {
-      const { container } = render(<CostBreakdownTable data={mockData} />)
+      const { container } = render(<HierarchicalCostView data={mockData} />)
       
       // Find progress bars
       const progressBars = container.querySelectorAll('[style*="width"]')
@@ -221,7 +221,7 @@ describe('CostBreakdownTable', () => {
     })
 
     it('should color-code progress bar background', () => {
-      const { container } = render(<CostBreakdownTable data={mockData} />)
+      const { container } = render(<HierarchicalCostView data={mockData} />)
       
       // Find progress bars and verify they have color classes
       const progressBars = container.querySelectorAll('.h-full')
@@ -241,7 +241,7 @@ describe('CostBreakdownTable', () => {
         utilization: 150, // 150% should cap at 100% visually
       }]
       
-      const { container } = render(<CostBreakdownTable data={overBudgetData} />)
+      const { container } = render(<HierarchicalCostView data={overBudgetData} />)
       
       // Progress bar width should be capped at 100%
       const progressBar = container.querySelector('[style*="width: 100%"]')
@@ -251,27 +251,27 @@ describe('CostBreakdownTable', () => {
 
   describe('BA-006: Empty state handling', () => {
     it('should display empty state message when data is empty array', () => {
-      render(<CostBreakdownTable data={[]} />)
+      render(<HierarchicalCostView data={[]} />)
       
       expect(screen.getByText('No cost breakdown data available')).toBeInTheDocument()
     })
 
     it('should display empty state message when data is null', () => {
       // @ts-expect-error Testing null case
-      render(<CostBreakdownTable data={null} />)
+      render(<HierarchicalCostView data={null} />)
       
       expect(screen.getByText('No cost breakdown data available')).toBeInTheDocument()
     })
 
     it('should display empty state message when data is undefined', () => {
       // @ts-expect-error Testing undefined case
-      render(<CostBreakdownTable data={undefined} />)
+      render(<HierarchicalCostView data={undefined} />)
       
       expect(screen.getByText('No cost breakdown data available')).toBeInTheDocument()
     })
 
     it('should not display table when empty', () => {
-      const { container } = render(<CostBreakdownTable data={[]} />)
+      const { container } = render(<HierarchicalCostView data={[]} />)
       
       const table = container.querySelector('table')
       expect(table).not.toBeInTheDocument()
@@ -281,7 +281,7 @@ describe('CostBreakdownTable', () => {
   describe('Integration tests', () => {
     it('should maintain expansion state during re-renders', async () => {
       const user = userEvent.setup()
-      const { rerender } = render(<CostBreakdownTable data={mockData} />)
+      const { rerender } = render(<HierarchicalCostView data={mockData} />)
       
       // Expand Operations
       const buttons = screen.getAllByRole('button')
@@ -291,7 +291,7 @@ describe('CostBreakdownTable', () => {
       expect(screen.getByText('Engineering')).toBeInTheDocument()
       
       // Re-render with same data
-      rerender(<CostBreakdownTable data={mockData} />)
+      rerender(<HierarchicalCostView data={mockData} />)
       
       // Engineering should still be visible
       expect(screen.getByText('Engineering')).toBeInTheDocument()
@@ -344,7 +344,7 @@ describe('CostBreakdownTable', () => {
       ]
       
       const user = userEvent.setup()
-      render(<CostBreakdownTable data={deepData} />)
+      render(<HierarchicalCostView data={deepData} />)
       
       // Should be able to expand all levels
       let buttons = screen.getAllByRole('button')

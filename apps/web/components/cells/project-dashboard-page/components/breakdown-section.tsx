@@ -5,7 +5,7 @@
  */
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { CostBreakdownTable } from '@/components/cells/cost-breakdown-table/component'
+import { HierarchicalCostView } from '@/components/cells/hierarchical-cost-view/component'
 import type { HierarchyNode, CostBreakdownRow } from '../types'
 
 export interface BreakdownSectionProps {
@@ -26,7 +26,7 @@ export function BreakdownSection({ breakdownData }: BreakdownSectionProps) {
       </CardHeader>
       <CardContent>
         {/* Phase C: Type assertion - API data has 'level' at runtime even though type doesn't declare it */}
-        <CostBreakdownTable data={breakdownData as CostBreakdownRow[]} />
+        <HierarchicalCostView data={breakdownData as CostBreakdownRow[]} />
       </CardContent>
     </Card>
   )

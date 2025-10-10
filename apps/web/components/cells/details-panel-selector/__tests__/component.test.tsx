@@ -78,9 +78,9 @@ describe('DetailsPanelSelector', () => {
         />
       )
 
-      // Select component renders as button with aria-disabled when disabled
-      const spendTypeButton = screen.getByRole('button', { name: /Select spend type/i })
-      expect(spendTypeButton).toHaveAttribute('aria-disabled', 'true')
+      // Select component renders with role combobox and accessible name from Label
+      const spendTypeSelect = screen.getByRole('combobox', { name: /Spend Type/i })
+      expect(spendTypeSelect).toHaveAttribute('aria-disabled', 'true')
     })
 
     it('should enable spend type dropdown when project is selected', () => {
@@ -106,8 +106,8 @@ describe('DetailsPanelSelector', () => {
         />
       )
 
-      const spendTypeButton = screen.getByRole('button', { name: /Select spend type/i })
-      expect(spendTypeButton).not.toHaveAttribute('aria-disabled', 'true')
+      const spendTypeSelect = screen.getByRole('combobox', { name: /Spend Type/i })
+      expect(spendTypeSelect).not.toHaveAttribute('aria-disabled', 'true')
     })
   })
 
@@ -125,8 +125,8 @@ describe('DetailsPanelSelector', () => {
         />
       )
 
-      const subCategoryButton = screen.getByRole('button', { name: /Select subcategory/i })
-      expect(subCategoryButton).toHaveAttribute('aria-disabled', 'true')
+      const subCategorySelect = screen.getByRole('combobox', { name: /Subcategory/i })
+      expect(subCategorySelect).toHaveAttribute('aria-disabled', 'true')
     })
 
     it('should enable subcategory dropdown when spend type is selected', () => {
@@ -152,8 +152,8 @@ describe('DetailsPanelSelector', () => {
         />
       )
 
-      const subCategoryButton = screen.getByRole('button', { name: /Select subcategory/i })
-      expect(subCategoryButton).not.toHaveAttribute('aria-disabled', 'true')
+      const subCategorySelect = screen.getByRole('combobox', { name: /Subcategory/i })
+      expect(subCategorySelect).not.toHaveAttribute('aria-disabled', 'true')
     })
 
     it('should keep subcategory disabled even with project selected if no spend type', () => {
@@ -329,9 +329,9 @@ describe('DetailsPanelSelector', () => {
         />
       )
 
-      // Select component renders as button
-      const projectButton = screen.getByRole('button', { name: /Select project/i })
-      expect(projectButton).toBeInTheDocument()
+      // Select component renders with role combobox
+      const projectSelect = screen.getByRole('combobox', { name: /Project/i })
+      expect(projectSelect).toBeInTheDocument()
     })
   })
 })

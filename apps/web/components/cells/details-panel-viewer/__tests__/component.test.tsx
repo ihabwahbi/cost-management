@@ -85,14 +85,13 @@ describe('DetailsPanelViewer', () => {
         error: null
       } as any)
 
-      const { container } = render(
+      render(
         <DetailsPanelViewer poId="po-123" onMappingsLoaded={mockOnMappingsLoaded} />
       )
 
-      // Component returns null when lineValue would result in N/A calculation
-      // Since totalPOValue is 0, poSummary will be created but shows N/A for currency
-      const naText = container.textContent?.includes('N/A')
-      expect(naText).toBeTruthy()
+      // Component still renders green card but shows N/A for currency values
+      expect(screen.getByText('PO Mapped')).toBeInTheDocument()
+      expect(screen.getByText(/N\/A/)).toBeInTheDocument()
     })
 
     it('should display N/A when lineValue is undefined', () => {

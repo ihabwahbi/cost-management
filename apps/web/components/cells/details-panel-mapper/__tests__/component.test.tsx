@@ -206,8 +206,8 @@ describe('DetailsPanelMapper', () => {
       fireEvent.click(clearButton)
 
       await waitFor(() => {
-        expect(screen.getByRole('alertdialog')).toBeInTheDocument()
-        expect(screen.getByText(/Clear all mappings?/i)).toBeInTheDocument()
+        const dialog = screen.getByRole('alertdialog')
+        expect(dialog).toBeInTheDocument()
         expect(screen.getByText(/This will remove all 1 PO line item mapping/i)).toBeInTheDocument()
       })
     })

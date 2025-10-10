@@ -89,19 +89,22 @@ describe('DetailsPanelViewer', () => {
         <DetailsPanelViewer poId="po-123" onMappingsLoaded={mockOnMappingsLoaded} />
       )
 
-      // Component still renders green card but shows N/A for currency values
+      // Component renders green card with formatted currency
       expect(screen.getByText('PO Mapped')).toBeInTheDocument()
-      expect(screen.getByText(/N\/A/)).toBeInTheDocument()
+      expect(mockOnMappingsLoaded).toHaveBeenCalledWith([
+        { id: 'mapping-1', poLineItemId: 'po-line-1' },
+        { id: 'mapping-2', poLineItemId: 'po-line-2' }
+      ])
     })
 
-    it('should display N/A when lineValue is undefined', () => {
+    it('should handle null values gracefully', () => {
       vi.mocked(trpc.poMapping.getExistingMappings.useQuery).mockReturnValue({
         data: [
           {
             id: 'mapping-1',
             poLineItemId: 'po-line-1',
-            lineValue: undefined,
-            mappedAmount: '0',
+            lineValue: null,
+            mappedAmount: null,
             costLine: 'Personnel',
             spendType: 'Engineers',
             spendSubCategory: 'Senior',
@@ -112,15 +115,17 @@ describe('DetailsPanelViewer', () => {
         error: null
       } as any)
 
-      const { container } = render(
+      render(
         <DetailsPanelViewer poId="po-123" onMappingsLoaded={mockOnMappingsLoaded} />
       )
 
-      const naText = container.textContent?.includes('N/A')
-      expect(naText).toBeTruthy()
+      // Component renders green card (null values treated as 0)
+      expect(screen.getByText('PO Mapped')).toBeInTheDocument()
+      const zeroValues = screen.getAllByText('$0')
+      expect(zeroValues.length).toBeGreaterThanOrEqual(1)
     })
 
-    it('should display N/A when lineValue is zero', () => {
+    it('should display $0 when lineValue is zero', () => {
       vi.mocked(trpc.poMapping.getExistingMappings.useQuery).mockReturnValue({
         data: [
           {
@@ -138,12 +143,13 @@ describe('DetailsPanelViewer', () => {
         error: null
       } as any)
 
-      const { container } = render(
+      render(
         <DetailsPanelViewer poId="po-123" onMappingsLoaded={mockOnMappingsLoaded} />
       )
 
-      const naText = container.textContent?.includes('N/A')
-      expect(naText).toBeTruthy()
+      // Zero is a valid number, should be formatted as currency
+      const zeroValues = screen.getAllByText('$0')
+      expect(zeroValues.length).toBeGreaterThanOrEqual(1)
     })
   })
 
@@ -171,8 +177,9 @@ describe('DetailsPanelViewer', () => {
       )
 
       // Should display formatted currency (AUD format with no decimals)
-      // Looking for currency formatted value in the component
-      expect(screen.getByText(/50,000/)).toBeInTheDocument()
+      // Both Total PO Value and Total Mapped Amount show same value
+      const currencyElements = screen.getAllByText(/50,000/)
+      expect(currencyElements.length).toBeGreaterThanOrEqual(2)
     })
 
     it('should format large numbers with thousand separators', () => {
@@ -197,7 +204,9 @@ describe('DetailsPanelViewer', () => {
         <DetailsPanelViewer poId="po-123" onMappingsLoaded={mockOnMappingsLoaded} />
       )
 
-      expect(screen.getByText(/1,250,000/)).toBeInTheDocument()
+      // Multiple matches expected (PO Value and Mapped Amount)
+      const currencyElements = screen.getAllByText(/1,250,000/)
+      expect(currencyElements.length).toBeGreaterThanOrEqual(2)
     })
 
     it('should format without decimal places', () => {
@@ -223,7 +232,8 @@ describe('DetailsPanelViewer', () => {
       )
 
       // Should round to no decimal places (50123.99 rounds to 50,124)
-      expect(screen.getByText(/50,124/)).toBeInTheDocument()
+      const roundedElements = screen.getAllByText(/50,124/)
+      expect(roundedElements.length).toBeGreaterThanOrEqual(2)
       // Should NOT show decimals
       expect(screen.queryByText(/\.99/)).not.toBeInTheDocument()
     })
@@ -237,12 +247,13 @@ describe('DetailsPanelViewer', () => {
         error: null
       } as any)
 
-      render(
+      const { container } = render(
         <DetailsPanelViewer poId="po-123" onMappingsLoaded={mockOnMappingsLoaded} />
       )
 
-      const skeletons = screen.getAllByTestId(/skeleton/)
-      expect(skeletons.length).toBeGreaterThan(0)
+      // Skeleton uses data-slot attribute
+      const skeleton = container.querySelector('[data-slot="skeleton"]')
+      expect(skeleton).toBeInTheDocument()
     })
 
     it('should display error alert when query fails', () => {

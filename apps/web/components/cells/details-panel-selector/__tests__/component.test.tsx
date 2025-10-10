@@ -78,18 +78,15 @@ describe('DetailsPanelSelector', () => {
         />
       )
 
-      // Select component renders with role combobox and accessible name from Label
+      // Select component uses data-disabled attribute when disabled
       const spendTypeSelect = screen.getByRole('combobox', { name: /Spend Type/i })
-      expect(spendTypeSelect).toHaveAttribute('aria-disabled', 'true')
+      expect(spendTypeSelect).toHaveAttribute('data-disabled')
     })
 
     it('should enable spend type dropdown when project is selected', () => {
-      // Mock spend types available for selected project
+      // Mock spend types available for selected project (returns array of strings)
       vi.mocked(trpc.poMapping.getSpendTypes.useQuery).mockReturnValue({
-        data: [
-          { spendType: 'Personnel' },
-          { spendType: 'Equipment' }
-        ],
+        data: ['Personnel', 'Equipment'],
         isLoading: false,
         error: null
       } as any)
@@ -107,7 +104,7 @@ describe('DetailsPanelSelector', () => {
       )
 
       const spendTypeSelect = screen.getByRole('combobox', { name: /Spend Type/i })
-      expect(spendTypeSelect).not.toHaveAttribute('aria-disabled', 'true')
+      expect(spendTypeSelect).not.toHaveAttribute('data-disabled')
     })
   })
 
@@ -126,16 +123,13 @@ describe('DetailsPanelSelector', () => {
       )
 
       const subCategorySelect = screen.getByRole('combobox', { name: /Subcategory/i })
-      expect(subCategorySelect).toHaveAttribute('aria-disabled', 'true')
+      expect(subCategorySelect).toHaveAttribute('data-disabled')
     })
 
     it('should enable subcategory dropdown when spend type is selected', () => {
-      // Mock subcategories available
+      // Mock subcategories available (returns array of strings)
       vi.mocked(trpc.poMapping.getSpendSubCategories.useQuery).mockReturnValue({
-        data: [
-          { spendSubCategory: 'Engineers' },
-          { spendSubCategory: 'Contractors' }
-        ],
+        data: ['Engineers', 'Contractors'],
         isLoading: false,
         error: null
       } as any)
@@ -153,7 +147,7 @@ describe('DetailsPanelSelector', () => {
       )
 
       const subCategorySelect = screen.getByRole('combobox', { name: /Subcategory/i })
-      expect(subCategorySelect).not.toHaveAttribute('aria-disabled', 'true')
+      expect(subCategorySelect).not.toHaveAttribute('data-disabled')
     })
 
     it('should keep subcategory disabled even with project selected if no spend type', () => {
@@ -298,7 +292,7 @@ describe('DetailsPanelSelector', () => {
         error: null
       } as any)
 
-      render(
+      const { container } = render(
         <DetailsPanelSelector
           selectedProject=""
           selectedSpendType=""
@@ -310,8 +304,9 @@ describe('DetailsPanelSelector', () => {
         />
       )
 
-      const skeletons = screen.getAllByTestId(/skeleton/)
-      expect(skeletons.length).toBeGreaterThan(0)
+      // Skeleton uses data-slot attribute
+      const skeleton = container.querySelector('[data-slot="skeleton"]')
+      expect(skeleton).toBeInTheDocument()
     })
   })
 

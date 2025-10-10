@@ -1,0 +1,88 @@
+{
+  "id": "po-table-cell",
+  "version": "1.0.0",
+  "description": "PO table with expand/collapse, selection, and status indicators",
+  "behavioral_assertions": [
+    {
+      "id": "BA-001",
+      "requirement": "Component MUST render all PO data in table format",
+      "validation": "Unit test: verify all PO fields rendered",
+      "criticality": "high",
+      "source": "Migration plan lines 392-397"
+    },
+    {
+      "id": "BA-002",
+      "requirement": "Expand/collapse MUST toggle line item visibility",
+      "validation": "Unit test: click expand, verify line items visible",
+      "criticality": "high",
+      "source": "Migration plan lines 399-403"
+    },
+    {
+      "id": "BA-003",
+      "requirement": "Row selection MUST highlight selected row",
+      "validation": "Unit test: click row, verify bg-accent/10 class",
+      "criticality": "high",
+      "source": "Migration plan lines 405-409"
+    },
+    {
+      "id": "BA-004",
+      "requirement": "Select all checkbox MUST select/deselect all POs",
+      "validation": "Unit test: click select-all, verify callback called with all IDs",
+      "criticality": "high",
+      "source": "Migration plan lines 411-415"
+    },
+    {
+      "id": "BA-005",
+      "requirement": "Indeterminate checkbox state MUST show when some selected",
+      "validation": "Unit test: select 1 of 3, verify checkbox.indeterminate === true",
+      "criticality": "medium",
+      "source": "Migration plan lines 417-421"
+    },
+    {
+      "id": "BA-006",
+      "requirement": "Currency formatting MUST use AUD with no decimals",
+      "validation": "Unit test: formatCurrency(10000) === 'A$10,000'",
+      "criticality": "medium",
+      "source": "Migration plan lines 423-427"
+    },
+    {
+      "id": "BA-007",
+      "requirement": "Date formatting MUST use DD MMM YYYY format",
+      "validation": "Unit test: formatDate('2025-01-15') === '15 Jan 2025'",
+      "criticality": "medium",
+      "source": "Migration plan lines 429-433"
+    },
+    {
+      "id": "BA-008",
+      "requirement": "Mapping status badge MUST show green when fully mapped",
+      "validation": "Unit test: mapped_count === total_line_items shows green",
+      "criticality": "high",
+      "source": "Migration plan lines 435-439"
+    },
+    {
+      "id": "BA-009",
+      "requirement": "FMT PO badge MUST show blue 'Yes' or gray 'No'",
+      "validation": "Unit test: verify badge color based on fmt_po boolean",
+      "criticality": "medium",
+      "source": "Migration plan lines 441-445"
+    },
+    {
+      "id": "BA-010",
+      "requirement": "Checkbox clicks MUST not propagate to row click",
+      "validation": "Unit test: click checkbox, verify onPOSelect NOT called",
+      "criticality": "high",
+      "source": "Migration plan lines 447-451"
+    }
+  ],
+  "dependencies": {
+    "data": [],
+    "ui": [
+      "@/components/ui/card",
+      "@/components/ui/table",
+      "@/components/ui/checkbox",
+      "@/components/ui/button",
+      "@/components/ui/badge"
+    ]
+  },
+  "notes": "Presentation Cell - receives data via props. Critical fixes: HTMLInputElement type safety (line 159), removed duplicate interfaces."
+}

@@ -1,0 +1,113 @@
+{
+  "id": "pl-command-center",
+  "version": "1.0.0",
+  "description": "P&L Command Center displaying budget, committed, and actual P&L impact with gap analysis",
+  
+  "dataContract": {
+    "sources": [
+      "trpc.dashboard.getPLMetrics",
+      "trpc.dashboard.getPLTimeline",
+      "trpc.dashboard.getPromiseDates"
+    ],
+    "inputSchema": {
+      "projectId": "string (uuid)"
+    }
+  },
+  
+  "behavioralAssertions": [
+    {
+      "id": "BA-001",
+      "requirement": "Budget bar MUST display at 100% width with blue gradient",
+      "validation": "Visual test + snapshot",
+      "criticality": "medium"
+    },
+    {
+      "id": "BA-002",
+      "requirement": "Committed bar width MUST equal (committed/budget) * 100, capped at 100%",
+      "validation": "Unit test: verify bar style.width calculation",
+      "criticality": "high"
+    },
+    {
+      "id": "BA-003",
+      "requirement": "P&L Impact bar width MUST equal (plImpact/budget) * 100",
+      "validation": "Unit test: verify bar style.width calculation",
+      "criticality": "high"
+    },
+    {
+      "id": "BA-004",
+      "requirement": "P&L Gap MUST equal committed - plImpact",
+      "validation": "Unit test: verify gap calculation",
+      "criticality": "high"
+    },
+    {
+      "id": "BA-005",
+      "requirement": "Gap indicator MUST show when plGap > 0",
+      "validation": "Unit test: conditional rendering",
+      "criticality": "medium"
+    },
+    {
+      "id": "BA-006",
+      "requirement": "Monthly breakdown MUST display up to 6 months",
+      "validation": "Unit test: slice(0, 6)",
+      "criticality": "medium"
+    },
+    {
+      "id": "BA-007",
+      "requirement": "Actual costs MUST render as green bars",
+      "validation": "Unit test: check className includes 'green-500'",
+      "criticality": "medium"
+    },
+    {
+      "id": "BA-008",
+      "requirement": "Projected costs MUST render as amber bars with opacity",
+      "validation": "Unit test: check className includes 'amber-400 opacity-75'",
+      "criticality": "medium"
+    },
+    {
+      "id": "BA-009",
+      "requirement": "Currency formatting MUST use USD with appropriate compaction",
+      "validation": "Unit test: formatCurrency() function",
+      "criticality": "low"
+    },
+    {
+      "id": "BA-010",
+      "requirement": "Loading state MUST show spinner while queries are pending",
+      "validation": "Unit test: mock loading state",
+      "criticality": "high"
+    }
+  ],
+  
+  "dependencies": {
+    "ui": [
+      "@/components/ui/card",
+      "@/components/ui/badge",
+      "@/components/ui/button"
+    ],
+    "state": ["./state"],
+    "api": [
+      "trpc.dashboard.getPLMetrics",
+      "trpc.dashboard.getPLTimeline",
+      "trpc.dashboard.getPromiseDates"
+    ]
+  },
+  
+  "performance": {
+    "targetLoadTime": "< 1000ms",
+    "targetTTI": "< 1500ms"
+  },
+  
+  "accessibility": {
+    "wcag": "AA",
+    "requirements": [
+      "Card MUST have aria-label describing purpose",
+      "Loading spinner MUST have aria-live region"
+    ]
+  },
+  
+  "metadata": {
+    "createdBy": "iter_20251001_HHMMSS_plCommandCenterCell",
+    "createdAt": "2025-10-01T00:00:00Z",
+    "relatedCells": ["kpi-card"],
+    "replacedComponent": "components/dashboard/pl-command-center.tsx"
+  }
+}

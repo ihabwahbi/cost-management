@@ -1,0 +1,27 @@
+gates:
+  types:
+    command: "pnpm type-check"
+    requirement: "Zero TypeScript errors"
+    
+  tests:
+    command: "pnpm test version-management-cell"
+    requirements:
+      - "All 8 tests pass"
+      - "Coverage ≥80%"
+      - "All 5 behavioral assertions verified"
+      
+  build:
+    command: "pnpm build"
+    requirement: "Production build succeeds with zero errors"
+    
+  performance:
+    requirement: "Component renders in ≤110% of baseline (version dropdown render time)"
+    measurement: "React DevTools Profiler"
+    baseline: "50ms (version dropdown + timeline display)"
+    
+  accessibility:
+    standard: "WCAG AA"
+    requirements:
+      - "Dropdown keyboard navigable"
+      - "Version timeline screen reader friendly"
+      - "Delete button has aria-label"

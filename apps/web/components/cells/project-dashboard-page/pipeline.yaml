@@ -1,0 +1,49 @@
+# components/cells/project-dashboard-page/pipeline.yaml
+version: 1.0
+
+on_change:
+  - name: Type Check
+    run: "pnpm type-check"
+    required: true
+    description: "Verify zero TypeScript errors"
+    
+  - name: Lint
+    run: "eslint components/cells/project-dashboard-page/**/*.{ts,tsx}"
+    required: true
+    description: "Code quality and style enforcement"
+    
+  - name: Unit Tests
+    run: "vitest run components/cells/project-dashboard-page/__tests__"
+    coverage_threshold: 80
+    required: true
+    description: "Verify all behavioral assertions with tests"
+    
+  - name: Behavioral Assertions Validation
+    run: "node tools/cell-validator/bin/cell-validator.ts components/cells/project-dashboard-page/manifest.json"
+    required: true
+    description: "Validate manifest schema and assertion completeness"
+    
+  - name: File Size Check
+    run: "find components/cells/project-dashboard-page -name '*.tsx' -o -name '*.ts' | xargs wc -l | awk '$1 > 400 {exit 1}'"
+    required: true
+    description: "Ensure all files ≤400 lines (M-CELL-3 compliance)"
+    
+  - name: Build Test
+    run: "pnpm build"
+    required: true
+    description: "Verify production build succeeds with new Cell"
+    
+  - name: Accessibility Audit
+    run: "axe-core components/cells/project-dashboard-page/component.tsx"
+    required: true
+    description: "WCAG AA compliance verification"
+
+success_criteria:
+  - "All required gates pass"
+  - "Coverage >= 80%"
+  - "All 11 behavioral assertions have corresponding tests"
+  - "Zero accessibility violations"
+  - "All files ≤400 lines"
+  - "Zero TypeScript errors"
+  - "Production build succeeds"
+  - "Old page component deleted in same commit"

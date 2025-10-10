@@ -1,0 +1,41 @@
+gates:
+  - name: types
+    command: pnpm type-check
+    requirement: Zero TypeScript errors
+    description: Verify component props interface and types are type-safe
+    
+  - name: tests
+    command: pnpm test apps/web/components/cells/smart-kpi-card/__tests__
+    requirement: All 6 behavioral assertions verified, coverage ≥80%
+    description: |
+      Unit tests must verify:
+      - BA-001: KPI value display with custom formatting
+      - BA-002: Status badge variants (critical/warning/good/neutral)
+      - BA-003: Trend indicators (positive/negative/zero)
+      - BA-004: Progress bar rendering
+      - BA-005: Click handler functionality
+      - BA-006: MiniKPICard variant rendering
+    
+  - name: build
+    command: pnpm build
+    requirement: Production build succeeds
+    description: Verify component builds without errors
+    
+  - name: accessibility
+    requirement: WCAG AA compliance
+    description: |
+      - Clickable cards have proper keyboard navigation (tabIndex=0)
+      - ARIA labels present (aria-label, aria-labelledby, aria-live)
+      - Color contrast ratios meet WCAG AA for all status variants
+      - Status communicated through text, not just color
+    checks:
+      - Keyboard navigation for clickable cards
+      - Screen reader announces value updates (aria-live)
+      - Status badges have text indicators
+      - Trend colors supplemented with icons
+    manual: true
+    
+  - name: lint
+    command: pnpm lint --fix
+    requirement: Zero lint errors
+    description: Code style compliance

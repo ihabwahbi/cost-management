@@ -1,0 +1,52 @@
+{
+  "id": "dashboard-skeleton",
+  "version": "1.0.0",
+  "description": "Loading skeleton for project dashboard page with KPI cards, charts, and table placeholders",
+  "dataContract": {
+    "source": "none (static component)",
+    "note": "Pure presentation component - no data dependencies"
+  },
+  "behavioralAssertions": [
+    {
+      "id": "BA-001",
+      "requirement": "Component MUST render skeleton placeholders for all dashboard sections",
+      "validation": "Unit test: verify header, filter panel, KPI cards, charts, and table sections rendered",
+      "criticality": "high",
+      "source": "Lines 7-106"
+    },
+    {
+      "id": "BA-002",
+      "requirement": "KPI cards section MUST render exactly 6 skeleton cards",
+      "validation": "Unit test: query all KPI card skeletons, verify count === 6",
+      "criticality": "high",
+      "source": "Lines 33-45"
+    },
+    {
+      "id": "BA-003",
+      "requirement": "Charts section MUST render 3 chart skeletons (2 side-by-side + 1 burn rate)",
+      "validation": "Unit test: verify 3 chart placeholder cards with 300px height",
+      "criticality": "medium",
+      "source": "Lines 47-75"
+    },
+    {
+      "id": "BA-004",
+      "requirement": "Table skeleton MUST render with header and 5 data rows",
+      "validation": "Unit test: verify table header exists and 5 row skeletons rendered",
+      "criticality": "medium",
+      "source": "Lines 77-106"
+    }
+  ],
+  "dependencies": {
+    "ui": ["@/components/ui/skeleton", "@/components/ui/card"]
+  },
+  "performance": {
+    "rendering": "Lightweight static component",
+    "bundle_size": "Small (109 lines)"
+  },
+  "metadata": {
+    "createdBy": "Phase 4: Migration Execution (2025-10-09)",
+    "migrationFrom": "apps/web/components/dashboard/dashboard-skeleton.tsx",
+    "updatedBy": "Phase B: Cell Documentation (2025-10-09)",
+    "m_cell_4_compliant": true
+  }
+}

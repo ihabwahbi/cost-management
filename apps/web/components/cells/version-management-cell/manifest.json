@@ -1,0 +1,45 @@
+{
+  "id": "version-management-cell",
+  "version": "1.0.0",
+  "description": "Manages forecast version selection, timeline display, and wizard triggering",
+  "behavioral_assertions": [
+    {
+      "id": "BA-030",
+      "description": "Displays all forecast versions in dropdown with latest version pre-selected",
+      "verification": "Mock getForecastVersions with 3 versions, verify dropdown shows all, latest selected",
+      "source": "Current implementation lines 956-984 (loadForecastVersions), dropdown UI lines 2184-2203"
+    },
+    {
+      "id": "BA-031",
+      "description": "Switches to selected version and triggers dependent Cell updates via prop changes",
+      "verification": "Select version 1 in dropdown, verify activeVersion state updates, cost breakdown Cell receives new versionNumber prop",
+      "source": "Current implementation lines 1332-1358 (handleVersionChange)"
+    },
+    {
+      "id": "BA-032",
+      "description": "Opens forecast wizard with current version data pre-loaded",
+      "verification": "Click forecast button, verify wizard opens, wizard queries correct version data",
+      "source": "Current implementation lines 1589-1593 (wizard opening), 699-734 (data loading)"
+    },
+    {
+      "id": "BA-033",
+      "description": "Displays version timeline with creation dates and reasons",
+      "verification": "Mock getForecastVersions, verify timeline component receives versions, displays dates",
+      "source": "VersionHistoryTimeline component integration"
+    },
+    {
+      "id": "BA-034",
+      "description": "Handles version deletion with confirmation dialog",
+      "verification": "Click delete on version, confirm dialog shows, verify deleteForecastVersion mutation called, version removed from list",
+      "source": "New feature - version deletion capability"
+    }
+  ],
+  "dependencies": {
+    "data": ["forecast_versions", "budget_forecasts"],
+    "ui": ["Select", "Button", "Dialog", "VersionHistoryTimeline"],
+    "cells": ["cost-breakdown-table-cell (version prop)", "forecast-wizard (trigger only)"]
+  },
+  "file_size_limit": 400,
+  "actual_size": 280,
+  "extraction_notes": "No extraction needed - well under 400 lines"
+}

@@ -1,0 +1,52 @@
+{
+  "id": "project-list-cell",
+  "version": "1.0.0",
+  "description": "Project list management with CRUD operations - extracted from projects/page.tsx monolith (Phase 1 of 7)",
+  "behavioral_assertions": [
+    {
+      "id": "BA-001",
+      "description": "Component displays list of all projects ordered by creation date",
+      "verification": "Mock getProjectsList query with desc order, verify projects render in correct order",
+      "source": "Original lines 402-418 (loadProjects)"
+    },
+    {
+      "id": "BA-002",
+      "description": "Component shows total budget for each project in project header",
+      "verification": "Mock project with cost data, verify calculated total displays",
+      "source": "Original lines 2054-2060"
+    },
+    {
+      "id": "BA-007",
+      "description": "Component shows 'No projects found' when project list is empty",
+      "verification": "Mock empty array from getProjectsList, verify empty state message appears",
+      "source": "Original lines 2022-2025"
+    },
+    {
+      "id": "BA-010",
+      "description": "Component creates new project when form submitted with valid data",
+      "verification": "Fill project form, mock createProject mutation, verify success toast and project added to list",
+      "source": "Original lines 1744-1770 (createNewProject)"
+    },
+    {
+      "id": "BA-011",
+      "description": "Component deletes project with confirmation dialog",
+      "verification": "Click delete, verify confirm dialog appears, mock deleteProject mutation, verify project removed",
+      "source": "Original lines 1728-1742, 2072-2096"
+    },
+    {
+      "id": "BA-021",
+      "description": "Component auto-expands first project on initial load",
+      "verification": "Load component, verify first project in list is expanded automatically",
+      "source": "Original lines 371-400 (auto-expand effect)"
+    }
+  ],
+  "dependencies": {
+    "data": ["projects"],
+    "ui": ["shadcn/ui Button", "shadcn/ui Dialog", "shadcn/ui Input", "toast"],
+    "api": ["projects.getProjectsList", "projects.createProject", "projects.deleteProject"]
+  },
+  "performance": {
+    "baseline_load_time_ms": null,
+    "target_load_time_ms": 200
+  }
+}

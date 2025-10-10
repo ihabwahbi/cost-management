@@ -1,0 +1,40 @@
+version: 1.0
+
+# Validation gates that MUST pass before Cell is considered complete
+on_change:
+  - name: Type Check
+    run: "tsc --noEmit"
+    required: true
+    description: "Verify TypeScript types are correct"
+    
+  - name: Lint
+    run: "eslint component.tsx state.ts"
+    required: true
+    description: "Check code style and potential issues"
+    
+  - name: Unit Tests
+    run: "vitest run --coverage"
+    coverage_threshold: 80
+    required: true
+    description: "Run all unit tests with minimum 80% coverage"
+    
+  - name: Behavioral Assertions Validation
+    run: "node scripts/validate-assertions.js ./manifest.json"
+    required: false
+    description: "Verifies all behavioral assertions have corresponding tests (manual check for pilot)"
+    
+  - name: Accessibility Audit
+    run: "axe-core ./component.tsx"
+    required: false
+    description: "Check WCAG AA compliance (manual check for pilot)"
+
+success_criteria:
+  - "All required gates pass"
+  - "Coverage >= 80%"
+  - "All behavioral assertions have tests (BA-001 through BA-006)"
+  - "Zero TypeScript errors"
+  - "Component is < 200 lines"
+
+notes:
+  - "This is a pilot Cell - some automation is manual for validation purposes"
+  - "Future Cells will have fully automated assertion validation"

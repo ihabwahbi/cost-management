@@ -1,0 +1,25 @@
+gates:
+  - name: types
+    command: pnpm type-check
+    requirement: Zero TypeScript errors
+    description: Verify component type safety
+    
+  - name: tests
+    command: pnpm test apps/web/components/cells/dashboard-skeleton/__tests__
+    requirement: All 4 behavioral assertions verified, coverage ≥80%
+    description: Unit tests for all BA-001 through BA-004
+    
+  - name: build
+    command: pnpm build
+    requirement: Production build succeeds
+    description: Verify component builds without errors
+    
+  - name: accessibility
+    requirement: WCAG AA compliance
+    description: Skeleton components have proper ARIA labels
+    manual: true
+    
+  - name: lint
+    command: pnpm lint --fix
+    requirement: Zero lint errors
+    description: Code style compliance

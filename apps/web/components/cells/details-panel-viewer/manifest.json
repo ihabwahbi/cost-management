@@ -1,0 +1,37 @@
+{
+  "id": "details-panel-viewer",
+  "version": "1.0.0",
+  "description": "Read-only display of PO mappings in green card",
+  "phase": "A.2",
+  "status": "complete",
+  "behavioral_assertions": [
+    {
+      "id": "BA-001",
+      "description": "Displays current mappings in green card when data exists",
+      "verification": "Mock query with mappings, verify green card shown",
+      "source": "Original details-panel.tsx lines 564-751"
+    },
+    {
+      "id": "BA-002",
+      "description": "Shows 'N/A' for null or invalid line values",
+      "verification": "Pass null line value, verify 'N/A' displayed",
+      "source": "Original details-panel.tsx lines 803-805"
+    },
+    {
+      "id": "BA-003",
+      "description": "Formats currency as AUD with no decimals",
+      "verification": "Pass numeric value, verify AUD formatting",
+      "source": "Original details-panel.tsx lines 395-402"
+    }
+  ],
+  "dependencies": {
+    "data": ["po_mappings", "po_line_items", "cost_breakdown"],
+    "trpc": ["poMapping.getExistingMappings"],
+    "ui": [
+      "@/components/ui/card",
+      "@/components/ui/badge",
+      "@/components/ui/skeleton",
+      "@/components/ui/alert"
+    ]
+  }
+}

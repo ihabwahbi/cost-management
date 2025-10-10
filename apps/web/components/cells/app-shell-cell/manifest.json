@@ -1,0 +1,66 @@
+{
+  "id": "app-shell-cell",
+  "version": "1.0.0",
+  "description": "Application shell with navigation, breadcrumbs, and mobile sidebar - provides consistent layout and routing structure for all pages",
+  "behavioralAssertions": [
+    {
+      "id": "BA-001",
+      "requirement": "Sidebar MUST toggle visibility on mobile menu click",
+      "validation": "Unit test: click menu button, verify sidebar slides in/out",
+      "criticality": "high",
+      "source": "Current implementation lines 38, 145-150"
+    },
+    {
+      "id": "BA-002",
+      "requirement": "Breadcrumbs MUST update based on current pathname",
+      "validation": "Unit test: mock pathname changes, verify breadcrumb trail",
+      "criticality": "high",
+      "source": "Current implementation lines 41-57"
+    },
+    {
+      "id": "BA-003",
+      "requirement": "Active navigation item MUST be highlighted",
+      "validation": "Unit test: navigate to route, verify className includes 'bg-primary'",
+      "criticality": "high",
+      "source": "Current implementation lines 90-110"
+    },
+    {
+      "id": "BA-004",
+      "requirement": "Clicking overlay MUST close mobile sidebar",
+      "validation": "Unit test: open sidebar, click overlay, verify sidebar closes",
+      "criticality": "medium",
+      "source": "Current implementation line 145"
+    },
+    {
+      "id": "BA-005",
+      "requirement": "Clicking nav link MUST close mobile sidebar",
+      "validation": "Unit test: open sidebar, click link, verify sidebar closes",
+      "criticality": "medium",
+      "source": "Current implementation lines 90-110"
+    }
+  ],
+  "dataContract": {
+    "inputs": ["children: React.ReactNode"],
+    "outputs": ["Renders shell with navigation and content"],
+    "dependencies": []
+  },
+  "performance": {
+    "target_render_time_ms": 50,
+    "baseline_render_time_ms": 48,
+    "acceptable_max_ratio": 1.1
+  },
+  "accessibility": {
+    "wcag_level": "AA",
+    "features": [
+      "Keyboard navigation for menu and links",
+      "ARIA labels for sidebar toggle",
+      "Semantic HTML (nav, header, main)"
+    ]
+  },
+  "metadata": {
+    "created": "2025-10-09",
+    "phase": "Phase C (Component Migrations)",
+    "migration_from": "apps/web/components/app-shell.tsx",
+    "m_cell_compliant": true
+  }
+}

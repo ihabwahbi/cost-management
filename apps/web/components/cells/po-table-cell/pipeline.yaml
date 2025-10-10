@@ -1,0 +1,18 @@
+gates:
+  - name: types
+    command: pnpm type-check
+    requirement: Zero TypeScript errors
+  
+  - name: tests
+    command: pnpm test -- __tests__/component.test.tsx
+    requirement: "All 10 behavioral assertions verified, ≥80% coverage"
+  
+  - name: build
+    command: pnpm build
+    requirement: Production build succeeds
+  
+  - name: file-size
+    requirement: "All files ≤150 lines (component.tsx, po-row.tsx, line-item-row.tsx, status-badge.tsx, fmt-badge.tsx)"
+  
+  - name: accessibility
+    requirement: WCAG AA compliance (table semantics, keyboard navigation, checkbox labels)

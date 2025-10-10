@@ -1,0 +1,37 @@
+version: 1.0
+
+on_change:
+  - name: Type Check
+    run: "pnpm type-check"
+    required: true
+    
+  - name: Lint
+    run: "pnpm lint"
+    required: true
+    
+  - name: Unit Tests
+    run: "pnpm test pl-command-center"
+    coverage_threshold: 80
+    required: true
+    
+  - name: Behavioral Assertions Validation
+    run: "node tools/cell-validator/bin/cell-validator.ts ./components/cells/pl-command-center/"
+    required: true
+    description: "Verifies all behavioral assertions have corresponding tests"
+    
+  - name: Performance Test
+    run: "pnpm test:performance pl-command-center"
+    threshold: "< 1000ms initial load"
+    required: true
+    on_fail: warn
+    
+  - name: Build Check
+    run: "pnpm build"
+    required: true
+
+success_criteria:
+  - "All required gates pass"
+  - "Coverage >= 80%"
+  - "All behavioral assertions have tests"
+  - "Performance within acceptable range (< 1s load time)"
+  - "No TypeScript errors"

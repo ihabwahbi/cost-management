@@ -1,0 +1,97 @@
+{
+  "id": "version-comparison-cell",
+  "version": "1.0.0",
+  "description": "Version Comparison Cell - Side-by-side budget version comparison with diff detection, filtering, and export capabilities",
+  "type": "cell",
+  "category": "data-visualization",
+  
+  "behavioral_assertions": [
+    {
+      "id": "BA-035",
+      "description": "Displays comparison between two forecast versions with cost line diffs",
+      "verification": "Mock successful query with 2 versions, verify diff table renders with added/removed/increased/decreased statuses",
+      "source": "VersionComparison.tsx lines 192-251 (comparison logic)"
+    },
+    {
+      "id": "BA-036",
+      "description": "Shows summary metrics (total change, change %, counts by status)",
+      "verification": "Mock query, verify summary cards display correct totals and percentages",
+      "source": "VersionComparison.tsx lines 237-250 (summary calculation)"
+    },
+    {
+      "id": "BA-037",
+      "description": "Filters differences by view mode (all, changed, added, removed, increased, decreased)",
+      "verification": "Mock data with mixed statuses, toggle view modes, verify filtered results",
+      "source": "VersionComparison.tsx lines 254-284 (filtering logic)"
+    },
+    {
+      "id": "BA-038",
+      "description": "Searches and filters by cost line name or category",
+      "verification": "Mock data, enter search query, verify filtered results match query",
+      "source": "VersionComparison.tsx lines 274-280 (search filter)"
+    },
+    {
+      "id": "BA-039",
+      "description": "Exports comparison data to CSV with all filtered diffs",
+      "verification": "Mock data, click export, verify CSV download with correct content",
+      "source": "VersionComparison.tsx lines 294-317 (export handler)"
+    },
+    {
+      "id": "BA-040",
+      "description": "Switches between overview/details/charts visualization tabs",
+      "verification": "Mock data, click tabs, verify correct content displays in each tab",
+      "source": "VersionComparison.tsx lines 400-600 (tab content)"
+    },
+    {
+      "id": "BA-041",
+      "description": "Shows loading skeleton during data fetch and error message on failure",
+      "verification": "Mock pending query, verify skeleton. Mock failed query, verify error message.",
+      "source": "Component lines 320-330 (loading/error states)"
+    }
+  ],
+  
+  "dependencies": {
+    "data": [
+      "forecast_versions",
+      "budget_forecasts",
+      "cost_breakdown"
+    ],
+    "procedures": [
+      "forecasts.getComparisonData"
+    ],
+    "ui": [
+      "@/components/ui/sheet",
+      "@/components/ui/dialog",
+      "@/components/ui/card",
+      "@/components/ui/table",
+      "@/components/ui/tabs",
+      "@/components/ui/select",
+      "@/components/ui/toggle-group",
+      "@/components/ui/button",
+      "@/components/ui/badge",
+      "@/components/ui/input",
+      "recharts"
+    ],
+    "utils": [
+      "@/lib/version-comparison-utils"
+    ]
+  },
+  
+  "props": {
+    "isOpen": "boolean - Controls Sheet/Dialog visibility",
+    "onClose": "() => void - Callback to close comparison view",
+    "projectId": "string - UUID of project being compared",
+    "projectName": "string - Display name for export filename",
+    "selectedVersion1": "number - First version to compare",
+    "selectedVersion2": "number - Second version to compare",
+    "mode": "'sheet' | 'dialog' - Presentation mode (default: sheet)"
+  },
+  
+  "architecture_notes": [
+    "Reuses forecasts.getComparisonData from Phase 4 (no new procedures)",
+    "Client-side data transformation in useMemo (UI-specific logic)",
+    "Charts externalized to charts.tsx (370 lines, doesn't count toward component limit)",
+    "Only 1 tRPC query - standard 7-step migration",
+    "Component size: ~385 lines (within M-CELL-3 ≤400 limit)"
+  ]
+}

@@ -1,0 +1,63 @@
+id: "filter-sidebar-cell"
+version: "1.0.0"
+
+gates:
+  types:
+    description: "TypeScript compilation with zero errors"
+    command: "pnpm type-check"
+    success_criteria: "Exit code 0, no errors related to filter-sidebar-cell"
+    blocking: true
+    notes: "Verify POFilters interface replaces 'any' type correctly"
+    
+  tests:
+    description: "Unit tests with 80%+ coverage"
+    command: "pnpm test components/cells/filter-sidebar-cell"
+    success_criteria: "All 14 behavioral assertions verified, coverage >= 80%"
+    blocking: true
+    focus_areas:
+      - "All 14 BAs have corresponding test cases"
+      - "Mock onFilterChange callback and verify invocations"
+      - "Test filter state initialization"
+      - "Test filter removal and reset"
+      - "Test trimming behavior (BA-014)"
+    
+  build:
+    description: "Production build succeeds"
+    command: "pnpm build"
+    success_criteria: "Build completes without errors, bundle size acceptable"
+    blocking: true
+    notes: "Verify lucide-react icons bundle correctly"
+    
+  performance:
+    description: "Render performance within 110% baseline"
+    baseline: "Current filter-sidebar.tsx performance"
+    measurement: "React DevTools Profiler"
+    threshold: "110%"
+    blocking: false
+    success_criteria: "Component renders in ≤3 cycles (mount + state updates)"
+    notes: "No infinite loops - verify with Network tab (should see 0 requests, pure UI)"
+    
+  accessibility:
+    description: "WCAG AA compliance"
+    checks:
+      - "Keyboard navigation works for all controls (tab through filters)"
+      - "ARIA labels present: role='switch' on toggle, labeled selects"
+      - "Color contrast meets AA: blue-600 on white, text readable"
+      - "Focus indicators visible on all interactive elements"
+    blocking: true
+    manual_validation: true
+
+behavioral_assertions:
+  minimum_required: 3
+  actual_count: 14
+  coverage_requirement: "All 14 assertions must have corresponding tests"
+  critical_assertions:
+    - "BA-004: Auto-apply on state change (core functionality)"
+    - "BA-008: Clear all resets (prevent state bugs)"
+    - "BA-014: PO number trimming (data integrity fix)"
+
+validation_strategy:
+  unit_tests: "80%+ coverage required"
+  integration_tests: "Manual validation with po-mapping page"
+  regression_tests: "Verify no visual changes from original"
+  performance_tests: "No infinite loops, ≤3 renders"

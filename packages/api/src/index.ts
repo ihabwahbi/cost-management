@@ -1,0 +1,46 @@
+import { router } from './trpc';
+import { testRouter } from './procedures/test/test.router';
+import { dashboardRouter } from './procedures/dashboard/dashboard.router';
+import { poMappingRouter } from './procedures/po-mapping/po-mapping.router';
+import { forecastsRouter } from './procedures/forecasts/forecasts.router';
+import { projectsRouter } from './procedures/projects/projects.router';
+import { costBreakdownRouter } from './procedures/cost-breakdown/cost-breakdown.router';
+import { db } from '@cost-mgmt/db';
+import type { Context } from './trpc';
+
+/**
+ * Main tRPC App Router
+ * 
+ * Aggregates all sub-routers for the API
+ */
+export const appRouter = router({
+  test: testRouter,
+  dashboard: dashboardRouter,
+  poMapping: poMappingRouter,
+  forecasts: forecastsRouter,
+  projects: projectsRouter,
+  costBreakdown: costBreakdownRouter,
+});
+
+/**
+ * Export type definition of API for client usage
+ * 
+ * This enables end-to-end type safety from server to client
+ */
+export type AppRouter = typeof appRouter;
+
+/**
+ * Create context for tRPC procedures
+ * 
+ * Called for each request to provide context to procedures
+ */
+export const createContext = (): Context => {
+  return {
+    db,
+  };
+};
+
+/**
+ * Export all router types for re-use
+ */
+export { type Context } from './trpc';

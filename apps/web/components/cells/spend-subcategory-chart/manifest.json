@@ -1,0 +1,114 @@
+{
+  "id": "spend-subcategory-chart",
+  "version": "1.0.0",
+  "description": "Dual-view (treemap/list) spend subcategory visualization with expandable categories and budget utilization tracking",
+  
+  "dataContract": {
+    "source": "props (parent: ChartsSection via dashboard.getProjectHierarchicalBreakdown)",
+    "inputSchema": {
+      "data": "SubcategoryData[] (category, subcategory, value, budget, percentage)",
+      "loading": "boolean (optional, default: false)",
+      "onDrillDown": "(category: string, subcategory: string) => void (optional)"
+    }
+  },
+  
+  "behavioralAssertions": [
+    {
+      "id": "BA-001",
+      "requirement": "Component MUST support both 'tree' and 'list' view modes with toggle buttons",
+      "validation": "Unit test: click tree/list buttons, verify viewMode state updates and correct view renders",
+      "criticality": "high",
+      "source": "Lines 30, 158-171, 174"
+    },
+    {
+      "id": "BA-002",
+      "requirement": "Tree view MUST display hierarchical treemap using Recharts library with parent-child structure",
+      "validation": "Visual regression test: snapshot treemap rendering with sample data",
+      "criticality": "high",
+      "source": "Lines 50-59, 175-185"
+    },
+    {
+      "id": "BA-003",
+      "requirement": "Categories MUST be color-coded using 8-color palette with modulo cycling for categories beyond 8",
+      "validation": "Unit test: verify COLORS array length = 8, color assignment uses modulo logic",
+      "criticality": "medium",
+      "source": "Lines 82-85, 99, 208"
+    },
+    {
+      "id": "BA-004",
+      "requirement": "List view MUST show expandable categories with chevron indicators (down=expanded, right=collapsed)",
+      "validation": "Unit test: click category, verify expandedCategories Set contains/removes category ID",
+      "criticality": "high",
+      "source": "Lines 71-79, 189, 201-205"
+    },
+    {
+      "id": "BA-005",
+      "requirement": "Currency values MUST use compact notation for amounts >$1M (e.g., '$1.5M') and standard for ≤$1M",
+      "validation": "Unit test: formatCurrency(1500000) === '$1.5M', formatCurrency(850000) === '$850,000'",
+      "criticality": "medium",
+      "source": "Lines 61-69"
+    },
+    {
+      "id": "BA-006",
+      "requirement": "Budget utilization MUST color-code: >100% red (#ef4444), >80% amber (#f59e0b), ≤80% green (#10b981)",
+      "validation": "Unit test: verify className based on utilization thresholds",
+      "criticality": "medium",
+      "source": "Lines 190-192, 231-233, 216-223, 251-258"
+    },
+    {
+      "id": "BA-007",
+      "requirement": "Component MUST display loading spinner when loading prop is true",
+      "validation": "Unit test: render with loading=true, verify spinner presence",
+      "criticality": "high",
+      "source": "Lines 20, 26, 134-147"
+    },
+    {
+      "id": "BA-008",
+      "requirement": "onDrillDown callback MUST fire on category/subcategory click with correct parameters",
+      "validation": "Unit test: mock onDrillDown, click subcategory, verify called with (category, subcategory)",
+      "criticality": "medium",
+      "source": "Lines 21, 105, 239-242"
+    },
+    {
+      "id": "BA-009",
+      "requirement": "Footer MUST show grand total spend across all subcategories with formatCurrency",
+      "validation": "Unit test: verify total = sum of all category values, formatted correctly",
+      "criticality": "low",
+      "source": "Lines 272-280, 277"
+    },
+    {
+      "id": "BA-010",
+      "requirement": "Component MUST gracefully handle empty data array without crashing",
+      "validation": "Unit test: render with data=[], verify no errors thrown",
+      "criticality": "medium",
+      "source": "Currently handled by parent, Cell should implement internal empty state"
+    }
+  ],
+  
+  "dependencies": {
+    "ui": [
+      "@/components/ui/card",
+      "@/components/ui/button",
+      "recharts (ResponsiveContainer, Treemap)",
+      "lucide-react (ChevronDown, ChevronRight, Package)"
+    ],
+    "utils": ["@/lib/utils (cn)"],
+    "state": ["useState (expandedCategories, viewMode)"]
+  },
+  
+  "accessibility": {
+    "wcag": "AA",
+    "requirements": [
+      "Toggle buttons MUST have aria-label describing view mode",
+      "Treemap MUST have role='img' with aria-label",
+      "Category rows MUST be keyboard navigable",
+      "Color-coding MUST not be sole indicator (include text labels)"
+    ]
+  },
+  
+  "metadata": {
+    "createdBy": "Phase 4: Migration Execution (2025-10-09)",
+    "migrationFrom": "apps/web/components/dashboard/spend-subcategory-chart.tsx",
+    "estimatedDuration": "6-8 hours"
+  }
+}

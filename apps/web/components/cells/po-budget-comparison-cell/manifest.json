@@ -1,0 +1,49 @@
+{
+  "id": "po-budget-comparison-cell",
+  "version": "1.0.0",
+  "description": "Displays budget vs actual spending comparison using PO mappings",
+  "behavioral_assertions": [
+    {
+      "id": "BA-001",
+      "description": "Displays budget vs actual comparison when PO mappings exist",
+      "verification": "Mock successful query with mapping data, verify metrics render",
+      "source": "BudgetComparison component lines 104-227"
+    },
+    {
+      "id": "BA-002",
+      "description": "Shows loading skeleton during data fetch",
+      "verification": "Mock pending query, verify skeleton components visible",
+      "source": "New implementation pattern"
+    },
+    {
+      "id": "BA-003",
+      "description": "Displays empty state when no PO mappings found",
+      "verification": "Mock query with mappingCount = 0, verify empty message shown",
+      "source": "BudgetComparison component lines 84-102"
+    },
+    {
+      "id": "BA-004",
+      "description": "Shows error alert on query failure",
+      "verification": "Mock failed query, verify error message displayed",
+      "source": "New implementation pattern"
+    }
+  ],
+  "dependencies": {
+    "data": [
+      "po_mappings",
+      "po_line_items",
+      "pos",
+      "cost_breakdown"
+    ],
+    "ui": [
+      "Card",
+      "Button",
+      "Progress",
+      "Separator",
+      "Badge",
+      "Tooltip",
+      "Skeleton",
+      "Alert"
+    ]
+  }
+}

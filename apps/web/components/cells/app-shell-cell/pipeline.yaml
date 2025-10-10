@@ -1,0 +1,52 @@
+gates:
+  - name: types
+    command: pnpm type-check
+    requirement: Zero TypeScript errors
+    description: |
+      Type checking must pass for:
+      - Component interfaces (AppShellProps)
+      - Hook types (useSidebarState return type)
+      - All sub-components
+  
+  - name: tests
+    command: pnpm test -- apps/web/components/cells/app-shell-cell/__tests__
+    requirement: All 5 behavioral assertions verified, coverage ≥80%
+    description: |
+      Unit tests must verify:
+      - BA-001: Sidebar toggle functionality
+      - BA-002: Breadcrumb generation logic
+      - BA-003: Active nav item highlighting
+      - BA-004: Overlay click closes sidebar
+      - BA-005: Nav link click closes sidebar
+  
+  - name: build
+    command: pnpm build
+    requirement: Production build succeeds
+    description: |
+      Build must complete without errors:
+      - Component compiles to JavaScript
+      - All imports resolve correctly
+      - Bundle size acceptable
+  
+  - name: accessibility
+    requirement: WCAG AA compliance
+    description: |
+      Accessibility checks:
+      - Keyboard navigation works (Tab, Enter, Escape)
+      - ARIA labels present on interactive elements
+      - Semantic HTML structure
+      - Color contrast meets WCAG AA
+      - Screen reader compatibility
+    manual: true
+  
+  - name: visual
+    requirement: Component renders correctly in browser
+    description: |
+      Visual validation checklist:
+      - Sidebar displays on desktop and mobile
+      - Navigation items highlight on active route
+      - Breadcrumbs update when navigating
+      - SLB branding renders correctly
+      - Mobile menu toggle works
+      - No console errors
+    manual: true

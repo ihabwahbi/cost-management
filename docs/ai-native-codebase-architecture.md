@@ -40,11 +40,11 @@ The ANDA framework is built on four core principles:
 The Living Blueprint Architecture leverages a modern, type-safe technology stack optimized for AI agent development:
 
 ```
-PostgreSQL (Supabase)
+Azure PostgreSQL
     ↓
 Drizzle ORM (Schema Definition)
     ↓
-tRPC Backend (Supabase Edge Functions)
+tRPC Backend (Next.js API Routes)
     ↓
 tRPC Client (Type-Safe Queries)
     ↓
@@ -52,10 +52,10 @@ React Components (Guaranteed Types)
 ```
 
 **Key Technologies:**
-- **Database**: PostgreSQL via Supabase
+- **Database**: Azure PostgreSQL (Flexible Server)
 - **ORM**: Drizzle ORM for type-safe schema definition
 - **API Layer**: tRPC for end-to-end type safety
-- **Runtime**: Supabase Edge Functions
+- **Runtime**: Next.js API Routes at `/api/trpc`
 - **Frontend**: React with TanStack Query
 - **Monorepo**: Turborepo for package management
 - **UI Components**: shadcn/ui for consistent design
@@ -108,7 +108,7 @@ project-root/
 Current architectures often have multiple type-safety gaps:
 ```typescript
 // Common anti-pattern: No type safety between query and UI
-const { data } = await supabase.from('cost_breakdown').select('*')
+const { data } = await db.query.raw('SELECT * FROM cost_breakdown')
 // data is 'any' - UI has no contract with database
 ```
 
@@ -971,7 +971,7 @@ JavaScript Date objects cannot be sent over HTTP. They serialize to strings, but
 
 ### 5.3. Pitfall #3: SQL Syntax Confusion
 
-**Severity:** MEDIUM - Breaks edge function queries
+**Severity:** MEDIUM - Breaks API procedure queries
 
 **Root Cause:**
 Mixing mental models between Drizzle ORM and raw SQL syntax.
@@ -1008,7 +1008,7 @@ const mappings = await db
 - Environment variables pointing to wrong URLs
 
 **Root Cause:**
-Not understanding existing infrastructure setup, attempting to recreate what already exists (e.g., creating local API route when Supabase Edge Function already deployed).
+Not understanding existing infrastructure setup, attempting to recreate what already exists.
 
 **Prevention Strategy:**
 
@@ -1018,8 +1018,8 @@ Before ANY implementation:
 - [ ] Query ledger for similar Cells
 - [ ] Review referenced Cell code
 - [ ] Check existing tRPC routers (what procedures exist?)
-- [ ] Verify edge function deployment status
-- [ ] Confirm environment variables point to correct endpoints
+- [ ] Verify Next.js API routes are configured
+- [ ] Confirm tRPC client configuration
 - [ ] DO NOT recreate infrastructure that already exists
 ```
 
@@ -1040,7 +1040,7 @@ Step 3: Isolate Client vs Server
   If Network = 200 OK but UI stuck:
     → Issue is CLIENT-SIDE (React Query, memoization)
   If Network = 4xx/5xx errors:
-    → Issue is SERVER-SIDE (edge function, validation)
+    → Issue is SERVER-SIDE (API procedure, validation)
 
 Step 4: Add Defensive Logging
   - Log query inputs to check for changes
@@ -1418,8 +1418,8 @@ At each step, verify architectural compliance:
 # Step 1: Find components not in Cell structure
 find apps/web/components -type f -name "*.tsx" | grep -v "/cells/" | grep -v "/ui/"
 
-# Step 2: Check for direct Supabase usage (anti-pattern)
-grep -r "supabase.from" apps/web/components --include="*.tsx"
+# Step 2: Check for components without tRPC (anti-pattern)
+grep -r "fetch\|axios" apps/web/components --include="*.tsx" | grep -v "/cells/"
 
 # Step 3: Find large components (>400 lines)
 find apps/web/components -name "*.tsx" -exec wc -l {} + | sort -rn | head -20

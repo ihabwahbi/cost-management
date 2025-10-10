@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { publicProcedure } from '../../trpc'
 import { db, costBreakdown, budgetForecasts, forecastVersions } from '@cost-mgmt/db'
 import { eq, desc, and, asc } from 'drizzle-orm'
+import type { PgColumn } from 'drizzle-orm/pg-core'
 
 /**
  * Get cost breakdown entries for a specific version
@@ -25,7 +26,7 @@ export const getCostBreakdownByVersion = publicProcedure
     const { projectId, versionNumber, orderBy } = input
 
     // Determine order column
-    const getOrderColumn = (table: any) => {
+    const getOrderColumn = (table: typeof costBreakdown): PgColumn => {
       return orderBy === 'budgetCost' ? table.budgetCost :
              orderBy === 'createdAt' ? table.createdAt :
              table.costLine

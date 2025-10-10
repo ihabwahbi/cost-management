@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { publicProcedure } from '../../trpc';
 import { db, pos, poLineItems, poMappings } from '@cost-mgmt/db';
-import { eq, and, between, inArray, sql, desc } from 'drizzle-orm';
+import { eq, and, between, inArray, sql, desc, type SQL } from 'drizzle-orm';
 
 /**
  * Get POs with Line Items - Server-side JOINs and Filtering
@@ -33,7 +33,7 @@ export const getPOsWithLineItems = publicProcedure
   )
   .query(async ({ input }) => {
     // Build filter conditions
-    const filterConditions: any[] = [];
+    const filterConditions: SQL<unknown>[] = [];
 
     // Filter: PO Numbers (comma/newline separated)
     if (input.poNumbers) {

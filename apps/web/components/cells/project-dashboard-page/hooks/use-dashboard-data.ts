@@ -41,7 +41,7 @@ export interface UseDashboardDataReturn {
   anyLoading: boolean
   
   // Error states
-  error: any
+  error: unknown
   
   // Refetch functions
   refetchAll: () => Promise<void>

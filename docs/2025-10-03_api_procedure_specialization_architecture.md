@@ -40,9 +40,10 @@ These requirements are non-negotiable and form the foundation of an agent-optima
     *   *ANDA Principle: Radical Granularity & Atomicity.*
     *   *Rationale: Enforces extreme leanness, guaranteeing that any procedure and its local helpers can be fully understood by an agent in a single pass.*
 
-*   **M3: No Parallel Implementations:** There **MUST** be only one implementation for the tRPC backend (Drizzle-based). The raw SQL implementation in `supabase/functions/trpc/index.ts` must be removed.
+*   **M3: No Parallel Implementations:** There **MUST** be only one implementation for the tRPC backend (Drizzle-based). All procedures are served through Next.js API routes at `/api/trpc`.
     *   *ANDA Principle: Explicitness over Implicitness, Lean Codebase.*
     *   *Rationale: Eliminates ambiguity for the agent. There must be a single, clear source of truth for all API logic.*
+    *   *Status: ✅ COMPLETED - Legacy Supabase Edge Function implementation removed (2025-10-10)*
 
 *   **M4: Explicit Naming Conventions:** Procedure filenames **MUST** clearly describe their single purpose (e.g., `get-kpi-metrics.procedure.ts`).
     *   *ANDA Principle: Explicitness over Implicitness.*
@@ -239,7 +240,7 @@ This is a phased approach to refactor the existing `packages/api/src/routers/das
 ### Phase 3: Cleanup
 
 1.  **Delete Old Router File:** Once all procedures are moved, delete the old monolithic file (e.g., `dashboard.ts`).
-2.  **Delete Old Supabase Function:** The entire `supabase/functions/trpc/index.ts` file **MUST** be deleted.
+2.  **✅ COMPLETED: Supabase Edge Function Removed:** The legacy `supabase/functions/trpc/` directory has been deleted. All API procedures now serve through Next.js API routes at `/api/trpc` (completed 2025-10-10).
 3.  **Final Validation:** Run all application tests.
 
 ## 7. Final Component Manifest
@@ -275,9 +276,9 @@ This manifest lists the definitive architectural components for the refactored t
     *   `split-mapped-amount.helper.ts`
     *   `generate-pl-timeline.helper.ts`
 
-### Deprecated Components (To Be Deleted)
-*   **Purpose:** These monolithic files will be removed at the end of the migration process.
-*   **Components:**
-    *   `packages/api/src/routers/dashboard.ts`
-    *   `packages/api/src/routers/po-mapping.ts`
-    *   `supabase/functions/trpc/index.ts`
+### Deprecated Components (Migration History)
+*   **Purpose:** These components were removed during the architecture migration.
+*   **Status:**
+    *   `packages/api/src/routers/dashboard.ts` - ✅ Migrated to specialized procedures
+    *   `packages/api/src/routers/po-mapping.ts` - ✅ Migrated to specialized procedures  
+    *   `supabase/functions/trpc/` - ✅ **DELETED** (2025-10-10) - Replaced with Next.js API routes

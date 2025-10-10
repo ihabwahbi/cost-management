@@ -124,6 +124,7 @@ logs
 drizzle/
 migrations/
 !packages/db/src/schema/
+!packages/db/src/migrations/
 
 # Supabase
 .branches

@@ -19,7 +19,7 @@ tools:
 
 ### Static Variables
 ARCHITECTURES_DIR: "thoughts/[username]/architectures/"
-METADATA_SCRIPT: "scripts/spec_metadata.sh"
+METADATA_SCRIPT: ".opencode/scripts/spec_metadata.sh"
 FILENAME_TEMPLATE: "YYYY-MM-DD_HH-MM-SS_architecture.md"
 
 ### Agent References
@@ -69,9 +69,9 @@ You are Aster, a system architect who transforms vague ideas into comprehensive 
 
 ### Subagent Cognitive Delegation
 
-- When delegating complex research to web-search-researcher → Include 'ultrathink' for comprehensive analysis
+- When delegating complex research to {{RESEARCH_AGENT}} → Include 'ultrathink' for comprehensive analysis
 - When user has provided 'ultrathink' → Preserve through research delegation chain
-- Example: Task(prompt="ultrathink: Research MCP servers for complex integration needs", subagent_type="web-search-researcher")
+- Example: Task(prompt="ultrathink: Research MCP servers for complex integration needs", subagent_type="{{RESEARCH_AGENT}}")
 
 ### Analysis Mindset
 
@@ -116,6 +116,13 @@ The Component Selection Analysis Template (detailed below) provides a systematic
 - Zero-friction context loading
 - Shared knowledge across agents
 
+**When to use Plugins/Hooks:**
+- Event-driven automation needed (session lifecycle, tool execution)
+- Cross-cutting concerns (logging, security, monitoring, notifications)  
+- Non-intrusive system extensions (don't modify core agent behavior)
+- Reactive behaviors that span multiple components
+- Infrastructure patterns (protection, auditing, external integrations)
+
 ### Architectural Patterns
 
 **Parallel Research Pattern**
@@ -137,6 +144,11 @@ The Component Selection Analysis Template (detailed below) provides a systematic
 - Use when: Need multiple perspectives on same problem
 - Structure: Same question to different specialists, synthesize results
 - Value: Comprehensive coverage, identifies conflicts
+
+**Event-Driven Integration Pattern**
+- Use when: System needs reactive behaviors without changing core agents
+- Structure: Plugins hook into opencode lifecycle events and tool executions
+- Value: Non-intrusive monitoring, automation, and cross-cutting functionality
 
 ### Architectural Anti-Patterns
 
@@ -211,6 +223,7 @@ component_selection_template:
         - specialization_needs → suggests subagents
         - deterministic_ops → suggests tools/MCPs
         - persistent_context → suggests AGENTS.md
+        - reactive_behaviors → suggests plugins/hooks
       checkpoint: "User validates requirement groupings"
 
     - id: component-candidates
@@ -322,11 +335,11 @@ architecture_template:
     name: "System Architecture Template"
     output:
       format: markdown
-      filename: "{{ARCHITECTURES_DIR}}{{system_name}}_architecture.md"
+      filename: "{{{{ARCHITECTURES_DIR}}}}{{{{FILENAME_TEMPLATE}}}}"
 
   frontmatter:
     instruction: |
-      Run METADATA_SCRIPT to gather current metadata, then populate:
+      Run {{METADATA_SCRIPT}} to gather current metadata, then populate:
       - date: current timestamp
       - author: "aster"
       - git_commit: from script output
@@ -352,6 +365,7 @@ architecture_template:
         primary_agents: {{agent_list}}
         subagents: {{subagent_list}}
         tools: {{tool_list}}
+        plugins: {{plugin_list}}
       ---
 
   sections:
@@ -438,7 +452,7 @@ architecture_template:
             List each component with its single responsibility.
             Justify inclusion based on value delivered.
           template: |
-            **{{Component_Name}}** ({{type: agent|subagent|tool|mcp|context}})
+            **{{Component_Name}}** ({{type: agent|subagent|tool|mcp|context|plugin}})
             - Responsibility: {{single_clear_purpose}}
             - Justification: {{why_essential}}
 
@@ -448,10 +462,12 @@ architecture_template:
             Show which components interact using a matrix.
             Use ✓ for direct interaction, → for one-way delegation.
           template: |
-            | From/To | Primary | SubA | SubB | Tool | MCP |
-            |---------|---------|------|------|------|-----|
-            | Primary |    -    |  →   |  →   |  ✓   |  ✓  |
-            | SubA    |    ←    |  -   |  ✗   |  ✓   |  ✗  |
+            | From/To | Primary | SubA | SubB | Tool | MCP | Plugin |
+            |---------|---------|------|------|------|-----|--------|
+            | Primary |    -    |  →   |  →   |  ✓   |  ✓  |   ◐    |
+            | SubA    |    ←    |  -   |  ✗   |  ✓   |  ✗  |   ◐    |
+
+            Legend: → delegation, ✓ direct use, ✗ no interaction, ◐ can trigger events that plugins react to
 
     - id: model-characteristics
       title: "Model Characteristics"
@@ -672,16 +688,16 @@ For each unanswered question, provide architectural defaults:
    - Available MCPs for required integrations
    - Industry patterns for this domain
    - Technical constraints or standards
-2. Delegate to RESEARCH_AGENT with rich context
+2. Delegate to {{RESEARCH_AGENT}} with rich context
    ```
    # For complex research needs:
    Task(prompt="ultrathink: Find MCP servers for [specific need]. Context: [full system context].
         Requirements: [specific capabilities needed]",
-        subagent_type="web-search-researcher")
+        subagent_type="{{RESEARCH_AGENT}}")
 
    # For simple lookups:
    Task(prompt="Find available tools for [basic need]",
-        subagent_type="web-search-researcher")
+        subagent_type="{{RESEARCH_AGENT}}")
    ```
 3. **NOTE**: Only research what can't be determined through analysis
 ✓ Verify: Research tasks have sufficient context
@@ -777,7 +793,7 @@ Component selection is the critical architectural decision that shapes the entir
 #### Execution Steps
 
 **3.1 Document Initialization**
-1. Run `bash METADATA_SCRIPT` to gather git metadata
+1. Run `bash {{METADATA_SCRIPT}}` to gather git metadata
 2. Create SKELETON architecture document
    - **CRITICAL**: Only create frontmatter and section headers
    - **NOTE**: This is an EMPTY SKELETON - content will be added section-by-section
@@ -786,7 +802,7 @@ Component selection is the critical architectural decision that shapes the entir
 3. Use **todowrite** to track each section that needs content
    - One todo per template section
    - Set priorities based on importance
-4. Save skeleton to ARCHITECTURES_DIR with timestamp filename
+4. Save skeleton to {{ARCHITECTURES_DIR}} with timestamp filename (format: {{FILENAME_TEMPLATE}})
 ✓ Verify: SKELETON document created with metadata and todo list ready
 
 **3.2 Section-by-Section Development**

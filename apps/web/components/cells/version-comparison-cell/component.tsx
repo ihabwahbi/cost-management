@@ -230,7 +230,7 @@ export function VersionComparisonCell({
   }))
   
   const content = (
-    <div className="flex flex-col h-full space-y-4">
+    <div className="flex flex-col h-full space-y-4 px-4">
       <div className="flex gap-2 items-center">
         <div className="relative flex-1">
           <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />

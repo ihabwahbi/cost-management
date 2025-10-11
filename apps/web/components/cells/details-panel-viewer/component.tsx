@@ -28,17 +28,15 @@ export function DetailsPanelViewer({ poId, onEditMapping, onMappingsLoaded }: De
   // Notify parent component when mappings data loads
   useEffect(() => {
     if (data && onMappingsLoaded) {
-      // Extract just id and poLineItemId for orchestrator state management
       const mappingsData = data.map(m => ({ 
         id: m.id, 
         poLineItemId: m.poLineItemId 
       }))
       onMappingsLoaded(mappingsData)
-    } else if (!data && onMappingsLoaded) {
-      // No mappings - notify with empty array
+    } else if (!data && !isLoading && onMappingsLoaded) {
       onMappingsLoaded([])
     }
-  }, [data]) // Removed callback from deps - event handlers don't need to be dependencies
+  }, [data, isLoading]) // Removed callback from deps - event handlers don't need to be dependencies
   
   // BA-002: Currency formatting helper - shows 'N/A' for null/invalid
   const formatCurrency = (value: string | null) => {

@@ -32,6 +32,7 @@ export function DetailsPanel({ selectedPO, onMappingChange }: DetailsPanelProps)
   const [costBreakdownId, setCostBreakdownId] = useState<string | null>(null)
   const [isEditMode, setIsEditMode] = useState(false)
   const [existingMappings, setExistingMappings] = useState<Array<{ id: string; poLineItemId: string }>>([])
+  const [hasDataLoaded, setHasDataLoaded] = useState(false)
   
   // BA-012: Reset all state when PO changes
   useEffect(() => {
@@ -41,6 +42,7 @@ export function DetailsPanel({ selectedPO, onMappingChange }: DetailsPanelProps)
     setCostBreakdownId(null)
     setIsEditMode(false)
     setExistingMappings([])
+    setHasDataLoaded(false)
   }, [selectedPO?.id])
   
   const handleMappingComplete = async () => {
@@ -59,8 +61,9 @@ export function DetailsPanel({ selectedPO, onMappingChange }: DetailsPanelProps)
   
   const handleViewerDataLoaded = (mappings: Array<{ id: string; poLineItemId: string }>) => {
     setExistingMappings(mappings)
+    setHasDataLoaded(true)
     if (mappings.length > 0) {
-      setIsEditMode(false) // Hide create/edit UI if mappings exist
+      setIsEditMode(false)
     }
   }
   
@@ -88,12 +91,13 @@ export function DetailsPanel({ selectedPO, onMappingChange }: DetailsPanelProps)
       <CardContent className="space-y-4">
         {/* Viewer - always visible if mappings exist (GREEN CARD) */}
         <DetailsPanelViewer 
+          key={selectedPO.id}
           poId={selectedPO.id}
           onMappingsLoaded={handleViewerDataLoaded}
         />
         
         {/* BA-011: Show unmapped state in RED CARD if no mappings and not editing */}
-        {existingMappings.length === 0 && !isEditMode && (
+        {existingMappings.length === 0 && !isEditMode && hasDataLoaded && (
           <Card className="border-red-500 bg-red-50">
             <CardHeader>
               <CardTitle className="text-red-800 flex items-center gap-2">
@@ -135,7 +139,7 @@ export function DetailsPanel({ selectedPO, onMappingChange }: DetailsPanelProps)
         )}
         
         {/* BA-011: Show create button if no mappings */}
-        {existingMappings.length === 0 && !isEditMode && (
+        {existingMappings.length === 0 && !isEditMode && hasDataLoaded && (
           <div className="flex justify-center">
             <Button onClick={() => setIsEditMode(true)}>
               Create Mapping

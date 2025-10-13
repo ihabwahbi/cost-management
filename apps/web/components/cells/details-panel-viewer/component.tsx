@@ -36,7 +36,8 @@ export function DetailsPanelViewer({ poId, onEditMapping, onMappingsLoaded }: De
     } else if (!data && !isLoading && onMappingsLoaded) {
       onMappingsLoaded([])
     }
-  }, [data, isLoading]) // Removed callback from deps - event handlers don't need to be dependencies
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data, isLoading])
   
   // BA-002: Currency formatting helper - shows 'N/A' for null/invalid
   const formatCurrency = (value: string | null) => {

@@ -29,45 +29,55 @@ interface SelectorProps {
  * Uses all 4 read procedures to find matching cost breakdown
  */
 export function DetailsPanelSelector(props: SelectorProps) {
+  const {
+    selectedProject,
+    selectedSpendType,
+    selectedSpendSubCategory,
+    onProjectChange,
+    onSpendTypeChange,
+    onSubCategoryChange,
+    onCostBreakdownFound
+  } = props
+  
   // No input required for projects query (void procedure)
   const { data: projects, isLoading: projectsLoading } = trpc.poMapping.getProjects.useQuery()
   
   // Memoized input for spend types
   const spendTypeInput = useMemo(
-    () => ({ projectId: props.selectedProject }),
-    [props.selectedProject]
+    () => ({ projectId: selectedProject }),
+    [selectedProject]
   )
   const { data: spendTypes, isLoading: spendTypesLoading } = trpc.poMapping.getSpendTypes.useQuery(
     spendTypeInput,
-    { enabled: !!props.selectedProject }
+    { enabled: !!selectedProject }
   )
   
   // Memoized input for subcategories
   const subCatInput = useMemo(
     () => ({ 
-      projectId: props.selectedProject, 
-      spendType: props.selectedSpendType 
+      projectId: selectedProject, 
+      spendType: selectedSpendType 
     }),
-    [props.selectedProject, props.selectedSpendType]
+    [selectedProject, selectedSpendType]
   )
   const { data: subCategories, isLoading: subCategoriesLoading } = trpc.poMapping.getSpendSubCategories.useQuery(
     subCatInput,
-    { enabled: !!props.selectedProject && !!props.selectedSpendType }
+    { enabled: !!selectedProject && !!selectedSpendType }
   )
   
   // Memoized input for finding matching cost breakdown (Procedure 4)
   const findInput = useMemo(
     () => ({
-      projectId: props.selectedProject,
-      spendType: props.selectedSpendType,
-      spendSubCategory: props.selectedSpendSubCategory
+      projectId: selectedProject,
+      spendType: selectedSpendType,
+      spendSubCategory: selectedSpendSubCategory
     }),
-    [props.selectedProject, props.selectedSpendType, props.selectedSpendSubCategory]
+    [selectedProject, selectedSpendType, selectedSpendSubCategory]
   )
   const { data: costBreakdowns } = trpc.poMapping.findMatchingCostBreakdown.useQuery(
     findInput,
     { 
-      enabled: !!props.selectedProject && !!props.selectedSpendType && !!props.selectedSpendSubCategory,
+      enabled: !!selectedProject && !!selectedSpendType && !!selectedSpendSubCategory,
       refetchOnMount: false,
       refetchOnWindowFocus: false
     }
@@ -76,25 +86,28 @@ export function DetailsPanelSelector(props: SelectorProps) {
   // Notify parent when cost breakdown is found
   useEffect(() => {
     if (costBreakdowns && costBreakdowns.length > 0) {
-      props.onCostBreakdownFound(costBreakdowns[0].id)
+      onCostBreakdownFound(costBreakdowns[0].id)
     } else {
-      props.onCostBreakdownFound(null)
+      onCostBreakdownFound(null)
     }
-  }, [costBreakdowns]) // Removed callback from deps - event handlers don't need to be dependencies
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [costBreakdowns])
   
   // Cascading reset logic - BA-006
   useEffect(() => {
-    if (!props.selectedProject) {
-      props.onSpendTypeChange('')
-      props.onSubCategoryChange('')
+    if (!selectedProject) {
+      onSpendTypeChange('')
+      onSubCategoryChange('')
     }
-  }, [props.selectedProject]) // Removed callbacks from deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedProject])
   
   useEffect(() => {
-    if (!props.selectedSpendType) {
-      props.onSubCategoryChange('')
+    if (!selectedSpendType) {
+      onSubCategoryChange('')
     }
-  }, [props.selectedSpendType]) // Removed callback from deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedSpendType])
   
   return (
     <div className="space-y-4">
@@ -105,8 +118,8 @@ export function DetailsPanelSelector(props: SelectorProps) {
           <Skeleton className="h-10 w-full" />
         ) : (
           <Select 
-            value={props.selectedProject} 
-            onValueChange={props.onProjectChange}
+            value={selectedProject} 
+            onValueChange={onProjectChange}
           >
             <SelectTrigger id="project-select">
               <SelectValue placeholder="Select project" />
@@ -129,9 +142,9 @@ export function DetailsPanelSelector(props: SelectorProps) {
           <Skeleton className="h-10 w-full" />
         ) : (
           <Select 
-            value={props.selectedSpendType} 
-            onValueChange={props.onSpendTypeChange}
-            disabled={!props.selectedProject}
+            value={selectedSpendType} 
+            onValueChange={onSpendTypeChange}
+            disabled={!selectedProject}
           >
             <SelectTrigger id="spend-type-select">
               <SelectValue placeholder="Select spend type" />
@@ -152,9 +165,9 @@ export function DetailsPanelSelector(props: SelectorProps) {
           <Skeleton className="h-10 w-full" />
         ) : (
           <Select 
-            value={props.selectedSpendSubCategory} 
-            onValueChange={props.onSubCategoryChange}
-            disabled={!props.selectedSpendType}
+            value={selectedSpendSubCategory} 
+            onValueChange={onSubCategoryChange}
+            disabled={!selectedSpendType}
           >
             <SelectTrigger id="subcategory-select">
               <SelectValue placeholder="Select subcategory" />

@@ -109,7 +109,7 @@ export function DetailsPanel({ selectedPO, onMappingChange }: DetailsPanelProps)
             </CardHeader>
             <CardContent>
               <p className="text-sm text-red-700">
-                This PO has not been mapped to a cost breakdown. Click "Create Mapping" to assign it.
+                This PO has not been mapped to a cost breakdown. Click &quot;Create Mapping&quot; to assign it.
               </p>
             </CardContent>
           </Card>

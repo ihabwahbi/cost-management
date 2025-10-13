@@ -87,7 +87,9 @@ export function ProjectDashboardPage({ projectId }: ProjectDashboardPageProps) {
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Error Loading Dashboard</AlertTitle>
-          <AlertDescription>{data.error.message}</AlertDescription>
+          <AlertDescription>
+            {data.error instanceof Error ? data.error.message : 'An error occurred while loading the dashboard'}
+          </AlertDescription>
         </Alert>
       </div>
     )

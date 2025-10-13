@@ -340,7 +340,7 @@ export function PLCommandCenter({ projectId, onViewGapAnalysis }: PLCommandCente
                 <div>
                   <div className="font-semibold text-amber-900">P&L Gap Analysis</div>
                   <div className="text-sm text-amber-700">
-                    {((plGap / committed) * 100).toFixed(1)}% of committed spend hasn't hit P&L
+                    {((plGap / committed) * 100).toFixed(1)}% of committed spend hasn&apos;t hit P&L
                   </div>
                 </div>
               </div>

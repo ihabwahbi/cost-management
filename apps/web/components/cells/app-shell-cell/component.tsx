@@ -72,6 +72,7 @@ export function AppShell({ children }: AppShellProps) {
                     target="_blank"
                     rel="noopener noreferrer"
                   >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img 
                       src="/SLB_Logo_Positive_RGB_General.svg"
                       alt="SLB Logo"
@@ -143,6 +144,7 @@ export function AppShell({ children }: AppShellProps) {
                   target="_blank"
                   rel="noopener noreferrer"
                 >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img 
                     src="/SLB_Logo_Positive_RGB_General.svg"
                     alt="SLB Logo"

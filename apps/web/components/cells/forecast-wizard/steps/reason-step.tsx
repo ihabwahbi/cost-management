@@ -49,8 +49,8 @@ export function ReasonStep({
           className="min-h-[200px]"
         />
         <p className="text-xs text-muted-foreground">
-          Be specific about what drove these changes (e.g., "Q3 market conditions require
-          additional equipment maintenance budget")
+          Be specific about what drove these changes (e.g., &quot;Q3 market conditions require
+          additional equipment maintenance budget&quot;)
         </p>
       </div>
 

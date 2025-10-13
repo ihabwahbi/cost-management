@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, useCallback } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -40,7 +40,7 @@ export function FilterSidebarCell({ onFilterChange }: FilterSidebarCellProps) {
     return active
   }
 
-  const applyFilters = () => {
+  const applyFilters = useCallback(() => {
     const filters: POFilters = {
       location: location === "all" ? undefined : location,
       fmtPo: fmtPo ? true : undefined,
@@ -49,11 +49,12 @@ export function FilterSidebarCell({ onFilterChange }: FilterSidebarCellProps) {
       dateRange: dateRange,
     }
     onFilterChange(filters)
-  }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location, fmtPo, mappingStatus, poNumbers, dateRange])
 
   useEffect(() => {
     applyFilters()
-  }, [location, fmtPo, mappingStatus, poNumbers, dateRange])
+  }, [applyFilters])
 
   const handleReset = (e?: React.MouseEvent) => {
     e?.preventDefault()

@@ -2,6 +2,7 @@
 
 import { format } from "date-fns"
 import { formatCurrency } from "@/lib/budget-utils"
+import { type CostBreakdown } from "@/lib/version-utils"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -22,14 +23,6 @@ interface TransformedVersion {
   reason_for_change: string
   created_at: string
   created_by: string
-}
-
-interface CostBreakdown {
-  id: string
-  cost_line: string
-  spend_sub_category: string
-  budget_cost: number
-  forecasted_cost: number | null
 }
 
 interface VersionChanges {
